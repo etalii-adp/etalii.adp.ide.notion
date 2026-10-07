@@ -1,0 +1,82 @@
+# Checks every pull request into develop and every change to develop (etalii.adp spec 001-ci-and-badges), and
+# starts the publication of what is merged (etalii.adp spec 011-notion-repository, contracts/publication.md).
+# The addons job writes the tree this repository publishes at https://etalii.net/adp-notion, with the same
+# command the deploy workflow of etalii.adp.site runs, and checks it. The publish job uploads nothing: on a
+# push to develop it starts that deploy workflow, which builds this repository beside the site.
+name: Build
+
+on:
+  pull_request:
+    branches: [develop]
+  push:
+    branches: [develop]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: build-${{ github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-python@v7
+        with:
+          python-version: '3.13'
+      - run: python -m pip install pyyaml
+      - name: Check JSON, YAML and markdown links
+        run: python .github/scripts/check-files.py
+
+  addons:
+    needs: check
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
+        with:
+          node-version: '24'
+      - name: Build the published tree
+        run: node scripts/build.mjs --out "$RUNNER_TEMP/adp-notion"
+      - name: Check the add-on index names this revision
+        run: |
+          test -f "$RUNNER_TEMP/adp-notion/index.html"
+          grep -q "$(git rev-parse HEAD)" "$RUNNER_TEMP/adp-notion/index.html"
+      - name: Check every add-on is published
+        run: |
+          for folder in addons/*/; do
+            [ -d "$folder" ] || continue
+            test -f "$RUNNER_TEMP/adp-notion/$(basename "$folder")/index.html"
+          done
+
+  # Flags a retired use of the ADP vocabulary (etalii.adp spec 002, FR-017). The runner and its list of retired
+  # patterns and allowances live in etalii.adp and are read from its develop branch, so every repository is checked
+  # against the same list.
+  terminology:
+    if: github.event_name == 'pull_request'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-python@v7
+        with:
+          python-version: '3.13'
+      - name: Check the vocabulary against the glossary
+        env:
+          SOURCE: https://raw.githubusercontent.com/etalii-adp/etalii.adp/develop
+        run: |
+          curl -fsSL "$SOURCE/.github/scripts/terminology-check.py" -o "$RUNNER_TEMP/terminology-check.py"
+          python "$RUNNER_TEMP/terminology-check.py" --name "${{ github.event.repository.name }}" --config "$SOURCE/docs/terminology-check.json"
+
+  # The one job that reads a secret. A pull request, from a fork or not, never runs it.
+  publish:
+    needs: [check, addons]
+    if: github.event_name == 'push' && github.ref == 'refs/heads/develop'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Start the site's deployment
+        env:
+          GH_TOKEN: ${{ secrets.SITE_DEPLOY_TOKEN }}
+        run: gh workflow run deploy.yml --repo etalii-adp/etalii.adp.site --ref develop
