@@ -4,7 +4,7 @@
 
 The ADP tools in Notion. A Notion add-on is a web page that shows one ADP tool inside a Notion page; this repository builds the add-ons and publishes them at <https://etalii.net/adp-notion>. There is no add-on yet, so no tool is available in Notion.
 
-ADP, A Different Perspective, is a range of task-focused tools: diagrams, designers and editors. The site is at <https://etalii.net/adp/>.
+ADP, A Different Perspective, is a range of specialized tools: diagrams, designers and editors. The site is at <https://etalii.net/adp/>.
 
 ## Licence
 
