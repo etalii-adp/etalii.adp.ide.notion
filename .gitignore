@@ -1,0 +1,6 @@
+# Agent-local settings (may hold machine-specific or private state)
+.claude/settings.local.json
+
+# OS
+.DS_Store
+Thumbs.db
