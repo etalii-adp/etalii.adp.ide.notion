@@ -407,3 +407,51 @@ describe('canvas.css', () => {
     expect(readFileSync('src/frame/frame.css', 'utf8')).toMatch(/\.adp-canvas \{[^}]*var\(--notion-canvas-background\)/);
   });
 });
+
+describe('the canvas getting its real size after the first drawing', () => {
+  // An embedded page is laid out after its script runs: the first fit sees a size that is not the final one.
+  let resize: () => void;
+  let box: { width: number; height: number };
+  let sized: Canvas;
+
+  beforeEach(() => {
+    (window as unknown as { ResizeObserver: unknown }).ResizeObserver = class {
+      constructor(callback: () => void) { resize = callback; }
+      observe(): void {}
+      disconnect(): void {}
+    };
+    const svg = createRegions(document).canvas;
+    document.body.replaceChildren(svg);
+    box = { width: 300, height: 150 };
+    svg.getBoundingClientRect = () => ({ ...box, left: 0, top: 0, right: box.width, bottom: box.height, x: 0, y: 0, toJSON: () => ({}) });
+    sized = createCanvas(svg, { tool: made.sceneTool });
+    sized.show(example);
+  });
+
+  afterEach(() => {
+    sized.dispose();
+    delete (window as unknown as { ResizeObserver?: unknown }).ResizeObserver;
+  });
+
+  it('fits the drawing again while the view is still the fitted one', () => {
+    const before = sized.viewport.zoom;
+    box = { width: 1200, height: 800 };
+    resize();
+    expect(sized.viewport.zoom).toBeGreaterThan(before * 2);
+  });
+
+  it('leaves a view the user chose as it is', () => {
+    sized.panBy(40, 0);
+    const chosen = sized.viewport;
+    box = { width: 1200, height: 800 };
+    resize();
+    expect(sized.viewport).toEqual(chosen);
+  });
+});
+
+describe('a canvas with nothing drawn yet', () => {
+  it('draws no ruler', () => {
+    canvas.setViewport({ zoom: 1 });
+    expect(host.querySelector('.adp-canvas-rulers [data-unit]')).toBeNull();
+  });
+});

@@ -126,6 +126,10 @@ for (const id of ids) {
   cpSync(join(addons, id), join(target, id), { recursive: true });
   writeFileSync(join(target, id, 'addon.js'), script);
   writeFileSync(join(target, id, 'addon.css'), style);
+  // A browser keeps addon.js and addon.css for a while. The page names them with the revision, so a new
+  // publication is fetched as soon as the page itself is.
+  const page = join(target, id, 'index.html');
+  writeFileSync(page, readFileSync(page, 'utf8').replace(/"(addon\.(?:js|css))"/g, `"$1?v=${revision}"`));
 }
 writeFileSync(join(target, 'index.html'), index);
 console.log(`Wrote the add-on index and ${ids.length} add-on(s) to ${target}, revision ${revision}: addon.js is ${script.length} bytes, addon.css ${Buffer.byteLength(style)} bytes.`);
