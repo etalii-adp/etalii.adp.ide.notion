@@ -1,0 +1,681 @@
+gartner-hypecycle-graph: 1
+# A hand-authored hype cycle of electric vehicles, from the lead-acid battery to ideas that have not
+# started yet. Dates after 2026 are projections, and dates and influences are illustrative, not a
+# claim: see readme.md.
+trends:
+  - id: lead-acid-battery
+    name: Lead-acid battery
+    start: 1859-01
+    stop: 1990-01
+    row: 0
+    phases: 4
+    tags: [batteries]
+    description: Gaston Planté's rechargeable cell of 1859, still the starter battery in most cars.
+  - id: nickel-metal-hydride
+    name: Nickel-metal hydride batteries
+    start: 1989-01
+    stop: 2015-01
+    row: 2
+    phases: 4
+    tags: [batteries]
+  - id: lithium-ion-batteries
+    name: Lithium-ion batteries
+    start: 1991-06
+    stop: 2026-01
+    row: 0
+    phases: 4
+    tags: [batteries]
+  - id: lithium-iron-phosphate
+    name: Lithium iron phosphate
+    start: 1997-01
+    stop: 2035-01
+    row: 4
+    phases: 3
+    tags: [batteries]
+    description: Cheaper, safer cells without cobalt, back in favour from 2021.
+  - id: gigafactories
+    name: Gigafactories
+    start: 2014-02
+    stop: 2040-01
+    row: 6
+    phases: 2
+    tags: [batteries, industry]
+  - id: solid-state-batteries
+    name: Solid-state batteries
+    start: 2017-01
+    stop: 2034-01
+    row: 2
+    phases: 2
+    tags: [batteries]
+  - id: battery-recycling
+    name: Battery recycling
+    start: 2019-01
+    stop: 2040-01
+    row: 8
+    phases: 1
+    tags: [batteries, circular]
+  - id: sodium-ion-batteries
+    name: Sodium-ion batteries
+    start: 2021-07
+    stop: 2040-01
+    row: 10
+    phases: 1
+    tags: [batteries]
+    description: CATL's first sodium-ion cells of 2021, made without lithium.
+  - id: early-electric-cars
+    name: Early electric cars
+    start: 1890-01
+    stop: 1925-01
+    row: 12
+    phases: 2
+    tags: [vehicles]
+    description: Electric taxis in New York and London around 1900, beaten by the cheap petrol car.
+  - id: zev-mandate
+    name: Zero-emission mandate and the EV1
+    start: 1990-09
+    stop: 2003-12
+    row: 14
+    phases: 2
+    tags: [vehicles, policy]
+    description: California's mandate brought GM's EV1, which GM recalled and crushed in 2003.
+  - id: hybrid-cars
+    name: Hybrid cars
+    start: 1997-12
+    stop: 2030-01
+    row: 12
+    phases: 4
+    tags: [vehicles]
+    description: From the Toyota Prius of 1997.
+  - id: fuel-cell-cars
+    name: Fuel cell cars
+    start: 2002-12
+    stop: 2030-01
+    row: 16
+    phases: 2
+    tags: [vehicles, hydrogen]
+  - id: battery-electric-cars
+    name: Battery electric cars
+    start: 2008-02
+    stop: 2040-01
+    row: 18
+    phases: 3
+    peak-end: 2013-06
+    trough-end: 2019-01
+    tags: [vehicles]
+    description: From the Tesla Roadster and the Nissan Leaf on.
+  - id: ev-incentives
+    name: EV incentives and bans
+    start: 2009-01
+    stop: 2040-01
+    row: 14
+    phases: 3
+    tags: [policy]
+    description: Tax credits, China's new-energy vehicle quota, and bans on new petrol cars from 2035.
+  - id: electric-bikes-and-scooters
+    name: Electric bikes and scooters
+    start: 2010-01
+    stop: 2030-01
+    row: 20
+    phases: 3
+    tags: [micromobility]
+  - id: electric-buses
+    name: Electric buses
+    start: 2010-06
+    stop: 2035-01
+    row: 22
+    phases: 3
+    tags: [vehicles, transit]
+    description: Shenzhen's whole bus fleet went electric by 2017.
+  - id: electric-trucks
+    name: Electric trucks
+    start: 2017-11
+    stop: 2040-01
+    row: 26
+    phases: 2
+    tags: [vehicles, freight]
+  - id: electric-air-taxis
+    name: Electric air taxis
+    start: 2016-09
+    stop: 2040-01
+    row: 24
+    phases: 2
+    peak-end: 2022-01
+    tags: [aviation, upcoming]
+    description: Electric vertical take-off aircraft; several makers went bankrupt before certification.
+  - id: battery-swapping
+    name: Battery swapping
+    start: 2007-10
+    stop: 2035-01
+    row: 30
+    phases: 3
+    peak-end: 2013-05
+    trough-end: 2020-01
+    tags: [charging]
+    description: Better Place went bankrupt in 2013; NIO revived the idea in China.
+  - id: charging-standards
+    name: Charging connector standards
+    start: 2010-03
+    stop: 2030-01
+    row: 32
+    phases: 3
+    tags: [charging]
+    description: From CHAdeMO and CCS to the North American standard most makers adopted in 2023.
+  - id: vehicle-to-grid
+    name: Vehicle-to-grid
+    start: 2012-01
+    stop: 2040-01
+    row: 34
+    phases: 2
+    tags: [charging, grid]
+  - id: public-fast-charging
+    name: Public fast charging
+    start: 2012-09
+    stop: 2040-01
+    row: 38
+    phases: 3
+    tags: [charging]
+    description: From Tesla's first Superchargers in 2012.
+  - id: software-defined-vehicles
+    name: Software-defined vehicles
+    start: 2012-06
+    stop: 2040-01
+    row: 36
+    phases: 2
+    tags: [software]
+    description: Cars updated over the air, from the Model S on.
+  - id: self-driving
+    name: Driver assistance and self-driving
+    start: 2004-03
+    stop: 2040-01
+    row: 28
+    phases: 3
+    peak-end: 2018-03
+    trough-end: 2023-06
+    tags: [software, autonomy]
+    description: From the DARPA Grand Challenge of 2004; the hype broke after the first fatal crash in 2018.
+  - id: robotaxis
+    name: Robotaxis
+    start: 2020-10
+    stop: 2040-01
+    row: 40
+    phases: 1
+    tags: [autonomy, upcoming]
+    description: Driverless rides for the public, from Waymo in Phoenix in 2020.
+  - id: wireless-charging-roads
+    name: Dynamic wireless charging roads
+    start: 2028-01
+    stop: 2045-01
+    row: 42
+    phases: 1
+    tags: [charging, conceptual]
+    description: Coils under the road that charge a car while it drives.
+  - id: structural-batteries
+    name: Structural batteries
+    start: 2029-01
+    stop: 2045-01
+    row: 44
+    phases: 1
+    tags: [batteries, conceptual]
+    description: Cells that are the car's body, carrying load and storing energy at once.
+  - id: lithium-air-batteries
+    name: Lithium-air batteries
+    start: 2030-01
+    stop: 2048-01
+    row: 46
+    phases: 1
+    tags: [batteries, conceptual]
+    description: Close to petrol's energy density on paper, far from it in the lab.
+triggers:
+  - id: prius-unveiled
+    name: Toyota Prius unveiled
+    date: 1997-10
+    row: 11
+    tags: [vehicles]
+    description: The first mass-produced hybrid car was shown in Tokyo and went on sale in Japan that December.
+  - id: tesla-roadster-unveiled
+    name: Tesla Roadster unveiled
+    date: 2006-07
+    row: 17
+    tags: [vehicles, batteries]
+    description: A sports car running on thousands of laptop lithium-ion cells.
+  - id: dieselgate
+    name: Dieselgate
+    date: 2015-09
+    row: 13
+    tags: [policy]
+    description: Volkswagen admitted to cheating emissions tests, and the case for clean diesel collapsed.
+  - id: model-3-deliveries
+    name: Model 3 deliveries begin
+    date: 2017-07
+    row: 5
+    tags: [vehicles]
+    description: The first electric car built for the volume market by a company that made nothing else.
+  - id: us-inflation-reduction-act
+    name: US Inflation Reduction Act
+    date: 2022-08
+    row: 7
+    tags: [policy]
+    description: Tax credits tied to where batteries and their minerals are made.
+  - id: eu-2035-agreement
+    name: EU 2035 combustion-car deal
+    date: 2022-10
+    row: 13
+    tags: [policy]
+    description: The European Parliament and Council agreed that new cars sold from 2035 must emit no CO2.
+influences:
+  - id: lead-acid-battery--early-electric-cars
+    from: lead-acid-battery
+    from-phase: trough
+    from-edge: bottom
+    from-at: 0.35
+    to: early-electric-cars
+    to-phase: peak
+    to-edge: top
+    to-at: 0.77
+  - id: early-electric-cars--zev-mandate
+    from: early-electric-cars
+    from-phase: trough
+    from-edge: bottom
+    from-at: 0.60
+    to: zev-mandate
+    to-phase: peak
+    to-edge: top
+    to-at: 0.04
+    description: The first electric age was the precedent the mandate pointed to.
+  - id: lead-acid-battery--zev-mandate
+    from: lead-acid-battery
+    from-phase: plateau
+    from-edge: bottom
+    from-at: 0.60
+    to: zev-mandate
+    to-phase: peak
+    to-edge: top
+    to-at: 0.40
+    description: The first EV1 ran on lead-acid batteries.
+  - id: nickel-metal-hydride--zev-mandate
+    from: nickel-metal-hydride
+    from-phase: trough
+    from-edge: bottom
+    from-at: 0.30
+    to: zev-mandate
+    to-phase: trough
+    to-edge: top
+    to-at: 0.41
+    description: The second EV1 switched to nickel-metal hydride.
+  - id: nickel-metal-hydride--hybrid-cars
+    from: nickel-metal-hydride
+    from-phase: trough
+    from-edge: bottom
+    from-at: 0.75
+    to: hybrid-cars
+    to-phase: peak
+    to-edge: top
+    to-at: 0.70
+  - id: lithium-ion-batteries--lithium-iron-phosphate
+    from: lithium-ion-batteries
+    from-phase: peak
+    from-edge: bottom
+    from-at: 0.64
+    to: lithium-iron-phosphate
+    to-phase: peak
+    to-edge: top
+    to-at: 0.40
+  - id: hybrid-cars--fuel-cell-cars
+    from: hybrid-cars
+    from-phase: peak
+    from-edge: bottom
+    from-at: 0.61
+    to: fuel-cell-cars
+    to-phase: peak
+    to-edge: top
+    to-at: 0.27
+  - id: self-driving--software-defined-vehicles
+    from: self-driving
+    from-phase: peak
+    from-edge: bottom
+    from-at: 0.31
+    to: software-defined-vehicles
+    to-phase: peak
+    to-edge: top
+    to-at: 0.18
+  - id: zev-mandate--battery-electric-cars
+    from: zev-mandate
+    from-phase: trough
+    from-edge: bottom
+    from-at: 0.60
+    to: battery-electric-cars
+    to-phase: peak
+    to-edge: top
+    to-at: 0.15
+    description: The crushed EV1 became the story Tesla set out to rewrite.
+  - id: lithium-ion-batteries--battery-electric-cars
+    from: lithium-ion-batteries
+    from-phase: trough
+    from-edge: bottom
+    from-at: 0.64
+    to: battery-electric-cars
+    to-phase: peak
+    to-edge: top
+    to-at: 0.44
+  - id: hybrid-cars--battery-electric-cars
+    from: hybrid-cars
+    from-phase: trough
+    from-edge: bottom
+    from-at: 0.54
+    to: battery-electric-cars
+    to-phase: peak
+    to-edge: top
+    to-at: 0.66
+  - id: battery-electric-cars--charging-standards
+    from: battery-electric-cars
+    from-phase: peak
+    from-edge: bottom
+    from-at: 0.24
+    to: charging-standards
+    to-phase: peak
+    to-edge: top
+    to-at: 0.38
+  - id: lithium-ion-batteries--electric-bikes-and-scooters
+    from: lithium-ion-batteries
+    from-phase: slope
+    from-edge: bottom
+    from-at: 0.29
+    to: electric-bikes-and-scooters
+    to-phase: peak
+    to-edge: top
+    to-at: 0.44
+  - id: lithium-iron-phosphate--electric-buses
+    from: lithium-iron-phosphate
+    from-phase: trough
+    from-edge: bottom
+    from-at: 0.25
+    to: electric-buses
+    to-phase: peak
+    to-edge: top
+    to-at: 0.32
+    description: Chinese electric buses ran on iron-phosphate cells.
+  - id: ev-incentives--battery-electric-cars
+    from: ev-incentives
+    from-phase: peak
+    from-edge: bottom
+    from-at: 0.21
+    to: battery-electric-cars
+    to-phase: peak
+    to-edge: top
+    to-at: 0.84
+  - id: ev-incentives--electric-buses
+    from: ev-incentives
+    from-phase: peak
+    from-edge: bottom
+    from-at: 0.74
+    to: electric-buses
+    to-phase: peak
+    to-edge: top
+    to-at: 0.78
+  - id: battery-electric-cars--vehicle-to-grid
+    from: battery-electric-cars
+    from-phase: peak
+    from-edge: bottom
+    from-at: 0.58
+    to: vehicle-to-grid
+    to-phase: peak
+    to-edge: top
+    to-at: 0.39
+  - id: battery-electric-cars--public-fast-charging
+    from: battery-electric-cars
+    from-phase: peak
+    from-edge: bottom
+    from-at: 0.82
+    to: public-fast-charging
+    to-phase: peak
+    to-edge: top
+    to-at: 0.27
+  - id: battery-electric-cars--software-defined-vehicles
+    from: battery-electric-cars
+    from-phase: trough
+    from-edge: bottom
+    from-at: 0.37
+    to: software-defined-vehicles
+    to-phase: peak
+    to-edge: top
+    to-at: 0.76
+  - id: charging-standards--public-fast-charging
+    from: charging-standards
+    from-phase: peak
+    from-edge: bottom
+    from-at: 0.67
+    to: public-fast-charging
+    to-phase: peak
+    to-edge: top
+    to-at: 0.69
+  - id: battery-electric-cars--gigafactories
+    from: battery-electric-cars
+    from-phase: trough
+    from-edge: top
+    from-at: 0.61
+    to: gigafactories
+    to-phase: peak
+    to-edge: bottom
+    to-at: 0.22
+  - id: ev-incentives--fuel-cell-cars
+    from: ev-incentives
+    from-phase: peak
+    from-edge: bottom
+    from-at: 0.42
+    to: fuel-cell-cars
+    to-phase: peak
+    to-edge: top
+    to-at: 0.78
+  - id: software-defined-vehicles--self-driving
+    from: software-defined-vehicles
+    from-phase: peak
+    from-edge: top
+    from-at: 0.31
+    to: self-driving
+    to-phase: peak
+    to-edge: bottom
+    to-at: 0.91
+    description: Autopilot arrived as a software update.
+  - id: lithium-ion-batteries--electric-air-taxis
+    from: lithium-ion-batteries
+    from-phase: slope
+    from-edge: bottom
+    from-at: 0.74
+    to: electric-air-taxis
+    to-phase: peak
+    to-edge: top
+    to-at: 0.34
+  - id: lithium-ion-batteries--solid-state-batteries
+    from: lithium-ion-batteries
+    from-phase: plateau
+    from-edge: bottom
+    from-at: 0.28
+    to: solid-state-batteries
+    to-phase: peak
+    to-edge: top
+    to-at: 0.47
+  - id: battery-electric-cars--electric-trucks
+    from: battery-electric-cars
+    from-phase: trough
+    from-edge: bottom
+    from-at: 0.75
+    to: electric-trucks
+    to-phase: peak
+    to-edge: top
+    to-at: 0.27
+  - id: gigafactories--electric-trucks
+    from: gigafactories
+    from-phase: peak
+    from-edge: bottom
+    from-at: 0.42
+    to: electric-trucks
+    to-phase: peak
+    to-edge: top
+    to-at: 0.69
+  - id: battery-electric-cars--battery-swapping
+    from: battery-electric-cars
+    from-phase: slope
+    from-edge: bottom
+    from-at: 0.00
+    to: battery-swapping
+    to-phase: trough
+    to-edge: top
+    to-at: 0.85
+  - id: gigafactories--battery-recycling
+    from: gigafactories
+    from-phase: peak
+    from-edge: bottom
+    from-at: 0.87
+    to: battery-recycling
+    to-phase: peak
+    to-edge: top
+    to-at: 0.70
+  - id: battery-electric-cars--solid-state-batteries
+    from: battery-electric-cars
+    from-phase: slope
+    from-edge: top
+    from-at: 0.29
+    to: solid-state-batteries
+    to-phase: peak
+    to-edge: bottom
+    to-at: 0.96
+  - id: self-driving--robotaxis
+    from: self-driving
+    from-phase: trough
+    from-edge: bottom
+    from-at: 0.81
+    to: robotaxis
+    to-phase: peak
+    to-edge: top
+    to-at: 0.42
+  - id: gigafactories--lithium-iron-phosphate
+    from: gigafactories
+    from-phase: peak
+    from-edge: top
+    from-at: 0.54
+    to: lithium-iron-phosphate
+    to-phase: trough
+    to-edge: bottom
+    to-at: 0.91
+    description: Iron-phosphate cells came back into mainstream cars.
+  - id: lithium-ion-batteries--sodium-ion-batteries
+    from: lithium-ion-batteries
+    from-phase: plateau
+    from-edge: bottom
+    from-at: 0.74
+    to: sodium-ion-batteries
+    to-phase: peak
+    to-edge: top
+    to-at: 0.27
+  - id: lithium-iron-phosphate--sodium-ion-batteries
+    from: lithium-iron-phosphate
+    from-phase: slope
+    from-edge: bottom
+    from-at: 0.59
+    to: sodium-ion-batteries
+    to-phase: peak
+    to-edge: top
+    to-at: 0.71
+  - id: public-fast-charging--vehicle-to-grid
+    from: public-fast-charging
+    from-phase: trough
+    from-edge: top
+    from-at: 0.15
+    to: vehicle-to-grid
+    to-phase: peak
+    to-edge: bottom
+    to-at: 0.80
+  - id: public-fast-charging--charging-standards
+    from: public-fast-charging
+    from-phase: trough
+    from-edge: top
+    from-at: 0.68
+    to: charging-standards
+    to-phase: slope
+    to-edge: bottom
+    to-at: 0.70
+    description: Tesla's network made its connector the North American standard.
+  - id: public-fast-charging--wireless-charging-roads
+    from: public-fast-charging
+    from-phase: trough
+    from-edge: bottom
+    from-at: 0.63
+    to: wireless-charging-roads
+    to-phase: peak
+    to-edge: top
+    to-at: 0.27
+  - id: robotaxis--wireless-charging-roads
+    from: robotaxis
+    from-phase: peak
+    from-edge: bottom
+    from-at: 0.60
+    to: wireless-charging-roads
+    to-phase: peak
+    to-edge: top
+    to-at: 0.69
+  - id: gigafactories--structural-batteries
+    from: gigafactories
+    from-phase: trough
+    from-edge: bottom
+    from-at: 0.54
+    to: structural-batteries
+    to-phase: peak
+    to-edge: top
+    to-at: 0.47
+  - id: solid-state-batteries--lithium-air-batteries
+    from: solid-state-batteries
+    from-phase: trough
+    from-edge: bottom
+    from-at: 0.68
+    to: lithium-air-batteries
+    to-phase: peak
+    to-edge: top
+    to-at: 0.42
+  - id: prius-unveiled--hybrid-cars
+    from: prius-unveiled
+    to: hybrid-cars
+    to-phase: peak
+    to-edge: top
+    to-at: 0.27
+  - id: tesla-roadster-unveiled--battery-electric-cars
+    from: tesla-roadster-unveiled
+    to: battery-electric-cars
+    to-phase: peak
+    to-edge: top
+    to-at: 0.29
+  - id: dieselgate--ev-incentives
+    from: dieselgate
+    to: ev-incentives
+    to-phase: peak
+    to-edge: top
+    to-at: 0.65
+  - id: dieselgate--battery-electric-cars
+    from: dieselgate
+    to: battery-electric-cars
+    to-phase: trough
+    to-edge: top
+    to-at: 0.41
+  - id: model-3-deliveries--gigafactories
+    from: model-3-deliveries
+    to: gigafactories
+    to-phase: peak
+    to-edge: top
+    to-at: 0.27
+  - id: us-inflation-reduction-act--battery-recycling
+    from: us-inflation-reduction-act
+    to: battery-recycling
+    to-phase: peak
+    to-edge: top
+    to-at: 0.28
+  - id: us-inflation-reduction-act--gigafactories
+    from: us-inflation-reduction-act
+    to: gigafactories
+    to-phase: peak
+    to-edge: bottom
+    to-at: 0.66
+  - id: eu-2035-agreement--ev-incentives
+    from: eu-2035-agreement
+    to: ev-incentives
+    to-phase: trough
+    to-edge: top
+    to-at: 0.47

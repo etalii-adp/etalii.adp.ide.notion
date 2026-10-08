@@ -1,0 +1,919 @@
+gartner-hypecycle-graph: 1
+# A hand-authored hype cycle of large language models and agentic development, from word
+# embeddings to ideas that have not started yet. Dates after 2026 are projections, and dates and
+# influences are illustrative, not a claim: see readme.md.
+trends:
+  - id: word-embeddings
+    name: Word embeddings
+    start: 2013-01
+    stop: 2021-01
+    row: 0
+    phases: 4
+    tags: [language]
+    description: word2vec turned words into vectors whose arithmetic meant something.
+  - id: attention
+    name: Sequence-to-sequence with attention
+    start: 2014-09
+    stop: 2020-01
+    row: 2
+    phases: 4
+    tags: [language, architecture]
+  - id: transformer
+    name: Transformer
+    start: 2017-06
+    stop: 2026-01
+    row: 4
+    phases: 4
+    tags: [architecture]
+    description: Attention Is All You Need, the architecture under every model that followed.
+  - id: pretrained-encoders
+    name: Pretrained encoders
+    start: 2018-10
+    stop: 2024-01
+    row: 6
+    phases: 4
+    tags: [language]
+    description: BERT and its family, fine-tuned for one task at a time.
+  - id: scaling-laws
+    name: Scaling laws
+    start: 2020-01
+    stop: 2030-01
+    row: 2
+    phases: 3
+    peak-end: 2024-11
+    trough-end: 2025-09
+    tags: [models]
+    description: Loss falls predictably with parameters, data and compute; talk of a wall followed in late 2024.
+  - id: mixture-of-experts
+    name: Mixture of experts
+    start: 2021-01
+    stop: 2030-01
+    row: 0
+    phases: 3
+    tags: [architecture, models]
+  - id: large-language-models
+    name: Large language models
+    start: 2020-06
+    stop: 2034-01
+    row: 8
+    phases: 3
+    peak-end: 2023-06
+    trough-end: 2025-01
+    tags: [models]
+    description: From GPT-3 on, language became a general interface to computing.
+  - id: instruction-tuning
+    name: Instruction tuning and RLHF
+    start: 2022-01
+    stop: 2030-01
+    row: 10
+    phases: 3
+    tags: [models, alignment]
+    description: Human feedback turned a text predictor into something that follows instructions.
+  - id: image-generation
+    name: Image generation
+    start: 2022-04
+    stop: 2031-01
+    row: 12
+    phases: 3
+    tags: [multimodal]
+    description: Diffusion models drew what a prompt described.
+  - id: chat-assistants
+    name: Chat assistants
+    start: 2022-11
+    stop: 2034-01
+    row: 14
+    phases: 2
+    peak-end: 2025-06
+    tags: [products]
+    description: ChatGPT reached a hundred million users in two months.
+  - id: alignment-research
+    name: Alignment research
+    start: 2022-12
+    stop: 2036-01
+    row: 16
+    phases: 2
+    tags: [alignment, society]
+    description: Constitutional AI, interpretability and evaluations, so that models do what people mean.
+  - id: open-weight-models
+    name: Open-weight models
+    start: 2023-02
+    stop: 2033-01
+    row: 18
+    phases: 2
+    tags: [models]
+    description: From LLaMA to DeepSeek, weights anyone can download and run.
+  - id: multimodal-models
+    name: Multimodal models
+    start: 2023-03
+    stop: 2033-01
+    row: 20
+    phases: 2
+    tags: [multimodal, models]
+  - id: world-models
+    name: World models
+    start: 2024-02
+    stop: 2036-01
+    row: 22
+    phases: 1
+    tags: [multimodal, models]
+    description: Models that simulate how a scene unfolds, from video generation to robot training.
+  - id: small-models
+    name: Small on-device models
+    start: 2024-04
+    stop: 2032-01
+    row: 24
+    phases: 1
+    tags: [models]
+  - id: reasoning-models
+    name: Reasoning models
+    start: 2024-09
+    stop: 2034-01
+    row: 26
+    phases: 1
+    tags: [models]
+    description: Spending compute at answer time on a chain of thought, from OpenAI's o1 on.
+  - id: retrieval-augmented-generation
+    name: Retrieval-augmented generation
+    start: 2020-05
+    stop: 2031-01
+    row: 28
+    phases: 3
+    tags: [tooling]
+    description: Fetch the relevant documents first, then let the model answer from them.
+  - id: ai-code-completion
+    name: AI code completion
+    start: 2021-06
+    stop: 2030-01
+    row: 30
+    phases: 3
+    tags: [coding]
+    description: GitHub Copilot completed the line, then the function.
+  - id: vector-databases
+    name: Vector databases
+    start: 2021-06
+    stop: 2030-01
+    row: 32
+    phases: 3
+    tags: [tooling, data]
+  - id: prompt-engineering
+    name: Prompt engineering
+    start: 2022-06
+    stop: 2029-01
+    row: 34
+    phases: 3
+    peak-end: 2023-06
+    trough-end: 2024-06
+    tags: [techniques]
+    description: Once a job title; now context engineering, part of every developer's work.
+  - id: tool-use
+    name: Tool use and function calling
+    start: 2023-06
+    stop: 2031-01
+    row: 36
+    phases: 3
+    peak-end: 2024-06
+    trough-end: 2025-06
+    tags: [agents, tooling]
+  - id: model-context-protocol
+    name: Model Context Protocol
+    start: 2024-11
+    stop: 2032-01
+    row: 38
+    phases: 1
+    tags: [agents, tooling]
+    description: One protocol for connecting any model to any tool or data source.
+  - id: autonomous-agents
+    name: Autonomous agents
+    start: 2023-03
+    stop: 2034-01
+    row: 40
+    phases: 3
+    peak-end: 2023-08
+    trough-end: 2025-01
+    tags: [agents]
+    description: AutoGPT looped a model on its own output; the loops worked once models and tools caught up.
+  - id: multi-agent-systems
+    name: Multi-agent systems
+    start: 2023-10
+    stop: 2034-01
+    row: 42
+    phases: 2
+    peak-end: 2025-10
+    tags: [agents]
+    description: Agents with roles handing work to one another.
+  - id: computer-use-agents
+    name: Computer-use agents
+    start: 2024-10
+    stop: 2034-01
+    row: 44
+    phases: 1
+    tags: [agents]
+    description: Agents that read the screen and move the mouse.
+  - id: coding-agents
+    name: Coding agents
+    start: 2025-02
+    stop: 2035-01
+    row: 46
+    phases: 1
+    tags: [agents, coding]
+    description: Agents that read a repository, run its tests and open the pull request.
+  - id: vibe-coding
+    name: Vibe coding
+    start: 2025-02
+    stop: 2028-01
+    row: 48
+    phases: 2
+    peak-end: 2025-09
+    tags: [coding, society]
+    description: Accepting whatever the model writes without reading it; the name is Andrej Karpathy's.
+  - id: agent-to-agent-protocols
+    name: Agent-to-agent protocols
+    start: 2025-04
+    stop: 2034-01
+    row: 50
+    phases: 1
+    tags: [agents, upcoming]
+  - id: spec-driven-development
+    name: Spec-driven development
+    start: 2025-09
+    stop: 2034-01
+    row: 52
+    phases: 1
+    tags: [coding, agents]
+    description: Specifications, plans and tasks as the contract between people and coding agents, as GitHub Spec Kit does.
+  - id: human-agent-teams
+    name: Human-agent teams
+    start: 2026-06
+    stop: 2038-01
+    row: 54
+    phases: 1
+    tags: [agents, society, upcoming]
+    description: People and agents sharing one workspace, one backlog and one conversation, each in a role.
+  - id: autonomous-research-agents
+    name: Autonomous research agents
+    start: 2027-01
+    stop: 2040-01
+    row: 56
+    phases: 1
+    tags: [agents, science, conceptual]
+    description: Agents that form a hypothesis, run the experiment and write it up.
+  - id: continual-learning
+    name: Continual learning
+    start: 2027-06
+    stop: 2038-01
+    row: 58
+    phases: 1
+    tags: [models, conceptual]
+    description: Models that keep learning after deployment instead of waiting for the next training run.
+  - id: verified-code-generation
+    name: Verified code generation
+    start: 2028-01
+    stop: 2040-01
+    row: 60
+    phases: 1
+    tags: [coding, conceptual]
+    description: Agents that prove what they write rather than only testing it.
+  - id: agent-economies
+    name: Agent economies
+    start: 2029-01
+    stop: 2042-01
+    row: 62
+    phases: 1
+    tags: [agents, society, conceptual]
+    description: Agents buying, selling and contracting services from one another.
+  - id: recursive-self-improvement
+    name: Recursive self-improvement
+    start: 2031-01
+    stop: 2045-01
+    row: 64
+    phases: 1
+    tags: [models, conceptual]
+    description: Systems that improve the systems that improve them.
+triggers:
+  - id: alexnet
+    name: AlexNet wins ImageNet
+    date: 2012-09
+    row: 1
+    tags: [models]
+    description: Deep networks trained on GPUs became the default approach to learning from data.
+  - id: attention-is-all-you-need
+    name: Attention Is All You Need
+    date: 2017-06
+    row: 3
+    tags: [architecture]
+    description: The paper that introduced the Transformer.
+  - id: gpt-3-paper
+    name: GPT-3 paper
+    date: 2020-05
+    row: 7
+    tags: [models]
+    description: A 175-billion-parameter model that learned tasks from a few examples in its prompt.
+  - id: chatgpt-launch
+    name: ChatGPT launched
+    date: 2022-11
+    row: 13
+    tags: [products]
+    description: A hundred million users in two months.
+  - id: llama-weights
+    name: LLaMA weights released
+    date: 2023-02
+    row: 17
+    tags: [models]
+    description: Meta's model weights, shared with researchers and leaked within a week.
+  - id: eu-ai-act
+    name: EU AI Act enters into force
+    date: 2024-08
+    row: 15
+    tags: [society, alignment]
+    description: The first broad law on AI, with duties for general-purpose models.
+  - id: deepseek-r1
+    name: DeepSeek-R1 released
+    date: 2025-01
+    row: 25
+    tags: [models]
+    description: An open-weight reasoning model trained at a fraction of the expected cost.
+influences:
+  - id: word-embeddings--attention
+    from: word-embeddings
+    from-phase: trough
+    from-edge: bottom
+    from-at: 0.33
+    to: attention
+    to-phase: peak
+    to-edge: top
+    to-at: 0.75
+  - id: attention--transformer
+    from: attention
+    from-phase: slope
+    from-edge: bottom
+    from-at: 0.64
+    to: transformer
+    to-phase: peak
+    to-edge: top
+    to-at: 0.70
+    description: The Transformer kept attention and dropped the recurrence.
+  - id: transformer--pretrained-encoders
+    from: transformer
+    from-phase: peak
+    from-edge: bottom
+    from-at: 0.55
+    to: pretrained-encoders
+    to-phase: peak
+    to-edge: top
+    to-at: 0.26
+  - id: word-embeddings--pretrained-encoders
+    from: word-embeddings
+    from-phase: plateau
+    from-edge: bottom
+    from-at: 0.38
+    to: pretrained-encoders
+    to-phase: peak
+    to-edge: top
+    to-at: 0.77
+  - id: transformer--large-language-models
+    from: transformer
+    from-phase: trough
+    from-edge: bottom
+    from-at: 0.61
+    to: large-language-models
+    to-phase: peak
+    to-edge: top
+    to-at: 0.48
+  - id: scaling-laws--large-language-models
+    from: scaling-laws
+    from-phase: peak
+    from-edge: bottom
+    from-at: 0.50
+    to: large-language-models
+    to-phase: peak
+    to-edge: top
+    to-at: 0.79
+    description: GPT-3 was sized by the scaling laws published months earlier.
+  - id: pretrained-encoders--retrieval-augmented-generation
+    from: pretrained-encoders
+    from-phase: trough
+    from-edge: bottom
+    from-at: 0.67
+    to: retrieval-augmented-generation
+    to-phase: peak
+    to-edge: top
+    to-at: 0.44
+    description: Dense retrievers are pretrained encoders.
+  - id: transformer--mixture-of-experts
+    from: transformer
+    from-phase: trough
+    from-edge: top
+    from-at: 0.64
+    to: mixture-of-experts
+    to-phase: peak
+    to-edge: bottom
+    to-at: 0.40
+  - id: large-language-models--ai-code-completion
+    from: large-language-models
+    from-phase: peak
+    from-edge: bottom
+    from-at: 0.18
+    to: ai-code-completion
+    to-phase: peak
+    to-edge: top
+    to-at: 0.37
+    description: Copilot ran on Codex, a GPT-3 trained on code.
+  - id: retrieval-augmented-generation--vector-databases
+    from: retrieval-augmented-generation
+    from-phase: peak
+    from-edge: bottom
+    from-at: 0.53
+    to: vector-databases
+    to-phase: peak
+    to-edge: top
+    to-at: 0.46
+  - id: large-language-models--instruction-tuning
+    from: large-language-models
+    from-phase: peak
+    from-edge: bottom
+    from-at: 0.35
+    to: instruction-tuning
+    to-phase: peak
+    to-edge: top
+    to-at: 0.36
+  - id: transformer--image-generation
+    from: transformer
+    from-phase: slope
+    from-edge: bottom
+    from-at: 0.57
+    to: image-generation
+    to-phase: peak
+    to-edge: top
+    to-at: 0.45
+  - id: large-language-models--prompt-engineering
+    from: large-language-models
+    from-phase: peak
+    from-edge: bottom
+    from-at: 0.52
+    to: prompt-engineering
+    to-phase: peak
+    to-edge: top
+    to-at: 0.44
+  - id: instruction-tuning--chat-assistants
+    from: instruction-tuning
+    from-phase: peak
+    from-edge: bottom
+    from-at: 0.32
+    to: chat-assistants
+    to-phase: peak
+    to-edge: top
+    to-at: 0.75
+    description: ChatGPT was InstructGPT's method applied to dialogue.
+  - id: large-language-models--chat-assistants
+    from: large-language-models
+    from-phase: peak
+    from-edge: bottom
+    from-at: 0.71
+    to: chat-assistants
+    to-phase: peak
+    to-edge: top
+    to-at: 0.47
+  - id: chat-assistants--prompt-engineering
+    from: chat-assistants
+    from-phase: peak
+    from-edge: bottom
+    from-at: 0.17
+    to: prompt-engineering
+    to-phase: peak
+    to-edge: top
+    to-at: 0.88
+  - id: instruction-tuning--alignment-research
+    from: instruction-tuning
+    from-phase: peak
+    from-edge: bottom
+    from-at: 0.77
+    to: alignment-research
+    to-phase: peak
+    to-edge: top
+    to-at: 0.48
+  - id: large-language-models--open-weight-models
+    from: large-language-models
+    from-phase: peak
+    from-edge: bottom
+    from-at: 0.90
+    to: open-weight-models
+    to-phase: peak
+    to-edge: top
+    to-at: 0.47
+  - id: chat-assistants--autonomous-agents
+    from: chat-assistants
+    from-phase: peak
+    from-edge: bottom
+    from-at: 0.28
+    to: autonomous-agents
+    to-phase: peak
+    to-edge: top
+    to-at: 0.96
+  - id: image-generation--multimodal-models
+    from: image-generation
+    from-phase: peak
+    from-edge: bottom
+    from-at: 0.31
+    to: multimodal-models
+    to-phase: peak
+    to-edge: top
+    to-at: 0.27
+  - id: large-language-models--multimodal-models
+    from: large-language-models
+    from-phase: trough
+    from-edge: bottom
+    from-at: 0.80
+    to: multimodal-models
+    to-phase: peak
+    to-edge: top
+    to-at: 0.70
+  - id: autonomous-agents--tool-use
+    from: autonomous-agents
+    from-phase: peak
+    from-edge: top
+    from-at: 0.35
+    to: tool-use
+    to-phase: peak
+    to-edge: bottom
+    to-at: 0.38
+    description: Agents needed a reliable way to call tools; function calling gave them one.
+  - id: autonomous-agents--multi-agent-systems
+    from: autonomous-agents
+    from-phase: trough
+    from-edge: bottom
+    from-at: 0.55
+    to: multi-agent-systems
+    to-phase: peak
+    to-edge: top
+    to-at: 0.47
+  - id: mixture-of-experts--open-weight-models
+    from: mixture-of-experts
+    from-phase: trough
+    from-edge: bottom
+    from-at: 0.60
+    to: open-weight-models
+    to-phase: peak
+    to-edge: top
+    to-at: 0.78
+    description: Mixtral brought mixture of experts to open weights.
+  - id: image-generation--world-models
+    from: image-generation
+    from-phase: peak
+    from-edge: bottom
+    from-at: 0.78
+    to: world-models
+    to-phase: peak
+    to-edge: top
+    to-at: 0.27
+    description: Sora was a diffusion transformer over video.
+  - id: multimodal-models--world-models
+    from: multimodal-models
+    from-phase: peak
+    from-edge: bottom
+    from-at: 0.38
+    to: world-models
+    to-phase: peak
+    to-edge: top
+    to-at: 0.68
+  - id: open-weight-models--small-models
+    from: open-weight-models
+    from-phase: peak
+    from-edge: bottom
+    from-at: 0.73
+    to: small-models
+    to-phase: peak
+    to-edge: top
+    to-at: 0.47
+  - id: scaling-laws--reasoning-models
+    from: scaling-laws
+    from-phase: peak
+    from-edge: bottom
+    from-at: 0.79
+    to: reasoning-models
+    to-phase: peak
+    to-edge: top
+    to-at: 0.21
+    description: Scaling moved from training to answer time.
+  - id: multimodal-models--computer-use-agents
+    from: multimodal-models
+    from-phase: peak
+    from-edge: bottom
+    from-at: 0.74
+    to: computer-use-agents
+    to-phase: peak
+    to-edge: top
+    to-at: 0.45
+  - id: tool-use--model-context-protocol
+    from: tool-use
+    from-phase: trough
+    from-edge: bottom
+    from-at: 0.47
+    to: model-context-protocol
+    to-phase: peak
+    to-edge: top
+    to-at: 0.40
+  - id: instruction-tuning--reasoning-models
+    from: instruction-tuning
+    from-phase: trough
+    from-edge: bottom
+    from-at: 0.94
+    to: reasoning-models
+    to-phase: peak
+    to-edge: top
+    to-at: 0.76
+    description: Reinforcement learning on verifiable answers taught models to reason.
+  - id: tool-use--autonomous-agents
+    from: tool-use
+    from-phase: trough
+    from-edge: bottom
+    from-at: 0.94
+    to: autonomous-agents
+    to-phase: slope
+    to-edge: top
+    to-at: 0.41
+    description: With dependable tool calls, agents climbed out of their trough.
+  - id: ai-code-completion--coding-agents
+    from: ai-code-completion
+    from-phase: trough
+    from-edge: bottom
+    from-at: 0.59
+    to: coding-agents
+    to-phase: peak
+    to-edge: top
+    to-at: 0.20
+  - id: chat-assistants--vibe-coding
+    from: chat-assistants
+    from-phase: peak
+    from-edge: bottom
+    from-at: 0.80
+    to: vibe-coding
+    to-phase: peak
+    to-edge: top
+    to-at: 0.25
+  - id: coding-agents--vibe-coding
+    from: coding-agents
+    from-phase: peak
+    from-edge: bottom
+    from-at: 0.05
+    to: vibe-coding
+    to-phase: peak
+    to-edge: top
+    to-at: 0.96
+  - id: reasoning-models--coding-agents
+    from: reasoning-models
+    from-phase: peak
+    from-edge: bottom
+    from-at: 0.24
+    to: coding-agents
+    to-phase: peak
+    to-edge: top
+    to-at: 0.76
+  - id: model-context-protocol--agent-to-agent-protocols
+    from: model-context-protocol
+    from-phase: peak
+    from-edge: bottom
+    from-at: 0.73
+    to: agent-to-agent-protocols
+    to-phase: peak
+    to-edge: top
+    to-at: 0.71
+  - id: multi-agent-systems--agent-to-agent-protocols
+    from: multi-agent-systems
+    from-phase: peak
+    from-edge: bottom
+    from-at: 0.78
+    to: agent-to-agent-protocols
+    to-phase: peak
+    to-edge: top
+    to-at: 0.27
+  - id: model-context-protocol--coding-agents
+    from: model-context-protocol
+    from-phase: peak
+    from-edge: bottom
+    from-at: 0.30
+    to: coding-agents
+    to-phase: peak
+    to-edge: top
+    to-at: 0.49
+  - id: vibe-coding--spec-driven-development
+    from: vibe-coding
+    from-phase: trough
+    from-edge: bottom
+    from-at: 0.54
+    to: spec-driven-development
+    to-phase: peak
+    to-edge: top
+    to-at: 0.21
+    description: Specifications as the answer to code nobody had read.
+  - id: coding-agents--spec-driven-development
+    from: coding-agents
+    from-phase: peak
+    from-edge: bottom
+    from-at: 0.41
+    to: spec-driven-development
+    to-phase: peak
+    to-edge: top
+    to-at: 0.77
+  - id: prompt-engineering--spec-driven-development
+    from: prompt-engineering
+    from-phase: slope
+    from-edge: bottom
+    from-at: 0.63
+    to: spec-driven-development
+    to-phase: peak
+    to-edge: top
+    to-at: 0.49
+  - id: multi-agent-systems--human-agent-teams
+    from: multi-agent-systems
+    from-phase: trough
+    from-edge: bottom
+    from-at: 0.63
+    to: human-agent-teams
+    to-phase: peak
+    to-edge: top
+    to-at: 0.77
+  - id: spec-driven-development--human-agent-teams
+    from: spec-driven-development
+    from-phase: peak
+    from-edge: bottom
+    from-at: 0.55
+    to: human-agent-teams
+    to-phase: peak
+    to-edge: top
+    to-at: 0.49
+  - id: alignment-research--human-agent-teams
+    from: alignment-research
+    from-phase: peak
+    from-edge: bottom
+    from-at: 0.57
+    to: human-agent-teams
+    to-phase: peak
+    to-edge: top
+    to-at: 0.20
+  - id: reasoning-models--autonomous-research-agents
+    from: reasoning-models
+    from-phase: peak
+    from-edge: bottom
+    from-at: 0.50
+    to: autonomous-research-agents
+    to-phase: peak
+    to-edge: top
+    to-at: 0.28
+  - id: coding-agents--autonomous-research-agents
+    from: coding-agents
+    from-phase: peak
+    from-edge: bottom
+    from-at: 0.64
+    to: autonomous-research-agents
+    to-phase: peak
+    to-edge: top
+    to-at: 0.70
+  - id: world-models--continual-learning
+    from: world-models
+    from-phase: peak
+    from-edge: bottom
+    from-at: 0.58
+    to: continual-learning
+    to-phase: peak
+    to-edge: top
+    to-at: 0.70
+  - id: retrieval-augmented-generation--continual-learning
+    from: retrieval-augmented-generation
+    from-phase: slope
+    from-edge: bottom
+    from-at: 0.56
+    to: continual-learning
+    to-phase: peak
+    to-edge: top
+    to-at: 0.28
+    description: Memory that retrieval bolts on, learned into the weights.
+  - id: reasoning-models--verified-code-generation
+    from: reasoning-models
+    from-phase: peak
+    from-edge: bottom
+    from-at: 0.75
+    to: verified-code-generation
+    to-phase: peak
+    to-edge: top
+    to-at: 0.31
+  - id: coding-agents--verified-code-generation
+    from: coding-agents
+    from-phase: peak
+    from-edge: bottom
+    from-at: 0.85
+    to: verified-code-generation
+    to-phase: peak
+    to-edge: top
+    to-at: 0.71
+  - id: agent-to-agent-protocols--agent-economies
+    from: agent-to-agent-protocols
+    from-phase: peak
+    from-edge: bottom
+    from-at: 0.69
+    to: agent-economies
+    to-phase: peak
+    to-edge: top
+    to-at: 0.69
+  - id: computer-use-agents--agent-economies
+    from: computer-use-agents
+    from-phase: peak
+    from-edge: bottom
+    from-at: 0.56
+    to: agent-economies
+    to-phase: peak
+    to-edge: top
+    to-at: 0.27
+  - id: autonomous-research-agents--recursive-self-improvement
+    from: autonomous-research-agents
+    from-phase: peak
+    from-edge: bottom
+    from-at: 0.62
+    to: recursive-self-improvement
+    to-phase: peak
+    to-edge: top
+    to-at: 0.77
+  - id: continual-learning--recursive-self-improvement
+    from: continual-learning
+    from-phase: peak
+    from-edge: bottom
+    from-at: 0.59
+    to: recursive-self-improvement
+    to-phase: peak
+    to-edge: top
+    to-at: 0.49
+  - id: alignment-research--recursive-self-improvement
+    from: alignment-research
+    from-phase: trough
+    from-edge: bottom
+    from-at: 0.53
+    to: recursive-self-improvement
+    to-phase: peak
+    to-edge: top
+    to-at: 0.21
+    description: Whether it can be done safely decides whether it should be done at all.
+  - id: alexnet--word-embeddings
+    from: alexnet
+    to: word-embeddings
+    to-phase: peak
+    to-edge: bottom
+    to-at: 0.37
+  - id: attention-is-all-you-need--transformer
+    from: attention-is-all-you-need
+    to: transformer
+    to-phase: peak
+    to-edge: top
+    to-at: 0.27
+  - id: gpt-3-paper--large-language-models
+    from: gpt-3-paper
+    to: large-language-models
+    to-phase: peak
+    to-edge: top
+    to-at: 0.20
+  - id: gpt-3-paper--scaling-laws
+    from: gpt-3-paper
+    to: scaling-laws
+    to-phase: peak
+    to-edge: bottom
+    to-at: 0.20
+  - id: chatgpt-launch--chat-assistants
+    from: chatgpt-launch
+    to: chat-assistants
+    to-phase: peak
+    to-edge: top
+    to-at: 0.20
+  - id: chatgpt-launch--prompt-engineering
+    from: chatgpt-launch
+    to: prompt-engineering
+    to-phase: peak
+    to-edge: top
+    to-at: 0.42
+  - id: chatgpt-launch--alignment-research
+    from: chatgpt-launch
+    to: alignment-research
+    to-phase: peak
+    to-edge: top
+    to-at: 0.20
+  - id: llama-weights--open-weight-models
+    from: llama-weights
+    to: open-weight-models
+    to-phase: peak
+    to-edge: top
+    to-at: 0.20
+  - id: eu-ai-act--alignment-research
+    from: eu-ai-act
+    to: alignment-research
+    to-phase: peak
+    to-edge: top
+    to-at: 0.76
+  - id: deepseek-r1--reasoning-models
+    from: deepseek-r1
+    to: reasoning-models
+    to-phase: peak
+    to-edge: top
+    to-at: 0.48
+  - id: deepseek-r1--open-weight-models
+    from: deepseek-r1
+    to: open-weight-models
+    to-phase: peak
+    to-edge: bottom
+    to-at: 0.39

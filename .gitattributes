@@ -3,3 +3,14 @@
 
 # Shell scripts must stay LF everywhere, or bash fails on the carriage returns.
 *.sh text eol=lf
+
+# Copies of files that other repositories own, compared byte for byte with their records by the
+# sync scripts' --check and by Build: git must never convert a line ending in them.
+src/fbl/** -text
+addons/*/*.dis -text
+addons/*/*.fbl -text
+test/examples/** -text
+test/fixtures/** -text
+src/fbl/PROVENANCE.md text
+test/examples/PROVENANCE.md text
+test/fixtures/PROVENANCE.md text

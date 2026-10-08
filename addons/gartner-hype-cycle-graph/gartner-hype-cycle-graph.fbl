@@ -1,0 +1,162 @@
+{
+  "$schema": "https://etalii.net/adp/fbl/schema/0.1/fbl.schema.json#/$defs/Document",
+  "fbl": "0.1",
+  "doc": "The Gartner hype cycle graph's .ghg body (definitions/diagrams/gartner-hype-cycle-graph.dis, gartner-hype-cycle-graph.md): ADP's own YAML, read and written through FBL instead of a hand-written parser and line splicer. Influences are bound as elements with reference attributes rather than as relations, because the module keeps an influence whose end names nothing and reports it (ghg.dangling-reference), where an FBL relation with a dangling end is not created at all (FBL §5.4). Each list rule's when refuses an item that is not a mapping, which the list's not-a-mapping rule then takes, so the module can say which list it is in, and its computed unknownKeys lists the keys the module does not read, which it reports while FBL keeps them. Months are written plain, so a year before 1 stays -3200-01 rather than being quoted.",
+  "bindings": {
+    "ghg": {
+      "title": "Gartner hype cycle graph",
+      "claims": {
+        "extensions": [".ghg"],
+        "origins": ["gartner/hypecycle-graph"]
+      },
+      "body": { "kind": "file", "family": "yaml" },
+      "reader": "declared",
+      "text": { "newline": "crlf", "indent": 2, "sequenceIndent": "indented", "finalNewline": true, "quote": "double" },
+      "header": { "key": "gartner-hypecycle-graph", "value": 1 },
+      "elements": [
+        {
+          "name": "graph",
+          "type": "Graph",
+          "at": "/",
+          "readOnly": "The graph's version is changed in the file itself.",
+          "attributes": {
+            "version": { "key": "gartner-hypecycle-graph" }
+          }
+        },
+        {
+          "name": "unit",
+          "type": "Unit",
+          "at": "/unit",
+          "readOnly": "The graph's unit is changed in the file itself.",
+          "attributes": {
+            "value": { "value": "entry" }
+          }
+        },
+        {
+          "name": "trend",
+          "type": "Trend",
+          "at": "/trends/*",
+          "when": "entry.all(k, true)",
+          "id": { "from": { "key": "id" } },
+          "attributes": {
+            "storedId": { "key": "id", "readOnly": true },
+            "unknownKeys": { "value": "entry.filter(k, !(k in ['id', 'name', 'start', 'stop', 'row', 'phases', 'peak-end', 'trough-end', 'slope-end', 'tags', 'description']))" },
+            "name": { "key": "name", "empty": "refuse" },
+            "start": { "key": "start", "style": "plain" },
+            "stop": { "key": "stop", "style": "plain" },
+            "row": { "key": "row" },
+            "phases": { "key": "phases" },
+            "peakEnd": { "key": "peak-end", "style": "plain", "empty": "remove" },
+            "troughEnd": { "key": "trough-end", "style": "plain", "empty": "remove" },
+            "slopeEnd": { "key": "slope-end", "style": "plain", "empty": "remove" },
+            "tags": { "key": "tags", "style": "flow", "empty": "remove" },
+            "description": { "key": "description", "empty": "remove" }
+          },
+          "insert": {
+            "place": "after-last",
+            "container": "/trends",
+            "keys": ["id", "name", "start", "stop", "row", "phases", "peak-end", "trough-end", "slope-end", "tags", "description"]
+          },
+          "remove": { "cascade": ["influence"] }
+        },
+        {
+          "name": "trigger",
+          "type": "Trigger",
+          "at": "/triggers/*",
+          "when": "entry.all(k, true)",
+          "id": { "from": { "key": "id" } },
+          "attributes": {
+            "storedId": { "key": "id", "readOnly": true },
+            "unknownKeys": { "value": "entry.filter(k, !(k in ['id', 'name', 'date', 'row', 'tags', 'description']))" },
+            "name": { "key": "name", "empty": "refuse" },
+            "date": { "key": "date", "style": "plain" },
+            "row": { "key": "row" },
+            "tags": { "key": "tags", "style": "flow", "empty": "remove" },
+            "description": { "key": "description", "empty": "remove" }
+          },
+          "insert": {
+            "place": "after-last",
+            "container": "/triggers",
+            "create": { "at": { "before": "influences" } },
+            "keys": ["id", "name", "date", "row", "tags", "description"]
+          },
+          "remove": { "cascade": ["influence"] }
+        },
+        {
+          "name": "note",
+          "type": "Note",
+          "at": "/notes/*",
+          "when": "entry.all(k, true)",
+          "id": { "from": { "key": "id" } },
+          "attributes": {
+            "storedId": { "key": "id", "readOnly": true },
+            "unknownKeys": { "value": "entry.filter(k, !(k in ['id', 'text', 'at', 'row', 'width', 'height']))" },
+            "text": { "key": "text", "style": "literal", "empty": "keep" },
+            "at": { "key": "at", "style": "plain" },
+            "row": { "key": "row" },
+            "width": { "key": "width", "number": { "decimals": 2 } },
+            "height": { "key": "height", "number": { "decimals": 2 } }
+          },
+          "insert": {
+            "place": "after-last",
+            "container": "/notes",
+            "create": { "at": { "before": "influences" } },
+            "keys": ["id", "text", "at", "row", "width", "height"]
+          },
+          "remove": {}
+        },
+        {
+          "name": "influence",
+          "type": "Influence",
+          "at": "/influences/*",
+          "when": "entry.all(k, true)",
+          "id": { "from": { "key": "id" } },
+          "attributes": {
+            "storedId": { "key": "id", "readOnly": true },
+            "unknownKeys": { "value": "entry.filter(k, !(k in ['id', 'from', 'from-phase', 'from-edge', 'from-at', 'to', 'to-phase', 'to-edge', 'to-at', 'description']))" },
+            "from": { "key": "from", "reference": { "to": ["trend", "trigger"], "by": "storedId" } },
+            "fromPhase": { "key": "from-phase", "empty": "remove" },
+            "fromEdge": { "key": "from-edge", "empty": "remove" },
+            "fromAt": { "key": "from-at", "number": { "decimals": 2 }, "empty": "remove" },
+            "to": { "key": "to", "reference": { "to": ["trend", "trigger"], "by": "storedId" } },
+            "toPhase": { "key": "to-phase" },
+            "toEdge": { "key": "to-edge" },
+            "toAt": { "key": "to-at", "number": { "decimals": 2 } },
+            "description": { "key": "description", "empty": "remove" }
+          },
+          "insert": {
+            "place": "after-last",
+            "container": "/influences",
+            "keys": ["id", "from", "from-phase", "from-edge", "from-at", "to", "to-phase", "to-edge", "to-at", "description"]
+          },
+          "remove": {}
+        },
+        {
+          "name": "trend-not-a-mapping",
+          "type": "Unreadable",
+          "at": "/trends/*",
+          "readOnly": "This entry is not a mapping, so it is kept as it is."
+        },
+        {
+          "name": "trigger-not-a-mapping",
+          "type": "Unreadable",
+          "at": "/triggers/*",
+          "readOnly": "This entry is not a mapping, so it is kept as it is."
+        },
+        {
+          "name": "note-not-a-mapping",
+          "type": "Unreadable",
+          "at": "/notes/*",
+          "readOnly": "This entry is not a mapping, so it is kept as it is."
+        },
+        {
+          "name": "influence-not-a-mapping",
+          "type": "Unreadable",
+          "at": "/influences/*",
+          "readOnly": "This entry is not a mapping, so it is kept as it is."
+        }
+      ],
+      "template": { "text": "gartner-hypecycle-graph: 1\r\ntrends: []\r\ninfluences: []\r\n" }
+    }
+  }
+}

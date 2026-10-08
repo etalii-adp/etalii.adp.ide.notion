@@ -1,0 +1,9 @@
+# The Cloudflare Worker that runs the service (etalii.adp spec 012, contracts/service.md).
+# Its two secrets, NOTION_CLIENT_ID and NOTION_CLIENT_SECRET, are set by a maintainer with
+# `wrangler secret put` and are in no file. The Build workflow deploys it on a push to develop.
+name = "adp-notion"
+main = "worker.ts"
+compatibility_date = "2026-10-01"
+
+[vars]
+ALLOWED_ORIGIN = "https://etalii.net"

@@ -1,0 +1,141 @@
+/*
+ * frame.css: where the regions of an add-on's page sit. The bar is on top, the two panels are at
+ * the sides, the canvas takes the room that is left, and the findings and the message are below.
+ * Every colour, size and spacing is a property of ../panels/notion.css, which also carries both
+ * appearances; what is stated here is proportion and place only.
+ */
+
+:root {
+  color-scheme: light;
+  height: 100%;
+}
+
+:root[data-theme="dark"] {
+  color-scheme: dark;
+}
+
+body {
+  box-sizing: border-box;
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  grid-template-rows: auto minmax(0, 1fr) auto auto;
+  height: 100%;
+  margin: 0;
+  overflow: hidden;
+  background: var(--notion-background);
+  color: var(--notion-text);
+  font-family: var(--notion-font-family);
+  font-size: var(--notion-font-size);
+  font-weight: var(--notion-font-weight);
+  line-height: var(--notion-line-height);
+}
+
+.adp-bar {
+  grid-column: 1 / -1;
+  grid-row: 1;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--notion-space-2);
+  min-height: var(--notion-control-height-large);
+  padding: var(--notion-space-2) var(--notion-space-4);
+  border-bottom: thin solid var(--notion-border);
+}
+
+.adp-status {
+  margin-left: auto;
+  color: var(--notion-text-secondary);
+  font-size: var(--notion-font-size-small);
+  line-height: var(--notion-line-height-small);
+}
+
+.adp-toolbox,
+.adp-property-grid {
+  grid-row: 2;
+  min-height: 0;
+  /* However narrow the embed block is, the canvas keeps a part of it. */
+  max-width: 40vw;
+  overflow: auto;
+  background: var(--notion-background-panel);
+}
+
+.adp-toolbox {
+  grid-column: 1;
+  border-right: thin solid var(--notion-border);
+}
+
+.adp-property-grid {
+  grid-column: 3;
+  border-left: thin solid var(--notion-border);
+}
+
+.adp-canvas {
+  grid-column: 2;
+  grid-row: 2;
+  display: block;
+  width: 100%;
+  height: 100%;
+  background: var(--notion-canvas-background);
+}
+
+.adp-canvas:focus {
+  outline: none;
+}
+
+.adp-canvas:focus-visible {
+  box-shadow: var(--notion-focus-ring);
+}
+
+.adp-findings {
+  grid-column: 1 / -1;
+  grid-row: 3;
+  max-height: 30vh;
+  margin: 0;
+  padding: var(--notion-space-2) var(--notion-space-4);
+  overflow: auto;
+  list-style: none;
+  border-top: thin solid var(--notion-border);
+}
+
+.adp-message {
+  grid-column: 1 / -1;
+  grid-row: 4;
+  margin: 0;
+  padding: var(--notion-space-3) var(--notion-space-4);
+  background: var(--notion-error-background);
+  color: var(--notion-error-text);
+  border-top: thin solid var(--notion-error-border);
+}
+
+/* Emptied, not hidden: an alert that is taken out of the page is not announced when it returns. */
+.adp-findings:empty,
+.adp-message:empty {
+  padding: 0;
+  border: none;
+}
+
+.adp-setup {
+  grid-column: 1 / -1;
+  grid-row: 2;
+  padding: var(--notion-space-6) var(--notion-space-7);
+  overflow: auto;
+}
+
+.adp-setup h1 {
+  margin: 0 0 var(--notion-space-5);
+  font-size: var(--notion-font-size);
+  font-weight: var(--notion-font-weight-bold);
+}
+
+.adp-setup p,
+.adp-setup ol {
+  margin: 0 0 var(--notion-space-4);
+}
+
+.adp-setup ol {
+  padding-left: var(--notion-space-7);
+}
+
+.adp-setup li {
+  overflow-wrap: anywhere;
+}

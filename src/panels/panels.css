@@ -1,0 +1,486 @@
+/*
+ * panels.css: the toolbox, the property grid, their controls and the menu, as Notion draws its own
+ * sidebar, properties and menus. Every colour, type size, spacing, corner and focus ring is a
+ * property of notion.css, which carries both appearances; what is stated here is place and
+ * proportion only. Every class begins with adp-, so an add-on that uses the panels writes no style.
+ * Where this departs from Notion's styling, docs/styling.md says so and why.
+ */
+
+/* ---- what every panel shares ---- */
+
+.adp-panel {
+  box-sizing: border-box;
+  display: flex;
+  flex-direction: column;
+  color: var(--notion-text);
+  font-family: var(--notion-font-family);
+  font-size: var(--notion-font-size);
+  font-weight: var(--notion-font-weight);
+  line-height: var(--notion-line-height);
+}
+
+/* An open panel is a narrow column; the frame caps it at a share of the embed block. */
+.adp-panel[data-collapsed="false"] {
+  width: calc(var(--notion-space-7) * 11);
+}
+
+.adp-panel [hidden] {
+  display: none !important;
+}
+
+.adp-panel-header {
+  display: flex;
+  align-items: center;
+  gap: var(--notion-space-2);
+  padding: var(--notion-space-2);
+}
+
+.adp-panel-title {
+  overflow: hidden;
+  color: var(--notion-text-secondary);
+  font-size: var(--notion-font-size-small);
+  font-weight: var(--notion-font-weight-medium);
+  line-height: var(--notion-line-height-small);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.adp-panel-body {
+  min-height: 0;
+  padding: 0 var(--notion-space-2) var(--notion-space-5);
+  overflow: auto;
+  overflow-wrap: anywhere;
+}
+
+.adp-icon {
+  flex: none;
+  width: var(--notion-line-height);
+  height: var(--notion-line-height);
+  fill: currentColor;
+  color: var(--notion-icon);
+}
+
+/* ---- buttons: Notion's have no edge of their own, and answer the pointer with a background ---- */
+
+.adp-panel-toggle,
+.adp-tools-heading,
+.adp-tool,
+.adp-form-heading,
+.adp-tag-remove,
+.adp-button,
+.adp-menu-item {
+  box-sizing: border-box;
+  margin: 0;
+  font: inherit;
+  color: inherit;
+  text-align: left;
+  background: none;
+  border: none;
+  border-radius: var(--notion-radius-control);
+  cursor: pointer;
+  transition: var(--notion-transition-hover);
+}
+
+.adp-panel-toggle:hover,
+.adp-tools-heading:hover,
+.adp-tool:hover,
+button.adp-form-heading:hover,
+.adp-button:hover,
+.adp-menu-item:hover,
+.adp-menu-item:focus {
+  background: var(--notion-background-hover);
+}
+
+.adp-panel-toggle:active,
+.adp-tools-heading:active,
+.adp-tool:active,
+button.adp-form-heading:active,
+.adp-button:active,
+.adp-menu-item:active {
+  background: var(--notion-background-active);
+}
+
+.adp-panel-toggle:focus-visible,
+.adp-tools-heading:focus-visible,
+.adp-tool:focus-visible,
+.adp-form-heading:focus-visible,
+.adp-tag-remove:focus-visible,
+.adp-button:focus-visible,
+.adp-control:focus-visible,
+.adp-tags-input:focus-visible,
+.adp-checkbox:focus-visible,
+.adp-slider:focus-visible,
+.adp-choice-input:focus-visible + .adp-choice-label,
+.adp-menu-item:focus-visible {
+  outline: none;
+  box-shadow: var(--notion-focus-ring);
+}
+
+.adp-panel-toggle {
+  display: flex;
+  flex: none;
+  align-items: center;
+  justify-content: center;
+  width: var(--notion-control-height);
+  height: var(--notion-control-height);
+  padding: 0;
+}
+
+.adp-panel-toggle .adp-icon,
+.adp-tools-heading .adp-icon,
+.adp-form-heading .adp-icon,
+.adp-tag-remove .adp-icon {
+  width: var(--notion-line-height-small);
+  height: var(--notion-line-height-small);
+}
+
+/* ---- the toolbox ---- */
+
+.adp-tools,
+.adp-tools-items {
+  display: flex;
+  flex-direction: column;
+  gap: var(--notion-space-1);
+}
+
+.adp-tools-group + .adp-tools-group {
+  margin-top: var(--notion-space-4);
+}
+
+.adp-tools-heading,
+.adp-form-heading {
+  display: flex;
+  align-items: center;
+  gap: var(--notion-space-2);
+  width: 100%;
+  min-height: var(--notion-control-height);
+  margin: 0;
+  padding: 0 var(--notion-space-2);
+  color: var(--notion-text-secondary);
+  font-size: var(--notion-font-size-small);
+  font-weight: var(--notion-font-weight-medium);
+  line-height: var(--notion-line-height-small);
+}
+
+/* A heading that folds nothing is no button. */
+h3.adp-form-heading {
+  cursor: default;
+}
+
+.adp-tool {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--notion-space-4);
+  width: 100%;
+  padding: var(--notion-space-2) var(--notion-space-4);
+}
+
+.adp-tool-text {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.adp-tool-label {
+  font-weight: var(--notion-font-weight-medium);
+}
+
+.adp-tool-doc,
+.adp-field-reason,
+.adp-form-text,
+.adp-form-empty {
+  margin: 0;
+  color: var(--notion-text-secondary);
+  font-size: var(--notion-font-size-small);
+  line-height: var(--notion-line-height-small);
+}
+
+.adp-shortcut,
+.adp-menu-shortcut {
+  flex: none;
+  margin-left: auto;
+  color: var(--notion-text-secondary);
+  font-family: inherit;
+  font-size: var(--notion-font-size-small);
+  line-height: var(--notion-line-height);
+}
+
+/* ---- the property grid ---- */
+
+.adp-form,
+.adp-form-items {
+  display: flex;
+  flex-direction: column;
+  gap: var(--notion-space-4);
+}
+
+.adp-form-title {
+  margin: 0;
+  padding: 0 var(--notion-space-2);
+  font-size: var(--notion-font-size);
+  font-weight: var(--notion-font-weight-bold);
+  line-height: var(--notion-line-height);
+}
+
+.adp-form-group {
+  display: flex;
+  flex-direction: column;
+  gap: var(--notion-space-2);
+}
+
+.adp-form-group + .adp-form-group,
+.adp-form-divider {
+  padding-top: var(--notion-space-2);
+  border-top: thin solid var(--notion-border);
+}
+
+.adp-form-divider {
+  width: 100%;
+  margin: 0;
+  border-right: none;
+  border-bottom: none;
+  border-left: none;
+}
+
+.adp-form-empty,
+.adp-form-text {
+  padding: var(--notion-space-2);
+}
+
+.adp-field {
+  display: flex;
+  flex-direction: column;
+  gap: var(--notion-space-1);
+  min-width: 0;
+  padding: 0 var(--notion-space-2);
+}
+
+.adp-field-inline {
+  flex-flow: row wrap;
+  align-items: center;
+  gap: var(--notion-space-3);
+}
+
+.adp-field-label {
+  color: var(--notion-text-secondary);
+  font-size: var(--notion-font-size-small);
+  line-height: var(--notion-line-height-small);
+}
+
+.adp-field-display {
+  display: block;
+  min-height: var(--notion-line-height);
+  white-space: pre-wrap;
+}
+
+.adp-control,
+.adp-tags-input {
+  box-sizing: border-box;
+  width: 100%;
+  min-height: var(--notion-control-height);
+  margin: 0;
+  padding: var(--notion-space-1) var(--notion-space-4);
+  font: inherit;
+  color: var(--notion-text);
+  background: var(--notion-background-input);
+  border: thin solid var(--notion-border-control);
+  border-radius: var(--notion-radius-control);
+}
+
+.adp-control::placeholder,
+.adp-tags-input::placeholder {
+  color: var(--notion-text-secondary);
+  opacity: 1;
+}
+
+textarea.adp-control {
+  min-height: calc(var(--notion-line-height) * 3 + var(--notion-space-3));
+  resize: vertical;
+}
+
+.adp-checkbox,
+.adp-slider {
+  margin: 0;
+  accent-color: var(--notion-accent);
+  border-radius: var(--notion-radius-small);
+}
+
+.adp-checkbox {
+  flex: none;
+  width: var(--notion-line-height-small);
+  height: var(--notion-line-height-small);
+}
+
+.adp-slider {
+  width: 100%;
+  min-height: var(--notion-line-height);
+}
+
+.adp-slider-value {
+  font-size: var(--notion-font-size-small);
+  line-height: var(--notion-line-height-small);
+}
+
+.adp-choices,
+.adp-tags-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--notion-space-2);
+}
+
+.adp-choice {
+  position: relative;
+  display: flex;
+}
+
+/* The choice itself is the browser's radio button, kept for the keyboard and drawn as its label. */
+.adp-choice-input {
+  position: absolute;
+  margin: 0;
+  opacity: 0;
+  pointer-events: none;
+}
+
+.adp-choice-label {
+  display: flex;
+  align-items: center;
+  min-height: var(--notion-control-height);
+  padding: 0 var(--notion-space-4);
+  border: thin solid var(--notion-border-control);
+  border-radius: var(--notion-radius-control);
+  cursor: pointer;
+  transition: var(--notion-transition-hover);
+}
+
+.adp-choice-label:hover {
+  background: var(--notion-background-hover);
+}
+
+.adp-choice-label:active {
+  background: var(--notion-background-active);
+}
+
+.adp-choice-input:checked + .adp-choice-label {
+  color: var(--notion-accent-text);
+  background: var(--notion-background-selected);
+  border-color: var(--notion-accent);
+}
+
+.adp-tags {
+  display: flex;
+  flex-direction: column;
+  gap: var(--notion-space-2);
+}
+
+.adp-tags-list {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.adp-tags-list:empty {
+  display: none;
+}
+
+.adp-tag {
+  display: flex;
+  align-items: center;
+  gap: var(--notion-space-1);
+  min-width: 0;
+  padding: 0 var(--notion-space-1) 0 var(--notion-space-3);
+  background: var(--notion-background-hover);
+  border-radius: var(--notion-radius-small);
+}
+
+.adp-tag-remove {
+  display: flex;
+  flex: none;
+  padding: var(--notion-space-1);
+  border-radius: var(--notion-radius-small);
+}
+
+/* The mark of a tag's button answers the pointer by its own colour: its tag has a background already. */
+.adp-tag-remove:hover .adp-icon {
+  color: var(--notion-text);
+}
+
+.adp-button {
+  align-self: flex-start;
+  min-height: var(--notion-control-height);
+  padding: 0 var(--notion-space-4);
+  border: thin solid var(--notion-border-control);
+}
+
+.adp-field-refusal {
+  margin: 0;
+  padding: var(--notion-space-2) var(--notion-space-4);
+  color: var(--notion-error-text);
+  font-size: var(--notion-font-size-small);
+  line-height: var(--notion-line-height-small);
+  background: var(--notion-error-background);
+  border-radius: var(--notion-radius-small);
+}
+
+/* ---- the menu ---- */
+
+.adp-menu {
+  position: fixed;
+  z-index: 1000;
+  box-sizing: border-box;
+  display: flex;
+  flex-direction: column;
+  min-width: calc(var(--notion-space-7) * 8);
+  max-width: min(calc(var(--notion-space-7) * 14), 90vw);
+  max-height: 90vh;
+  padding: var(--notion-space-2);
+  overflow: auto;
+  color: var(--notion-text);
+  font-family: var(--notion-font-family);
+  font-size: var(--notion-font-size);
+  font-weight: var(--notion-font-weight);
+  line-height: var(--notion-line-height);
+  background: var(--notion-background-menu);
+  border-radius: var(--notion-radius-menu);
+  box-shadow: var(--notion-shadow-menu);
+}
+
+.adp-menu-item {
+  display: flex;
+  flex: none;
+  align-items: center;
+  gap: var(--notion-space-4);
+  width: 100%;
+  min-height: var(--notion-control-height);
+  padding: 0 var(--notion-space-4);
+}
+
+.adp-menu-item[aria-disabled="true"] {
+  opacity: var(--notion-disabled-opacity);
+  cursor: default;
+}
+
+.adp-menu-item[aria-disabled="true"]:hover,
+.adp-menu-item[aria-disabled="true"]:active {
+  background: none;
+}
+
+.adp-menu-icon {
+  display: flex;
+  flex: none;
+  width: var(--notion-line-height);
+}
+
+.adp-menu-label {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.adp-menu-separator {
+  flex: none;
+  margin: var(--notion-space-2) 0;
+  border-top: thin solid var(--notion-border);
+}

@@ -1,0 +1,17 @@
+/*
+ * panels.css: what the frame adds to the two panels. The tool that is armed is marked, and one
+ * panel that is never shown says how wide an open panel is, so that the script states no width.
+ */
+
+.adp-tool[aria-pressed="true"] {
+  background: var(--notion-background-selected);
+}
+
+.adp-panels-probe {
+  position: absolute;
+  max-width: none;
+  height: 0;
+  overflow: hidden;
+  visibility: hidden;
+  pointer-events: none;
+}

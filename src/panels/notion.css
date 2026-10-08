@@ -1,0 +1,235 @@
+/*
+ * notion.css: Notion's own look, stated as CSS custom properties.
+ *
+ * An add-on is embedded in a Notion page and cannot read that page's stylesheet, so this file
+ * states Notion's type, colours, spacing, corners and focus ring by hand, in a light set on
+ * :root and a dark set under :root[data-theme="dark"]. The frame sets data-theme on <html>.
+ *
+ * This file is the only place a colour, a type size, a spacing, a corner or a focus ring is
+ * stated. Every other stylesheet uses these properties and no literal value. It holds custom
+ * properties only: no selector here styles an element, and it has no class.
+ *
+ * The drawing of a diagram takes its colours from its specification's theme tokens. Only what
+ * a specification leaves open uses this file: --notion-canvas-background, --notion-selection
+ * and --notion-selection-fill.
+ *
+ * Sources, all read on 2026-10-08. No value was measured in a running Notion client: the
+ * manual pass beside Notion corrects them, and docs/styling.md takes this table over.
+ *
+ * Kinds of value:
+ *   [S] sourced: quoted from a write-up read on the date above.
+ *   [R] recalled: the value Notion's web client is known to have carried in its inline styles,
+ *       written from memory and found in no source read on the date above. Treat as an estimate.
+ *   [E] estimate: chosen as the nearest consistent value; nothing was found.
+ *   [A] adjusted: Notion's value fails WCAG AA here, so it is strengthened. Each is a departure
+ *       from Notion's styling and belongs in the list of departures in docs/styling.md.
+ *
+ * | Group                                   | Kind | Source                                                                                   |
+ * | --------------------------------------- | ---- | ---------------------------------------------------------------------------------------- |
+ * | Font stack (sans)                       | R    | The stack named in the brief of task T030. NotionKit [1] gives a shorter stack with the  |
+ * |                                         |      | same head: ui-sans-serif, -apple-system, "Segoe UI", Helvetica, Arial, sans-serif.       |
+ * | Font stack (mono)                       | R    | Close to the code stack of react-notion's stylesheet [2].                                |
+ * | Body size 14px                          | R    | The brief of task T030.                                                                  |
+ * | Small and caption sizes, line heights   | E    | 12px and 11px with 20px, 16px and 14px lines.                                            |
+ * | Font weights 400, 500, 600              | E    |                                                                                          |
+ * | Text default, light and dark            | S    | NotionKit [1]: #37352f and rgba(255,255,255,0.81). Matthias Frank [3] gives #373530 and  |
+ * |                                         |      | #D4D4D4, the same colours within rounding.                                               |
+ * | Text secondary                          | A    | Notion: rgba(55,53,47,0.65) and rgba(255,255,255,0.46) per [1], about 4.2:1 and 4.6:1 on |
+ * |                                         |      | the page and less on a panel. Raised to 0.75 and 0.56.                                   |
+ * | Text tertiary, icon                     | A    | Notion: rgba(55,53,47,0.45) and rgba(255,255,255,0.28) per [1], about 2.5:1. Raised to   |
+ * |                                         |      | 0.6 and 0.4 so that a placeholder and an icon keep 3:1.                                  |
+ * | Text on accent                          | S    | [1]: #ffffff.                                                                            |
+ * | Page background                         | S    | [1] and [3]: #ffffff and #191919.                                                        |
+ * | Panel (sidebar) background              | S    | [1]: #f7f6f3 and #202020. [2] gives rgb(247,246,243) as well.                            |
+ * | Menu and popover background             | S/R  | Dark #252525: [1] has it as a surface and a userstyle [4] finds Notion's dark elements   |
+ * |                                         |      | by the inline style "background: rgb(37, 37, 37)". Light #ffffff is recalled.            |
+ * | Hover and active backgrounds            | S/R  | Dark: [1], rgba(255,255,255,0.055) and 0.08. Light: recalled rgba(55,53,47,0.08) and     |
+ * |                                         |      | 0.16; [1] gives rgba(0,0,0,0.045) and 0.06 instead, so check these first.                |
+ * | Selected background                     | R/E  | Light rgba(35,131,226,0.14) recalled, Notion's halo on a selected block. Dark 0.18 is an |
+ * |                                         |      | estimate.                                                                                |
+ * | Input background                        | R    | rgba(242,241,238,0.6) and rgba(255,255,255,0.055).                                       |
+ * | Border and divider, border strong       | S    | [1]: rgba(55,53,47,0.09) and 0.16, rgba(255,255,255,0.094) and 0.16. [2] has the two     |
+ * |                                         |      | light values as well.                                                                    |
+ * | Border of a control                     | A    | Notion draws an input's edge at about 1.3:1. Raised to 3:1: 0.55 light, 0.36 dark.       |
+ * | Accent, Notion's blue                   | S    | [1] and the design-system gallery [5]: #2383e2, kept in both appearances.                |
+ * | Accent hover                            | R    | rgb(0,119,212). [5] gives #1B6EC2 instead.                                               |
+ * | Accent fill and its hover               | A    | White on #2383e2 is 3.88:1. A fill that carries text uses rgb(0,119,212), 4.58:1, and    |
+ * |                                         |      | rgb(0,106,190) on hover.                                                                 |
+ * | Accent text                             | A    | #2383e2 as text is 3.88:1 on the light page. Light: rgb(0,98,178). Dark: [1] gives       |
+ * |                                         |      | #529CCA as Notion's blue text, 4.3:1 on a hovered menu row. Now rgb(104,172,214).        |
+ * | Error, warning, info: background, border| S    | [3], updated 2026-07-07: Notion's red, orange and blue, text and background, light and   |
+ * |                                         |      | dark. The border is Notion's text colour of the pair, unchanged, and is decoration.      |
+ * | Error, warning, info: text              | A    | Notion's text colours of those pairs reach 2.9:1 to 4.3:1 on their own backgrounds. Each |
+ * |                                         |      | is darkened (light) or lightened (dark) in its own hue until it reaches 4.6:1.           |
+ * | Warning as orange, not yellow           | E    | Notion has both. Orange stays legible as text; yellow turns brown when darkened.         |
+ * | Spacing steps                           | E    | 2, 4, 6, 8, 12, 16 and 24px.                                                             |
+ * | Corner radii                            | S/E  | Control 6px: [1]. Small 4px, card 8px and menu 10px are estimates; [1] says cards and    |
+ * |                                         |      | modals use 8 to 12px.                                                                    |
+ * | Menu shadow, light and dark             | S    | [1], the three layers.                                                                   |
+ * | Card shadow                             | S    | [1]: 0 1px 2px rgba(0,0,0,0.04) light, none dark.                                        |
+ * | Focus ring                              | A    | Recalled from Notion's focused input: rgba(35,131,226,0.57) 0 0 0 1px inset and          |
+ * |                                         |      | rgba(35,131,226,0.35) 0 0 0 2px. At 0.57 the inner line is about 2:1 on the page, so it  |
+ * |                                         |      | is drawn solid here. [5] gives rgba(35,131,226,0.30) 0 0 0 2px inset.                    |
+ * | Control heights 28px and 32px           | E    |                                                                                          |
+ * | Hover transition                        | R    | background 20ms ease-in, from Notion's inline styles.                                    |
+ * | Disabled opacity 0.4                    | E    |                                                                                          |
+ * | Canvas background                       | S    | The page background, as Notion's own embeds and boards sit on the page.                  |
+ * | Selection mark and its fill             | S/R  | The accent [1], and the recalled halo rgba(35,131,226,0.14) of a selected block; 0.2 in  |
+ * |                                         |      | the dark appearance is an estimate.                                                      |
+ *
+ * [1] NotionKit 1.1.1, a CSS kit that copies Notion's interface: https://cdn.jsdelivr.net/npm/@jungherz-de/notionkit@1.1.1/SKILL.md
+ * [2] A copy of react-notion's stylesheet: https://huggingface.co/spaces/sandy-try/blog/blob/main/styles/notion.css
+ * [3] Matthias Frank, "Notion Colors": https://matthiasfrank.de/en/notion-colors/
+ * [4] The userstyle "notion.so basic boost dark": https://userstyles.world/style/12608/notion-so-basic-boost-dark
+ * [5] A design-system gallery's page on Notion: https://www.oppadu.com/tools/design-systems-site/brand/notion.html
+ *
+ * Read and not used: https://docs.super.site/notion-colors (Notion's palette before 2022) and
+ * https://open-design.ai/plugins/design-system-notion/ (notion.com, the marketing site, not the client).
+ *
+ * Contrast. The ratios were computed with the WCAG 2 formula on 2026-10-08, with a translucent
+ * colour first laid over its surface. Body text keeps 4.5:1 and a placeholder, an icon, a
+ * control's border, the focus ring and the selection mark keep 3:1, on the page, the panel and
+ * the menu, with the hover and the selected background laid over them. Two pairs are below
+ * that and are used for decoration alone: --notion-border and --notion-border-strong on any
+ * surface, and the border of a message on its background.
+ */
+
+:root {
+  /* Type */
+  --notion-font-family: ui-sans-serif, -apple-system, BlinkMacSystemFont, "Segoe UI Variable Display", "Segoe UI", Helvetica, "Apple Color Emoji", Arial, sans-serif, "Segoe UI Emoji", "Segoe UI Symbol";
+  --notion-font-family-mono: "SFMono-Regular", Menlo, Consolas, "PT Mono", "Liberation Mono", Courier, monospace;
+  --notion-font-size: 14px;
+  --notion-font-size-small: 12px;
+  --notion-font-size-caption: 11px;
+  --notion-line-height: 20px;
+  --notion-line-height-small: 16px;
+  --notion-line-height-caption: 14px;
+  --notion-font-weight: 400;
+  --notion-font-weight-medium: 500;
+  --notion-font-weight-bold: 600;
+
+  /* Text */
+  --notion-text: rgb(55, 53, 47);
+  --notion-text-secondary: rgba(55, 53, 47, 0.75);
+  --notion-text-tertiary: rgba(55, 53, 47, 0.6);
+  --notion-text-on-accent: rgb(255, 255, 255);
+  --notion-icon: rgba(55, 53, 47, 0.6);
+
+  /* Backgrounds */
+  --notion-background: rgb(255, 255, 255);
+  --notion-background-panel: rgb(247, 246, 243);
+  --notion-background-menu: rgb(255, 255, 255);
+  --notion-background-input: rgba(242, 241, 238, 0.6);
+  --notion-background-hover: rgba(55, 53, 47, 0.08);
+  --notion-background-active: rgba(55, 53, 47, 0.16);
+  --notion-background-selected: rgba(35, 131, 226, 0.14);
+
+  /* Borders and dividers */
+  --notion-border: rgba(55, 53, 47, 0.09);
+  --notion-border-strong: rgba(55, 53, 47, 0.16);
+  --notion-border-control: rgba(55, 53, 47, 0.55);
+
+  /* Accent */
+  --notion-accent: rgb(35, 131, 226);
+  --notion-accent-hover: rgb(0, 119, 212);
+  --notion-accent-fill: rgb(0, 119, 212);
+  --notion-accent-fill-hover: rgb(0, 106, 190);
+  --notion-accent-text: rgb(0, 98, 178);
+
+  /* Messages */
+  --notion-error-text: rgb(176, 76, 69);
+  --notion-error-background: rgb(250, 236, 236);
+  --notion-error-border: rgb(196, 85, 77);
+  --notion-warning-text: rgb(155, 91, 36);
+  --notion-warning-background: rgb(248, 236, 223);
+  --notion-warning-border: rgb(204, 120, 47);
+  --notion-info-text: rgb(66, 113, 150);
+  --notion-info-background: rgb(233, 243, 247);
+  --notion-info-border: rgb(72, 124, 165);
+
+  /* Spacing */
+  --notion-space-1: 2px;
+  --notion-space-2: 4px;
+  --notion-space-3: 6px;
+  --notion-space-4: 8px;
+  --notion-space-5: 12px;
+  --notion-space-6: 16px;
+  --notion-space-7: 24px;
+
+  /* Corners */
+  --notion-radius-small: 4px;
+  --notion-radius-control: 6px;
+  --notion-radius-card: 8px;
+  --notion-radius-menu: 10px;
+
+  /* Shadows */
+  --notion-shadow-menu: rgba(15, 15, 15, 0.05) 0 0 0 1px, rgba(15, 15, 15, 0.1) 0 3px 6px, rgba(15, 15, 15, 0.2) 0 9px 24px;
+  --notion-shadow-card: rgba(0, 0, 0, 0.04) 0 1px 2px;
+
+  /* Focus: a complete box-shadow value */
+  --notion-focus-ring: inset 0 0 0 1px rgb(35, 131, 226), 0 0 0 2px rgba(35, 131, 226, 0.35);
+
+  /* Controls */
+  --notion-control-height: 28px;
+  --notion-control-height-large: 32px;
+  --notion-transition-hover: background 20ms ease-in;
+  --notion-disabled-opacity: 0.4;
+
+  /* What a specification leaves open in the drawing */
+  --notion-canvas-background: rgb(255, 255, 255);
+  --notion-selection: rgb(35, 131, 226);
+  --notion-selection-fill: rgba(35, 131, 226, 0.14);
+}
+
+:root[data-theme="dark"] {
+  /* Text */
+  --notion-text: rgba(255, 255, 255, 0.81);
+  --notion-text-secondary: rgba(255, 255, 255, 0.56);
+  --notion-text-tertiary: rgba(255, 255, 255, 0.4);
+  --notion-text-on-accent: rgb(255, 255, 255);
+  --notion-icon: rgba(255, 255, 255, 0.4);
+
+  /* Backgrounds */
+  --notion-background: rgb(25, 25, 25);
+  --notion-background-panel: rgb(32, 32, 32);
+  --notion-background-menu: rgb(37, 37, 37);
+  --notion-background-input: rgba(255, 255, 255, 0.055);
+  --notion-background-hover: rgba(255, 255, 255, 0.055);
+  --notion-background-active: rgba(255, 255, 255, 0.08);
+  --notion-background-selected: rgba(35, 131, 226, 0.18);
+
+  /* Borders and dividers */
+  --notion-border: rgba(255, 255, 255, 0.094);
+  --notion-border-strong: rgba(255, 255, 255, 0.16);
+  --notion-border-control: rgba(255, 255, 255, 0.36);
+
+  /* Accent */
+  --notion-accent: rgb(35, 131, 226);
+  --notion-accent-hover: rgb(0, 119, 212);
+  --notion-accent-fill: rgb(0, 119, 212);
+  --notion-accent-fill-hover: rgb(0, 106, 190);
+  --notion-accent-text: rgb(104, 172, 214);
+
+  /* Messages */
+  --notion-error-text: rgb(205, 122, 116);
+  --notion-error-background: rgb(51, 37, 35);
+  --notion-error-border: rgb(190, 82, 75);
+  --notion-warning-text: rgb(206, 130, 65);
+  --notion-warning-background: rgb(54, 41, 31);
+  --notion-warning-border: rgb(203, 123, 55);
+  --notion-info-text: rgb(100, 145, 212);
+  --notion-info-background: rgb(31, 40, 45);
+  --notion-info-border: rgb(68, 122, 203);
+
+  /* Shadows */
+  --notion-shadow-menu: rgba(15, 15, 15, 0.2) 0 0 0 1px, rgba(15, 15, 15, 0.4) 0 3px 6px, rgba(15, 15, 15, 0.6) 0 9px 24px;
+  --notion-shadow-card: none;
+
+  /* Focus: a complete box-shadow value */
+  --notion-focus-ring: inset 0 0 0 1px rgb(35, 131, 226), 0 0 0 2px rgba(35, 131, 226, 0.35);
+
+  /* What a specification leaves open in the drawing */
+  --notion-canvas-background: rgb(25, 25, 25);
+  --notion-selection: rgb(35, 131, 226);
+  --notion-selection-fill: rgba(35, 131, 226, 0.2);
+}

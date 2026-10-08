@@ -1,0 +1,139 @@
+/*
+ * reading.css: where the reading part puts what it adds to the page, and how it looks: the notice
+ * of a state over the canvas, the controls of the canvas at its top left, the items of the
+ * findings, and the status. Every colour, size and spacing is a property of
+ * ../../panels/notion.css.
+ */
+
+/* The same place of the frame as the canvas: both lie over it. */
+.adp-notice,
+.adp-canvas-controls {
+  grid-column: 2;
+  grid-row: 2;
+  min-width: 0;
+}
+
+.adp-canvas-controls {
+  align-self: start;
+  justify-self: start;
+}
+
+.adp-notice {
+  align-self: center;
+  justify-self: center;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: var(--notion-space-4);
+  max-width: 80%;
+  padding: var(--notion-space-6);
+  overflow-wrap: anywhere;
+  background: var(--notion-background-menu);
+  border: thin solid var(--notion-border);
+  border-radius: var(--notion-radius-card);
+  box-shadow: var(--notion-shadow-card);
+}
+
+.adp-notice:empty {
+  display: none;
+}
+
+.adp-notice p {
+  margin: 0;
+}
+
+.adp-action {
+  min-height: var(--notion-control-height);
+  padding: 0 var(--notion-space-5);
+  font: inherit;
+  font-weight: var(--notion-font-weight-medium);
+  color: var(--notion-text-on-accent);
+  background: var(--notion-accent-fill);
+  border: none;
+  border-radius: var(--notion-radius-control);
+  cursor: pointer;
+  transition: var(--notion-transition-hover);
+}
+
+.adp-action:hover {
+  background: var(--notion-accent-fill-hover);
+}
+
+.adp-action-quiet {
+  font-weight: var(--notion-font-weight);
+  color: var(--notion-text-secondary);
+  background: none;
+}
+
+.adp-action-quiet:hover {
+  background: var(--notion-background-hover);
+}
+
+.adp-link {
+  color: var(--notion-accent-text);
+}
+
+.adp-action:focus-visible,
+.adp-link:focus-visible,
+.adp-finding-sentence:focus-visible {
+  outline: none;
+  box-shadow: var(--notion-focus-ring);
+}
+
+.adp-finding {
+  display: flex;
+  align-items: baseline;
+  gap: var(--notion-space-4);
+  padding: var(--notion-space-1) 0;
+  font-size: var(--notion-font-size-small);
+  line-height: var(--notion-line-height-small);
+}
+
+.adp-finding-severity {
+  flex: none;
+  padding: 0 var(--notion-space-3);
+  font-weight: var(--notion-font-weight-medium);
+  color: var(--notion-info-text);
+  background: var(--notion-info-background);
+  border: thin solid var(--notion-info-border);
+  border-radius: var(--notion-radius-small);
+}
+
+.adp-finding[data-severity="warning"] > .adp-finding-severity {
+  color: var(--notion-warning-text);
+  background: var(--notion-warning-background);
+  border-color: var(--notion-warning-border);
+}
+
+.adp-finding[data-severity="error"] > .adp-finding-severity {
+  color: var(--notion-error-text);
+  background: var(--notion-error-background);
+  border-color: var(--notion-error-border);
+}
+
+.adp-finding-sentence {
+  padding: 0;
+  font: inherit;
+  color: inherit;
+  text-align: left;
+  background: none;
+  border: none;
+  border-radius: var(--notion-radius-small);
+}
+
+button.adp-finding-sentence {
+  cursor: pointer;
+}
+
+button.adp-finding-sentence:hover {
+  background: var(--notion-background-hover);
+}
+
+/* The status in Notion's manner: quiet text in the bar, coloured only when something is wrong. */
+.adp-status[data-status="offline"] {
+  color: var(--notion-warning-text);
+}
+
+.adp-status[data-status="failed"] {
+  color: var(--notion-error-text);
+}

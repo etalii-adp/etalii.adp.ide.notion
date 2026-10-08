@@ -1,0 +1,32 @@
+gartner-hypecycle-graph: 1
+# Comments and blank lines survive every edit.
+trends:
+  - id: steam-engine
+    name: Steam engine
+    start: 1765-01
+    stop: 1900-01
+    row: 4
+    phases: 4
+    trough-end: 1800-01
+    tags: [energy, industry]
+    description: Watt's separate condenser onwards.
+
+  # A trend with even phases.
+  - id: railways
+    name: Railways
+    start: 1825-09
+    stop: 1930-01
+    row: 5
+    phases: 4
+    tags: [transport]
+influences:
+  - id: steam-railways
+    from: steam-engine
+    from-phase: plateau
+    from-edge: bottom
+    from-at: 0.3
+    to: railways
+    to-phase: peak
+    to-edge: top
+    to-at: 0.1
+    description: Locomotion needed a dependable engine first.

@@ -1,0 +1,17 @@
+gartner-hypecycle-graph: 1
+trends:
+  - id: a
+    name: A
+    start: 1900-01
+    stop: 1920-01
+    row: 0
+    phases: 4
+    peak-end: 1915-01
+    trough-end: 1905-01
+  - id: b
+    name: B
+    start: 1910-01
+    stop: 1930-01
+    row: 0
+    phases: 4
+influences: []

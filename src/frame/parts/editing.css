@@ -1,0 +1,73 @@
+/*
+ * editing.css: the question asked before a removal or an operation, and the status while the
+ * store is written. Every colour, size and spacing is a property of ../../panels/notion.css.
+ */
+
+.adp-confirm-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 1001;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.adp-confirm {
+  box-sizing: border-box;
+  max-width: min(calc(var(--notion-space-7) * 14), 90vw);
+  padding: var(--notion-space-6);
+  color: var(--notion-text);
+  background: var(--notion-background-menu);
+  border-radius: var(--notion-radius-menu);
+  box-shadow: var(--notion-shadow-menu);
+}
+
+.adp-confirm-title {
+  margin: 0 0 var(--notion-space-4);
+  font-size: var(--notion-font-size);
+  font-weight: var(--notion-font-weight-bold);
+  line-height: var(--notion-line-height);
+}
+
+.adp-confirm-message {
+  margin: 0 0 var(--notion-space-6);
+  overflow-wrap: anywhere;
+}
+
+.adp-confirm-answers {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: var(--notion-space-4);
+}
+
+.adp-confirm .adp-confirm-yes,
+.adp-confirm .adp-confirm-yes:hover {
+  color: var(--notion-text-on-accent);
+  background: var(--notion-accent-fill);
+  border-color: var(--notion-accent-fill);
+}
+
+.adp-confirm .adp-confirm-yes:hover {
+  background: var(--notion-accent-fill-hover);
+}
+
+.adp-confirm .adp-confirm-danger,
+.adp-confirm .adp-confirm-danger:hover {
+  color: var(--notion-error-text);
+  background: var(--notion-error-background);
+  border-color: var(--notion-error-border);
+}
+
+/* Storing goes on for as long as the status says so; how far it is cannot be told. */
+@media (prefers-reduced-motion: no-preference) {
+  .adp-status[aria-busy="true"] {
+    animation: adp-storing 1s ease-in-out infinite alternate;
+  }
+}
+
+@keyframes adp-storing {
+  to {
+    opacity: var(--notion-disabled-opacity);
+  }
+}

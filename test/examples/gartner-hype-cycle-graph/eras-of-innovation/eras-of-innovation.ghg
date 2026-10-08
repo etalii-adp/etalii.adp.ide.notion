@@ -1,0 +1,989 @@
+gartner-hypecycle-graph: 1
+unit: decade
+# Innovations that opened new eras in human development, over five and a half thousand years.
+# Drawn in decades. Dates and influences are illustrative, not a historical claim: see readme.md.
+trends:
+  - id: horse-riding
+    name: Horse riding
+    start: -3500-01
+    stop: -0500-01
+    row: 0
+    phases: 4
+    tags: [transport]
+    description: Domesticated horses carried people, goods and armies further and faster than walking.
+  - id: wheel
+    name: The wheel
+    start: -3500-01
+    stop: -1000-01
+    row: 2
+    phases: 4
+    tags: [transport]
+  - id: city-states
+    name: Cities and states
+    start: -3500-01
+    stop: -1500-01
+    row: 4
+    phases: 4
+    tags: [society]
+    description: Uruk and its neighbours, with temples, kings, taxes and a division of labour.
+  - id: writing
+    name: Writing
+    start: -3400-01
+    stop: -0500-01
+    row: 6
+    phases: 4
+    tags: [knowledge]
+    description: Cuneiform and hieroglyphs, first for accounts, then for law and story.
+  - id: bronze
+    name: Bronze
+    start: -3300-01
+    stop: -1200-01
+    row: 8
+    phases: 4
+    tags: [materials]
+  - id: mathematics
+    name: Mathematics and the calendar
+    start: -3000-01
+    stop: -0300-01
+    row: 10
+    phases: 4
+    tags: [knowledge]
+  - id: sailing
+    name: Sailing ships
+    start: -3000-01
+    stop: -0500-01
+    row: 12
+    phases: 4
+    tags: [transport, economy]
+  - id: written-law
+    name: Written law
+    start: -2100-01
+    stop: -0200-01
+    row: 14
+    phases: 4
+    tags: [society]
+    description: From Ur-Nammu and Hammurabi to the Twelve Tables.
+  - id: alphabet
+    name: The alphabet
+    start: -1800-01
+    stop: -0200-01
+    row: 16
+    phases: 4
+    tags: [knowledge]
+  - id: iron
+    name: Iron
+    start: -1200-01
+    stop: 0500-01
+    row: 4
+    phases: 4
+    tags: [materials]
+  - id: coinage
+    name: Coinage
+    start: -0650-01
+    stop: 1300-01
+    row: 2
+    phases: 4
+    tags: [economy]
+  - id: philosophy
+    name: Philosophy
+    start: -0600-01
+    stop: 0400-01
+    row: 8
+    phases: 4
+    tags: [knowledge, society]
+    description: Reasoned inquiry into nature and ethics, in Greece, India and China alike.
+  - id: concrete
+    name: Roman concrete and roads
+    start: -0300-01
+    stop: 0500-01
+    row: 18
+    phases: 4
+    tags: [materials, transport]
+  - id: paper
+    name: Paper
+    start: 0100-01
+    stop: 1450-01
+    row: 0
+    phases: 4
+    tags: [knowledge]
+  - id: zero
+    name: Positional numbers and zero
+    start: 0500-01
+    stop: 1500-01
+    row: 6
+    phases: 4
+    tags: [knowledge]
+    description: Indian numerals with a zero, carried west by Arabic scholars.
+  - id: gunpowder
+    name: Gunpowder
+    start: 0900-01
+    stop: 1650-01
+    row: 4
+    phases: 4
+    tags: [materials, society]
+  - id: compass
+    name: Magnetic compass
+    start: 1100-01
+    stop: 1600-01
+    row: 8
+    phases: 4
+    tags: [transport]
+  - id: clock
+    name: Mechanical clock
+    start: 1280-01
+    stop: 1700-01
+    row: 10
+    phases: 4
+    tags: [knowledge, society]
+  - id: banking
+    name: Banking and double-entry bookkeeping
+    start: 1300-01
+    stop: 1700-01
+    row: 12
+    phases: 4
+    tags: [economy]
+  - id: printing-press
+    name: Printing press
+    start: 1440-01
+    stop: 1700-01
+    row: 14
+    phases: 4
+    tags: [knowledge, communication]
+  - id: exploration
+    name: Ocean navigation
+    start: 1420-01
+    stop: 1650-01
+    row: 16
+    phases: 4
+    tags: [transport, economy]
+    description: Caravels and charts opened routes across every ocean.
+  - id: scientific-method
+    name: Scientific method
+    start: 1543-01
+    stop: 1750-01
+    row: 18
+    phases: 4
+    tags: [knowledge]
+    description: From Copernicus to Newton, experiment and mathematics became the way to know nature.
+  - id: steam-engine
+    name: Steam engine
+    start: 1712-01
+    stop: 1900-01
+    row: 0
+    phases: 4
+    tags: [energy]
+  - id: factories
+    name: Factory production
+    start: 1760-01
+    stop: 1900-01
+    row: 2
+    phases: 4
+    tags: [economy, energy]
+  - id: vaccination
+    name: Vaccination
+    start: 1796-01
+    stop: 1950-01
+    row: 6
+    phases: 4
+    tags: [health]
+  - id: electricity
+    name: Electricity
+    start: 1800-01
+    stop: 1950-01
+    row: 20
+    phases: 4
+    tags: [energy]
+    description: From Volta's pile to electrified cities.
+  - id: railways
+    name: Railways
+    start: 1825-01
+    stop: 1930-01
+    row: 8
+    phases: 4
+    tags: [transport]
+  - id: telegraph
+    name: Telegraph
+    start: 1837-01
+    stop: 1930-01
+    row: 22
+    phases: 4
+    tags: [communication]
+  - id: germ-theory
+    name: Germ theory
+    start: 1860-01
+    stop: 1960-01
+    row: 24
+    phases: 4
+    tags: [health, knowledge]
+  - id: combustion-engine
+    name: Combustion engine
+    start: 1876-01
+    stop: 2000-01
+    row: 26
+    phases: 4
+    tags: [transport, energy]
+  - id: radio
+    name: Radio
+    start: 1895-01
+    stop: 1990-01
+    row: 4
+    phases: 4
+    tags: [communication]
+  - id: powered-flight
+    name: Powered flight
+    start: 1903-01
+    stop: 2000-01
+    row: 28
+    phases: 4
+    tags: [transport]
+  - id: antibiotics
+    name: Antibiotics
+    start: 1928-01
+    stop: 2020-01
+    row: 16
+    phases: 4
+    tags: [health]
+  - id: computer
+    name: Computer
+    start: 1945-01
+    stop: 2010-01
+    row: 10
+    phases: 4
+    tags: [computing]
+  - id: nuclear-power
+    name: Nuclear power
+    start: 1942-01
+    stop: 2040-01
+    row: 30
+    phases: 3
+    tags: [energy]
+  - id: green-revolution
+    name: Green revolution
+    start: 1950-01
+    stop: 2020-01
+    row: 32
+    phases: 4
+    tags: [food]
+    description: High-yield crops, fertiliser and irrigation fed a doubling population.
+  - id: space-flight
+    name: Space flight
+    start: 1957-01
+    stop: 2040-01
+    row: 12
+    phases: 3
+    tags: [transport, knowledge]
+  - id: internet
+    name: Internet
+    start: 1969-01
+    stop: 2040-01
+    row: 14
+    phases: 3
+    tags: [communication, computing]
+  - id: genetic-engineering
+    name: Genetic engineering
+    start: 1973-01
+    stop: 2050-01
+    row: 34
+    phases: 3
+    tags: [health, food]
+  - id: mobile-phone
+    name: Mobile phone
+    start: 1983-01
+    stop: 2040-01
+    row: 36
+    phases: 3
+    tags: [communication]
+  - id: renewables
+    name: Solar and wind power
+    start: 1990-01
+    stop: 2050-01
+    row: 38
+    phases: 2
+    tags: [energy]
+  - id: artificial-intelligence
+    name: Artificial intelligence
+    start: 2012-01
+    stop: 2050-01
+    row: 40
+    phases: 1
+    tags: [computing]
+    description: Machine learning that works at scale, from deep learning to language models.
+triggers:
+  - id: black-death
+    name: Black Death reaches Europe
+    date: 1347-10
+    row: 11
+    tags: [health, society]
+    description: A third of Europe died; scarce labour raised wages and the value of labour-saving devices.
+  - id: gutenberg-bible
+    name: Gutenberg Bible printed
+    date: 1455-01
+    row: 13
+    tags: [knowledge]
+    description: The first major book printed with movable metal type in Europe.
+  - id: columbus-voyage
+    name: Columbus reaches the Americas
+    date: 1492-10
+    row: 15
+    tags: [transport, economy]
+    description: A voyage west that joined two hemispheres' trade, crops and diseases.
+  - id: watt-condenser
+    name: Watt's separate condenser patent
+    date: 1769-01
+    row: 1
+    tags: [energy]
+    description: A condenser apart from the cylinder made the steam engine efficient enough to drive mills.
+  - id: jenner-smallpox
+    name: Jenner's smallpox inoculation
+    date: 1796-05
+    row: 5
+    tags: [health]
+    description: Edward Jenner inoculated a boy with cowpox and showed he was protected from smallpox.
+  - id: wright-flyer
+    name: Wright brothers' first flight
+    date: 1903-12
+    row: 27
+    tags: [transport]
+    description: Twelve seconds of controlled, powered flight at Kitty Hawk.
+  - id: penicillin
+    name: Fleming notices penicillin
+    date: 1928-09
+    row: 17
+    tags: [health]
+    description: A mould killing the bacteria around it on a forgotten culture plate.
+  - id: chicago-pile
+    name: Chicago Pile-1 goes critical
+    date: 1942-12
+    row: 29
+    tags: [energy]
+    description: The first self-sustaining nuclear chain reaction.
+  - id: sputnik
+    name: Sputnik 1
+    date: 1957-10
+    row: 11
+    tags: [transport, knowledge]
+    description: The first artificial satellite, and the start of the space race.
+  - id: code-of-hammurabi
+    name: Code of Hammurabi
+    date: -1754-01
+    row: 13
+    tags: [society]
+    description: Babylonian laws carved on a stele for anyone to read.
+  - id: bronze-age-collapse
+    name: Late Bronze Age collapse
+    date: -1177-01
+    row: 3
+    tags: [society, materials]
+    description: Trade in tin failed with the palace states, and iron took its place.
+  - id: library-of-alexandria
+    name: Library of Alexandria founded
+    date: -0285-01
+    row: 7
+    tags: [knowledge]
+    description: A royal library that set out to hold every book in the world.
+  - id: cai-lun-paper
+    name: Cai Lun presents paper to the emperor
+    date: 0105-01
+    row: 1
+    tags: [knowledge]
+    description: Paper made from bark, hemp and rags, reported to the Han court.
+influences:
+  - id: horse-riding--wheel
+    from: horse-riding
+    from-phase: peak
+    from-edge: bottom
+    from-at: 0.45
+    to: wheel
+    to-phase: peak
+    to-edge: top
+    to-at: 0.55
+    description: Horses and oxen pulled the first carts and chariots.
+  - id: city-states--writing
+    from: city-states
+    from-phase: peak
+    from-edge: bottom
+    from-at: 0.57
+    to: writing
+    to-phase: peak
+    to-edge: top
+    to-at: 0.45
+    description: Temple and palace accounts needed records.
+  - id: bronze--wheel
+    from: bronze
+    from-phase: peak
+    from-edge: top
+    from-at: 0.35
+    to: wheel
+    to-phase: peak
+    to-edge: bottom
+    to-at: 0.62
+  - id: writing--mathematics
+    from: writing
+    from-phase: peak
+    from-edge: bottom
+    from-at: 0.58
+    to: mathematics
+    to-phase: peak
+    to-edge: top
+    to-at: 0.41
+  - id: city-states--written-law
+    from: city-states
+    from-phase: slope
+    from-edge: bottom
+    from-at: 0.59
+    to: written-law
+    to-phase: peak
+    to-edge: top
+    to-at: 0.18
+  - id: writing--written-law
+    from: writing
+    from-phase: trough
+    from-edge: bottom
+    from-at: 0.62
+    to: written-law
+    to-phase: peak
+    to-edge: top
+    to-at: 0.46
+  - id: writing--alphabet
+    from: writing
+    from-phase: slope
+    from-edge: bottom
+    from-at: 0.52
+    to: alphabet
+    to-phase: peak
+    to-edge: top
+    to-at: 0.72
+  - id: sailing--alphabet
+    from: sailing
+    from-phase: trough
+    from-edge: bottom
+    from-at: 0.61
+    to: alphabet
+    to-phase: peak
+    to-edge: top
+    to-at: 0.24
+    description: Phoenician traders spread their letters around the Mediterranean.
+  - id: bronze--iron
+    from: bronze
+    from-phase: plateau
+    from-edge: top
+    from-at: 0.60
+    to: iron
+    to-phase: peak
+    to-edge: bottom
+    to-at: 0.40
+  - id: city-states--coinage
+    from: city-states
+    from-phase: plateau
+    from-edge: top
+    from-at: 0.60
+    to: coinage
+    to-phase: peak
+    to-edge: bottom
+    to-at: 0.40
+  - id: alphabet--philosophy
+    from: alphabet
+    from-phase: plateau
+    from-edge: top
+    from-at: 0.46
+    to: philosophy
+    to-phase: peak
+    to-edge: bottom
+    to-at: 0.74
+  - id: mathematics--philosophy
+    from: mathematics
+    from-phase: plateau
+    from-edge: top
+    from-at: 0.30
+    to: philosophy
+    to-phase: peak
+    to-edge: bottom
+    to-at: 0.22
+  - id: iron--concrete
+    from: iron
+    from-phase: slope
+    from-edge: bottom
+    from-at: 0.42
+    to: concrete
+    to-phase: peak
+    to-edge: top
+    to-at: 0.66
+  - id: writing--paper
+    from: writing
+    from-phase: plateau
+    from-edge: top
+    from-at: 0.60
+    to: paper
+    to-phase: peak
+    to-edge: bottom
+    to-at: 0.28
+  - id: mathematics--zero
+    from: mathematics
+    from-phase: plateau
+    from-edge: top
+    from-at: 0.72
+    to: zero
+    to-phase: peak
+    to-edge: bottom
+    to-at: 0.40
+  - id: paper--printing-press
+    from: paper
+    from-phase: plateau
+    from-edge: bottom
+    from-at: 0.60
+    to: printing-press
+    to-phase: peak
+    to-edge: top
+    to-at: 0.28
+  - id: zero--banking
+    from: zero
+    from-phase: plateau
+    from-edge: bottom
+    from-at: 0.29
+    to: banking
+    to-phase: peak
+    to-edge: top
+    to-at: 0.76
+  - id: coinage--banking
+    from: coinage
+    from-phase: plateau
+    from-edge: bottom
+    from-at: 0.60
+    to: banking
+    to-phase: peak
+    to-edge: top
+    to-at: 0.21
+  - id: compass--exploration
+    from: compass
+    from-phase: slope
+    from-edge: bottom
+    from-at: 0.56
+    to: exploration
+    to-phase: peak
+    to-edge: top
+    to-at: 0.58
+  - id: sailing--exploration
+    from: sailing
+    from-phase: plateau
+    from-edge: bottom
+    from-at: 0.60
+    to: exploration
+    to-phase: peak
+    to-edge: top
+    to-at: 0.17
+  - id: gunpowder--exploration
+    from: gunpowder
+    from-phase: slope
+    from-edge: bottom
+    from-at: 0.57
+    to: exploration
+    to-phase: peak
+    to-edge: top
+    to-at: 0.33
+  - id: banking--exploration
+    from: banking
+    from-phase: trough
+    from-edge: bottom
+    from-at: 0.53
+    to: exploration
+    to-phase: peak
+    to-edge: top
+    to-at: 0.82
+    description: Joint ventures paid for voyages no one could fund alone.
+  - id: printing-press--scientific-method
+    from: printing-press
+    from-phase: trough
+    from-edge: bottom
+    from-at: 0.61
+    to: scientific-method
+    to-phase: peak
+    to-edge: top
+    to-at: 0.58
+    description: Printed books let results be checked and built on.
+  - id: clock--scientific-method
+    from: clock
+    from-phase: slope
+    from-edge: bottom
+    from-at: 0.58
+    to: scientific-method
+    to-phase: peak
+    to-edge: top
+    to-at: 0.79
+  - id: zero--scientific-method
+    from: zero
+    from-phase: plateau
+    from-edge: bottom
+    from-at: 0.72
+    to: scientific-method
+    to-phase: peak
+    to-edge: top
+    to-at: 0.39
+  - id: philosophy--scientific-method
+    from: philosophy
+    from-phase: plateau
+    from-edge: bottom
+    from-at: 0.60
+    to: scientific-method
+    to-phase: peak
+    to-edge: top
+    to-at: 0.17
+  - id: scientific-method--steam-engine
+    from: scientific-method
+    from-phase: plateau
+    from-edge: top
+    from-at: 0.30
+    to: steam-engine
+    to-phase: peak
+    to-edge: bottom
+    to-at: 0.41
+  - id: steam-engine--factories
+    from: steam-engine
+    from-phase: trough
+    from-edge: bottom
+    from-at: 0.63
+    to: factories
+    to-phase: peak
+    to-edge: top
+    to-at: 0.83
+  - id: exploration--factories
+    from: exploration
+    from-phase: plateau
+    from-edge: top
+    from-at: 0.60
+    to: factories
+    to-phase: peak
+    to-edge: bottom
+    to-at: 0.40
+  - id: scientific-method--vaccination
+    from: scientific-method
+    from-phase: plateau
+    from-edge: top
+    from-at: 0.72
+    to: vaccination
+    to-phase: peak
+    to-edge: bottom
+    to-at: 0.40
+  - id: scientific-method--electricity
+    from: scientific-method
+    from-phase: plateau
+    from-edge: bottom
+    from-at: 0.60
+    to: electricity
+    to-phase: peak
+    to-edge: top
+    to-at: 0.40
+  - id: steam-engine--railways
+    from: steam-engine
+    from-phase: slope
+    from-edge: bottom
+    from-at: 0.55
+    to: railways
+    to-phase: peak
+    to-edge: top
+    to-at: 0.70
+  - id: factories--railways
+    from: factories
+    from-phase: trough
+    from-edge: bottom
+    from-at: 0.61
+    to: railways
+    to-phase: peak
+    to-edge: top
+    to-at: 0.25
+  - id: electricity--telegraph
+    from: electricity
+    from-phase: trough
+    from-edge: bottom
+    from-at: 0.44
+    to: telegraph
+    to-phase: peak
+    to-edge: top
+    to-at: 0.75
+  - id: telegraph--railways
+    from: telegraph
+    from-phase: peak
+    from-edge: top
+    from-at: 0.23
+    to: railways
+    to-phase: peak
+    to-edge: bottom
+    to-at: 0.67
+    description: Signalling made single-track lines safe.
+  - id: vaccination--germ-theory
+    from: vaccination
+    from-phase: trough
+    from-edge: bottom
+    from-at: 0.58
+    to: germ-theory
+    to-phase: peak
+    to-edge: top
+    to-at: 0.38
+  - id: factories--combustion-engine
+    from: factories
+    from-phase: plateau
+    from-edge: bottom
+    from-at: 0.54
+    to: combustion-engine
+    to-phase: peak
+    to-edge: top
+    to-at: 0.46
+  - id: electricity--radio
+    from: electricity
+    from-phase: slope
+    from-edge: top
+    from-at: 0.55
+    to: radio
+    to-phase: peak
+    to-edge: bottom
+    to-at: 0.41
+  - id: combustion-engine--powered-flight
+    from: combustion-engine
+    from-phase: peak
+    from-edge: bottom
+    from-at: 0.68
+    to: powered-flight
+    to-phase: peak
+    to-edge: top
+    to-at: 0.66
+    description: Light petrol engines made powered flight possible.
+  - id: germ-theory--antibiotics
+    from: germ-theory
+    from-phase: slope
+    from-edge: top
+    from-at: 0.67
+    to: antibiotics
+    to-phase: peak
+    to-edge: bottom
+    to-at: 0.67
+  - id: electricity--computer
+    from: electricity
+    from-phase: plateau
+    from-edge: top
+    from-at: 0.59
+    to: computer
+    to-phase: peak
+    to-edge: bottom
+    to-at: 0.23
+  - id: radio--computer
+    from: radio
+    from-phase: slope
+    from-edge: bottom
+    from-at: 0.47
+    to: computer
+    to-phase: peak
+    to-edge: top
+    to-at: 0.54
+  - id: electricity--nuclear-power
+    from: electricity
+    from-phase: plateau
+    from-edge: bottom
+    from-at: 0.34
+    to: nuclear-power
+    to-phase: peak
+    to-edge: top
+    to-at: 0.65
+  - id: combustion-engine--green-revolution
+    from: combustion-engine
+    from-phase: slope
+    from-edge: bottom
+    from-at: 0.52
+    to: green-revolution
+    to-phase: peak
+    to-edge: top
+    to-at: 0.45
+  - id: powered-flight--space-flight
+    from: powered-flight
+    from-phase: slope
+    from-edge: top
+    from-at: 0.55
+    to: space-flight
+    to-phase: peak
+    to-edge: bottom
+    to-at: 0.46
+  - id: computer--space-flight
+    from: computer
+    from-phase: peak
+    from-edge: bottom
+    from-at: 0.79
+    to: space-flight
+    to-phase: peak
+    to-edge: top
+    to-at: 0.68
+  - id: computer--internet
+    from: computer
+    from-phase: trough
+    from-edge: bottom
+    from-at: 0.35
+    to: internet
+    to-phase: peak
+    to-edge: top
+    to-at: 0.67
+  - id: telegraph--internet
+    from: telegraph
+    from-phase: plateau
+    from-edge: top
+    from-at: 0.60
+    to: internet
+    to-phase: peak
+    to-edge: bottom
+    to-at: 0.28
+  - id: germ-theory--genetic-engineering
+    from: germ-theory
+    from-phase: plateau
+    from-edge: bottom
+    from-at: 0.60
+    to: genetic-engineering
+    to-phase: peak
+    to-edge: top
+    to-at: 0.28
+  - id: computer--genetic-engineering
+    from: computer
+    from-phase: trough
+    from-edge: bottom
+    from-at: 0.78
+    to: genetic-engineering
+    to-phase: peak
+    to-edge: top
+    to-at: 0.68
+  - id: radio--mobile-phone
+    from: radio
+    from-phase: plateau
+    from-edge: bottom
+    from-at: 0.58
+    to: mobile-phone
+    to-phase: peak
+    to-edge: top
+    to-at: 0.26
+  - id: internet--mobile-phone
+    from: internet
+    from-phase: peak
+    from-edge: bottom
+    from-at: 0.74
+    to: mobile-phone
+    to-phase: peak
+    to-edge: top
+    to-at: 0.69
+  - id: electricity--renewables
+    from: electricity
+    from-phase: plateau
+    from-edge: bottom
+    from-at: 0.72
+    to: renewables
+    to-phase: peak
+    to-edge: top
+    to-at: 0.40
+  - id: internet--artificial-intelligence
+    from: internet
+    from-phase: trough
+    from-edge: bottom
+    from-at: 0.78
+    to: artificial-intelligence
+    to-phase: peak
+    to-edge: top
+    to-at: 0.68
+    description: The web supplied the data modern AI learns from.
+  - id: computer--artificial-intelligence
+    from: computer
+    from-phase: plateau
+    from-edge: bottom
+    from-at: 0.60
+    to: artificial-intelligence
+    to-phase: peak
+    to-edge: top
+    to-at: 0.28
+  - id: black-death--banking
+    from: black-death
+    to: banking
+    to-phase: peak
+    to-edge: top
+    to-at: 0.50
+  - id: gutenberg-bible--printing-press
+    from: gutenberg-bible
+    to: printing-press
+    to-phase: peak
+    to-edge: top
+    to-at: 0.69
+  - id: columbus-voyage--exploration
+    from: columbus-voyage
+    to: exploration
+    to-phase: trough
+    to-edge: top
+    to-at: 0.46
+  - id: watt-condenser--steam-engine
+    from: watt-condenser
+    to: steam-engine
+    to-phase: trough
+    to-edge: bottom
+    to-at: 0.28
+  - id: watt-condenser--factories
+    from: watt-condenser
+    to: factories
+    to-phase: peak
+    to-edge: top
+    to-at: 0.28
+  - id: jenner-smallpox--vaccination
+    from: jenner-smallpox
+    to: vaccination
+    to-phase: peak
+    to-edge: top
+    to-at: 0.41
+  - id: wright-flyer--powered-flight
+    from: wright-flyer
+    to: powered-flight
+    to-phase: peak
+    to-edge: top
+    to-at: 0.27
+  - id: penicillin--antibiotics
+    from: penicillin
+    to: antibiotics
+    to-phase: peak
+    to-edge: bottom
+    to-at: 0.27
+  - id: chicago-pile--nuclear-power
+    from: chicago-pile
+    to: nuclear-power
+    to-phase: peak
+    to-edge: top
+    to-at: 0.27
+  - id: sputnik--space-flight
+    from: sputnik
+    to: space-flight
+    to-phase: peak
+    to-edge: top
+    to-at: 0.27
+  - id: sputnik--internet
+    from: sputnik
+    to: internet
+    to-phase: peak
+    to-edge: top
+    to-at: 0.24
+  - id: code-of-hammurabi--written-law
+    from: code-of-hammurabi
+    to: written-law
+    to-phase: peak
+    to-edge: top
+    to-at: 0.79
+  - id: bronze-age-collapse--iron
+    from: bronze-age-collapse
+    to: iron
+    to-phase: peak
+    to-edge: top
+    to-at: 0.41
+  - id: bronze-age-collapse--alphabet
+    from: bronze-age-collapse
+    to: alphabet
+    to-phase: trough
+    to-edge: top
+    to-at: 0.56
+  - id: library-of-alexandria--philosophy
+    from: library-of-alexandria
+    to: philosophy
+    to-phase: trough
+    to-edge: top
+    to-at: 0.46
+  - id: cai-lun-paper--paper
+    from: cai-lun-paper
+    to: paper
+    to-phase: peak
+    to-edge: bottom
+    to-at: 0.68

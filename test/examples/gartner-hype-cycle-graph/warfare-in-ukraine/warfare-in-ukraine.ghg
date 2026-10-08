@@ -1,0 +1,734 @@
+gartner-hypecycle-graph: 1
+# A hand-authored hype cycle of how warfare is changing, centred on the war in Ukraine, with ideas
+# that have not started yet. Dates after 2026 are projections, and dates and influences are
+# illustrative, not a claim: see readme.md.
+trends:
+  - id: precision-guided-munitions
+    name: Precision-guided munitions
+    start: 1972-05
+    stop: 2026-01
+    row: 0
+    phases: 4
+    tags: [strike]
+    description: Laser-guided bombs from 1972, satellite-guided ones from the late 1990s.
+  - id: gps
+    name: GPS
+    start: 1978-02
+    stop: 2026-01
+    row: 2
+    phases: 4
+    tags: [navigation, space]
+  - id: network-centric-warfare
+    name: Network-centric warfare
+    start: 1998-01
+    stop: 2020-01
+    row: 4
+    phases: 3
+    tags: [command]
+    description: The doctrine that linking sensors and shooters beats massing forces.
+  - id: armed-drones
+    name: Armed military drones
+    start: 2001-10
+    stop: 2030-01
+    row: 6
+    phases: 4
+    tags: [drones]
+    description: From the armed Predator of 2001 on.
+  - id: cyber-warfare
+    name: Cyber warfare
+    start: 2007-04
+    stop: 2035-01
+    row: 8
+    phases: 3
+    tags: [cyber]
+    description: From the attacks on Estonia in 2007 on.
+  - id: hybrid-warfare
+    name: Hybrid warfare
+    start: 2014-02
+    stop: 2030-01
+    row: 12
+    phases: 3
+    tags: [doctrine]
+    description: Unmarked troops, disinformation and proxies in Crimea and the Donbas.
+  - id: commercial-satellite-imagery
+    name: Commercial satellite imagery
+    start: 2014-01
+    stop: 2035-01
+    row: 10
+    phases: 3
+    tags: [space, intelligence]
+  - id: open-source-intelligence
+    name: Open-source intelligence
+    start: 2014-07
+    stop: 2035-01
+    row: 16
+    phases: 3
+    tags: [intelligence]
+    description: Public photos and videos turned into evidence, from the MH17 investigation on.
+  - id: electronic-warfare
+    name: Electronic warfare
+    start: 2014-04
+    stop: 2035-01
+    row: 14
+    phases: 2
+    tags: [ew]
+    description: Jamming and spoofing of radios, drones and satellite navigation.
+  - id: strike-drones
+    name: Medium-altitude strike drones
+    start: 2020-09
+    stop: 2030-01
+    row: 18
+    phases: 2
+    peak-end: 2022-06
+    tags: [drones]
+    description: Drones like the Bayraktar TB2, celebrated in 2020 and early 2022, then vulnerable to air defence.
+  - id: loitering-munitions
+    name: Loitering munitions
+    start: 2020-09
+    stop: 2035-01
+    row: 20
+    phases: 2
+    tags: [drones, strike]
+  - id: anti-tank-missiles
+    name: Man-portable anti-tank missiles
+    start: 2022-02
+    stop: 2030-01
+    row: 22
+    phases: 2
+    peak-end: 2022-09
+    tags: [infantry]
+    description: Javelin and NLAW in the first weeks of the invasion.
+  - id: satellite-communications
+    name: Satellite communications at the front
+    start: 2022-02
+    stop: 2035-01
+    row: 24
+    phases: 2
+    peak-end: 2022-10
+    tags: [space, command]
+    description: Starlink terminals kept units connected after the KA-SAT network was hacked on the first day.
+  - id: battlefield-management-software
+    name: Battlefield management software
+    start: 2022-03
+    stop: 2035-01
+    row: 26
+    phases: 1
+    tags: [command, software]
+    description: Systems such as Delta that fuse drone video, reports and maps into one picture.
+  - id: rocket-artillery
+    name: Long-range precision rocket artillery
+    start: 2022-06
+    stop: 2032-01
+    row: 28
+    phases: 2
+    peak-end: 2023-03
+    tags: [strike]
+    description: HIMARS, decisive in 2022 until jamming blunted its guided rockets.
+  - id: fpv-drones
+    name: FPV strike drones
+    start: 2022-09
+    stop: 2035-01
+    row: 30
+    phases: 2
+    peak-end: 2024-06
+    tags: [drones]
+    description: Cheap racing drones carrying a charge, flown by goggle-wearing pilots.
+  - id: long-range-attack-drones
+    name: Long-range one-way attack drones
+    start: 2022-09
+    stop: 2035-01
+    row: 32
+    phases: 1
+    tags: [drones, strike]
+    description: Shahed-type drones fired in waves against cities and power plants.
+  - id: sea-drones
+    name: Uncrewed surface vessels
+    start: 2022-10
+    stop: 2035-01
+    row: 34
+    phases: 1
+    tags: [drones, naval]
+    description: Ukraine's sea drones pushed the Black Sea Fleet away from western Crimea.
+  - id: layered-air-defence
+    name: Layered air defence
+    start: 2022-10
+    stop: 2035-01
+    row: 36
+    phases: 1
+    tags: [air-defence]
+    description: Patriot and IRIS-T high up, mobile gun teams against drones low down.
+  - id: transparent-battlefield
+    name: The transparent battlefield
+    start: 2023-06
+    stop: 2032-01
+    row: 38
+    phases: 1
+    tags: [doctrine]
+    description: Constant surveillance made massed manoeuvre costly, and the front returned to trenches.
+  - id: ai-terminal-guidance
+    name: AI terminal guidance
+    start: 2023-06
+    stop: 2035-01
+    row: 40
+    phases: 1
+    tags: [ai, drones]
+    description: Drones that find their target on their own for the last stretch, when the link is jammed.
+  - id: mass-drone-production
+    name: Mass drone production
+    start: 2023-12
+    stop: 2035-01
+    row: 42
+    phases: 1
+    tags: [industry, drones]
+    description: Millions of drones a year, built in small workshops as much as in factories.
+  - id: fibre-optic-drones
+    name: Fibre-optic drones
+    start: 2024-08
+    stop: 2032-01
+    row: 46
+    phases: 1
+    tags: [drones, ew]
+    description: Drones steered through a trailing fibre, immune to jamming.
+  - id: ground-robots
+    name: Uncrewed ground vehicles
+    start: 2024-06
+    stop: 2038-01
+    row: 44
+    phases: 1
+    tags: [drones, logistics, upcoming]
+    description: Robots carrying supplies and the wounded where a vehicle with a crew would be seen.
+  - id: interceptor-drones
+    name: Interceptor drones
+    start: 2025-01
+    stop: 2035-01
+    row: 48
+    phases: 1
+    tags: [drones, air-defence]
+    description: Cheap drones that hunt the attacking drones.
+  - id: drone-walls
+    name: Drone walls
+    start: 2025-10
+    stop: 2040-01
+    row: 50
+    phases: 1
+    tags: [air-defence, policy, upcoming]
+    description: Europe's plan for a belt of sensors and interceptors along its eastern border.
+  - id: laser-air-defence
+    name: Laser air defence
+    start: 2026-06
+    stop: 2040-01
+    row: 52
+    phases: 1
+    tags: [air-defence, upcoming]
+    description: Directed energy against drones, at the cost of electricity rather than a missile.
+  - id: autonomous-drone-swarms
+    name: Autonomous drone swarms
+    start: 2027-01
+    stop: 2042-01
+    row: 54
+    phases: 1
+    tags: [drones, ai, conceptual]
+  - id: human-machine-teams
+    name: Human-machine combat teams
+    start: 2028-01
+    stop: 2045-01
+    row: 56
+    phases: 1
+    tags: [ai, doctrine, conceptual]
+    description: Units in which soldiers direct many robots, and the rules for who decides what.
+triggers:
+  - id: annexation-of-crimea
+    name: Annexation of Crimea
+    date: 2014-03
+    row: 11
+    tags: [doctrine]
+    description: Unmarked troops and information operations took Crimea with little fighting.
+  - id: mh17
+    name: Downing of MH17
+    date: 2014-07
+    row: 15
+    tags: [intelligence]
+    description: Open-source investigators traced the missile launcher from photographs and videos posted online.
+  - id: notpetya
+    name: NotPetya cyberattack
+    date: 2017-06
+    row: 7
+    tags: [cyber]
+    description: Malware spread through Ukrainian accounting software and disabled companies worldwide.
+  - id: second-nagorno-karabakh-war
+    name: Second Nagorno-Karabakh War
+    date: 2020-09
+    row: 17
+    tags: [drones]
+    description: Forty-four days in which strike drones and loitering munitions destroyed armour and air defences.
+  - id: full-scale-invasion
+    name: Full-scale invasion
+    date: 2022-02
+    row: 21
+    tags: [doctrine]
+    description: Russia's invasion of Ukraine on 24 February 2022.
+  - id: sinking-of-moskva
+    name: Sinking of the cruiser Moskva
+    date: 2022-04
+    row: 33
+    tags: [naval]
+    description: The Black Sea Fleet's flagship sank after a missile strike, and the fleet moved away from Ukraine's coast.
+  - id: operation-spiderweb
+    name: Operation Spiderweb
+    date: 2025-06
+    row: 41
+    tags: [drones]
+    description: Drones launched from trucks deep inside Russia struck strategic bombers at several airbases.
+influences:
+  - id: gps--precision-guided-munitions
+    from: gps
+    from-phase: trough
+    from-edge: top
+    from-at: 0.34
+    to: precision-guided-munitions
+    to-phase: trough
+    to-edge: bottom
+    to-at: 0.64
+    description: Satellite guidance made precision bombs cheap and all-weather.
+  - id: gps--network-centric-warfare
+    from: gps
+    from-phase: trough
+    from-edge: bottom
+    from-at: 0.57
+    to: network-centric-warfare
+    to-phase: peak
+    to-edge: top
+    to-at: 0.37
+  - id: precision-guided-munitions--armed-drones
+    from: precision-guided-munitions
+    from-phase: slope
+    from-edge: bottom
+    from-at: 0.51
+    to: armed-drones
+    to-phase: peak
+    to-edge: top
+    to-at: 0.72
+    description: The Predator was armed with Hellfire missiles.
+  - id: network-centric-warfare--armed-drones
+    from: network-centric-warfare
+    from-phase: peak
+    from-edge: bottom
+    from-at: 0.55
+    to: armed-drones
+    to-phase: peak
+    to-edge: top
+    to-at: 0.27
+  - id: cyber-warfare--hybrid-warfare
+    from: cyber-warfare
+    from-phase: peak
+    from-edge: bottom
+    from-at: 0.62
+    to: hybrid-warfare
+    to-phase: peak
+    to-edge: top
+    to-at: 0.67
+  - id: hybrid-warfare--electronic-warfare
+    from: hybrid-warfare
+    from-phase: peak
+    from-edge: bottom
+    from-at: 0.35
+    to: electronic-warfare
+    to-phase: peak
+    to-edge: top
+    to-at: 0.69
+  - id: hybrid-warfare--open-source-intelligence
+    from: hybrid-warfare
+    from-phase: peak
+    from-edge: bottom
+    from-at: 0.71
+    to: open-source-intelligence
+    to-phase: peak
+    to-edge: top
+    to-at: 0.51
+    description: Volunteers traced the missile that downed MH17.
+  - id: commercial-satellite-imagery--open-source-intelligence
+    from: commercial-satellite-imagery
+    from-phase: peak
+    from-edge: bottom
+    from-at: 0.56
+    to: open-source-intelligence
+    to-phase: peak
+    to-edge: top
+    to-at: 0.78
+  - id: armed-drones--strike-drones
+    from: armed-drones
+    from-phase: slope
+    from-edge: bottom
+    from-at: 0.57
+    to: strike-drones
+    to-phase: peak
+    to-edge: top
+    to-at: 0.65
+  - id: strike-drones--loitering-munitions
+    from: strike-drones
+    from-phase: peak
+    from-edge: bottom
+    from-at: 0.96
+    to: loitering-munitions
+    to-phase: peak
+    to-edge: top
+    to-at: 0.69
+  - id: cyber-warfare--satellite-communications
+    from: cyber-warfare
+    from-phase: trough
+    from-edge: bottom
+    from-at: 0.53
+    to: satellite-communications
+    to-phase: peak
+    to-edge: top
+    to-at: 0.61
+    description: The KA-SAT hack on the first day of the invasion sent units to Starlink.
+  - id: precision-guided-munitions--anti-tank-missiles
+    from: precision-guided-munitions
+    from-phase: plateau
+    from-edge: bottom
+    from-at: 0.54
+    to: anti-tank-missiles
+    to-phase: peak
+    to-edge: top
+    to-at: 0.96
+  - id: commercial-satellite-imagery--battlefield-management-software
+    from: commercial-satellite-imagery
+    from-phase: trough
+    from-edge: bottom
+    from-at: 0.36
+    to: battlefield-management-software
+    to-phase: peak
+    to-edge: top
+    to-at: 0.75
+  - id: satellite-communications--battlefield-management-software
+    from: satellite-communications
+    from-phase: peak
+    from-edge: bottom
+    from-at: 0.96
+    to: battlefield-management-software
+    to-phase: peak
+    to-edge: top
+    to-at: 0.48
+  - id: gps--rocket-artillery
+    from: gps
+    from-phase: plateau
+    from-edge: bottom
+    from-at: 0.54
+    to: rocket-artillery
+    to-phase: peak
+    to-edge: top
+    to-at: 0.04
+  - id: electronic-warfare--strike-drones
+    from: electronic-warfare
+    from-phase: peak
+    from-edge: bottom
+    from-at: 0.22
+    to: strike-drones
+    to-phase: trough
+    to-edge: top
+    to-at: 0.24
+    description: Jamming and air defence drove the TB2 from the front line.
+  - id: loitering-munitions--fpv-drones
+    from: loitering-munitions
+    from-phase: peak
+    from-edge: bottom
+    from-at: 0.37
+    to: fpv-drones
+    to-phase: peak
+    to-edge: top
+    to-at: 0.42
+  - id: satellite-communications--sea-drones
+    from: satellite-communications
+    from-phase: trough
+    from-edge: bottom
+    from-at: 0.54
+    to: sea-drones
+    to-phase: peak
+    to-edge: top
+    to-at: 0.71
+  - id: long-range-attack-drones--layered-air-defence
+    from: long-range-attack-drones
+    from-phase: peak
+    from-edge: bottom
+    from-at: 0.18
+    to: layered-air-defence
+    to-phase: peak
+    to-edge: top
+    to-at: 0.44
+  - id: anti-tank-missiles--fpv-drones
+    from: anti-tank-missiles
+    from-phase: trough
+    from-edge: bottom
+    from-at: 0.22
+    to: fpv-drones
+    to-phase: peak
+    to-edge: top
+    to-at: 0.96
+    description: A drone costing a few hundred dollars did the work of a missile.
+  - id: electronic-warfare--rocket-artillery
+    from: electronic-warfare
+    from-phase: peak
+    from-edge: bottom
+    from-at: 0.43
+    to: rocket-artillery
+    to-phase: trough
+    to-edge: top
+    to-at: 0.30
+    description: Jamming degraded the satellite-guided rockets.
+  - id: commercial-satellite-imagery--transparent-battlefield
+    from: commercial-satellite-imagery
+    from-phase: trough
+    from-edge: bottom
+    from-at: 0.75
+    to: transparent-battlefield
+    to-phase: peak
+    to-edge: top
+    to-at: 0.70
+  - id: fpv-drones--transparent-battlefield
+    from: fpv-drones
+    from-phase: peak
+    from-edge: bottom
+    from-at: 0.30
+    to: transparent-battlefield
+    to-phase: peak
+    to-edge: top
+    to-at: 0.27
+  - id: fpv-drones--ai-terminal-guidance
+    from: fpv-drones
+    from-phase: peak
+    from-edge: bottom
+    from-at: 0.78
+    to: ai-terminal-guidance
+    to-phase: peak
+    to-edge: top
+    to-at: 0.68
+  - id: electronic-warfare--ai-terminal-guidance
+    from: electronic-warfare
+    from-phase: peak
+    from-edge: bottom
+    from-at: 0.64
+    to: ai-terminal-guidance
+    to-phase: peak
+    to-edge: top
+    to-at: 0.25
+  - id: fpv-drones--mass-drone-production
+    from: fpv-drones
+    from-phase: peak
+    from-edge: bottom
+    from-at: 0.79
+    to: mass-drone-production
+    to-phase: peak
+    to-edge: top
+    to-at: 0.28
+  - id: electronic-warfare--fpv-drones
+    from: electronic-warfare
+    from-phase: peak
+    from-edge: bottom
+    from-at: 0.83
+    to: fpv-drones
+    to-phase: trough
+    to-edge: top
+    to-at: 0.40
+    description: Jammers along the front took the FPV drone into its trough.
+  - id: electronic-warfare--fibre-optic-drones
+    from: electronic-warfare
+    from-phase: trough
+    from-edge: bottom
+    from-at: 0.50
+    to: fibre-optic-drones
+    to-phase: peak
+    to-edge: top
+    to-at: 0.72
+  - id: fpv-drones--fibre-optic-drones
+    from: fpv-drones
+    from-phase: trough
+    from-edge: bottom
+    from-at: 0.20
+    to: fibre-optic-drones
+    to-phase: peak
+    to-edge: top
+    to-at: 0.28
+  - id: fpv-drones--ground-robots
+    from: fpv-drones
+    from-phase: trough
+    from-edge: bottom
+    from-at: 0.52
+    to: ground-robots
+    to-phase: peak
+    to-edge: top
+    to-at: 0.70
+  - id: transparent-battlefield--ground-robots
+    from: transparent-battlefield
+    from-phase: peak
+    from-edge: bottom
+    from-at: 0.51
+    to: ground-robots
+    to-phase: peak
+    to-edge: top
+    to-at: 0.28
+  - id: fpv-drones--interceptor-drones
+    from: fpv-drones
+    from-phase: trough
+    from-edge: bottom
+    from-at: 0.76
+    to: interceptor-drones
+    to-phase: peak
+    to-edge: top
+    to-at: 0.76
+  - id: long-range-attack-drones--interceptor-drones
+    from: long-range-attack-drones
+    from-phase: peak
+    from-edge: bottom
+    from-at: 0.39
+    to: interceptor-drones
+    to-phase: peak
+    to-edge: top
+    to-at: 0.28
+  - id: interceptor-drones--drone-walls
+    from: interceptor-drones
+    from-phase: peak
+    from-edge: bottom
+    from-at: 0.61
+    to: drone-walls
+    to-phase: peak
+    to-edge: top
+    to-at: 0.70
+  - id: long-range-attack-drones--drone-walls
+    from: long-range-attack-drones
+    from-phase: peak
+    from-edge: bottom
+    from-at: 0.59
+    to: drone-walls
+    to-phase: peak
+    to-edge: top
+    to-at: 0.30
+  - id: layered-air-defence--laser-air-defence
+    from: layered-air-defence
+    from-phase: peak
+    from-edge: bottom
+    from-at: 0.61
+    to: laser-air-defence
+    to-phase: peak
+    to-edge: top
+    to-at: 0.70
+  - id: long-range-attack-drones--laser-air-defence
+    from: long-range-attack-drones
+    from-phase: peak
+    from-edge: bottom
+    from-at: 0.72
+    to: laser-air-defence
+    to-phase: peak
+    to-edge: top
+    to-at: 0.38
+  - id: ai-terminal-guidance--autonomous-drone-swarms
+    from: ai-terminal-guidance
+    from-phase: peak
+    from-edge: bottom
+    from-at: 0.53
+    to: autonomous-drone-swarms
+    to-phase: peak
+    to-edge: top
+    to-at: 0.28
+  - id: mass-drone-production--autonomous-drone-swarms
+    from: mass-drone-production
+    from-phase: peak
+    from-edge: bottom
+    from-at: 0.64
+    to: autonomous-drone-swarms
+    to-phase: peak
+    to-edge: top
+    to-at: 0.70
+  - id: battlefield-management-software--human-machine-teams
+    from: battlefield-management-software
+    from-phase: peak
+    from-edge: bottom
+    from-at: 0.54
+    to: human-machine-teams
+    to-phase: peak
+    to-edge: top
+    to-at: 0.20
+  - id: ground-robots--human-machine-teams
+    from: ground-robots
+    from-phase: peak
+    from-edge: bottom
+    from-at: 0.57
+    to: human-machine-teams
+    to-phase: peak
+    to-edge: top
+    to-at: 0.49
+  - id: autonomous-drone-swarms--human-machine-teams
+    from: autonomous-drone-swarms
+    from-phase: peak
+    from-edge: bottom
+    from-at: 0.59
+    to: human-machine-teams
+    to-phase: peak
+    to-edge: top
+    to-at: 0.78
+  - id: annexation-of-crimea--hybrid-warfare
+    from: annexation-of-crimea
+    to: hybrid-warfare
+    to-phase: peak
+    to-edge: top
+    to-at: 0.27
+  - id: annexation-of-crimea--electronic-warfare
+    from: annexation-of-crimea
+    to: electronic-warfare
+    to-phase: peak
+    to-edge: top
+    to-at: 0.27
+  - id: mh17--open-source-intelligence
+    from: mh17
+    to: open-source-intelligence
+    to-phase: peak
+    to-edge: top
+    to-at: 0.20
+  - id: notpetya--cyber-warfare
+    from: notpetya
+    to: cyber-warfare
+    to-phase: trough
+    to-edge: top
+    to-at: 0.42
+  - id: second-nagorno-karabakh-war--strike-drones
+    from: second-nagorno-karabakh-war
+    to: strike-drones
+    to-phase: peak
+    to-edge: top
+    to-at: 0.27
+  - id: second-nagorno-karabakh-war--loitering-munitions
+    from: second-nagorno-karabakh-war
+    to: loitering-munitions
+    to-phase: peak
+    to-edge: top
+    to-at: 0.27
+  - id: full-scale-invasion--anti-tank-missiles
+    from: full-scale-invasion
+    to: anti-tank-missiles
+    to-phase: peak
+    to-edge: top
+    to-at: 0.04
+  - id: full-scale-invasion--satellite-communications
+    from: full-scale-invasion
+    to: satellite-communications
+    to-phase: peak
+    to-edge: top
+    to-at: 0.27
+  - id: full-scale-invasion--battlefield-management-software
+    from: full-scale-invasion
+    to: battlefield-management-software
+    to-phase: peak
+    to-edge: top
+    to-at: 0.20
+  - id: sinking-of-moskva--sea-drones
+    from: sinking-of-moskva
+    to: sea-drones
+    to-phase: peak
+    to-edge: top
+    to-at: 0.26
+  - id: operation-spiderweb--mass-drone-production
+    from: operation-spiderweb
+    to: mass-drone-production
+    to-phase: peak
+    to-edge: top
+    to-at: 0.69

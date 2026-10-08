@@ -1,0 +1,287 @@
+/*
+ * canvas.css: what the specification leaves open in a drawing, chosen as Notion would: the text
+ * colour a shape or a label falls back on, the selection mark, the focus, the ruler, and the
+ * controls beside the drawing. The drawing itself is coloured from the specification's theme
+ * tokens, by the canvas. Every colour, size and spacing here is a property of
+ * ../panels/notion.css.
+ */
+
+.adp-canvas {
+  color: var(--notion-text);
+  font-family: var(--notion-font-family);
+  touch-action: none;
+  user-select: none;
+}
+
+.adp-canvas:has([data-element]:focus-visible) {
+  box-shadow: var(--notion-focus-ring);
+}
+
+.adp-canvas [data-element] {
+  outline: none;
+}
+
+.adp-canvas-dimmed {
+  opacity: var(--notion-disabled-opacity);
+}
+
+.adp-canvas-mark {
+  fill: none;
+  stroke: none;
+  pointer-events: none;
+}
+
+/* An edge is a thin line: the mark under it is what a pointer finds. */
+path.adp-canvas-mark {
+  pointer-events: stroke;
+}
+
+.adp-canvas [data-selected="true"] > .adp-canvas-mark {
+  fill: var(--notion-selection-fill);
+  stroke: var(--notion-selection);
+  vector-effect: non-scaling-stroke;
+}
+
+.adp-canvas [data-selected="true"] > path.adp-canvas-mark {
+  fill: none;
+  stroke: var(--notion-selection-fill);
+  vector-effect: none;
+}
+
+.adp-canvas [data-element]:focus-visible > .adp-canvas-mark {
+  stroke: var(--notion-selection);
+  vector-effect: non-scaling-stroke;
+}
+
+.adp-ruler-band {
+  fill: var(--notion-canvas-background);
+  stroke: var(--notion-border);
+}
+
+.adp-ruler-row {
+  font-size: var(--notion-font-size-caption);
+}
+
+.adp-ruler-tick {
+  stroke: var(--notion-border-strong);
+}
+
+.adp-ruler-label {
+  fill: var(--notion-text-secondary);
+}
+
+.adp-canvas-controls {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: var(--notion-space-2);
+  max-width: 50%;
+  padding: var(--notion-space-4);
+  color: var(--notion-text);
+  font-size: var(--notion-font-size-small);
+  line-height: var(--notion-line-height-small);
+  pointer-events: none;
+}
+
+.adp-canvas-controls > * {
+  pointer-events: auto;
+}
+
+.adp-canvas-controls > :empty {
+  display: none;
+}
+
+.adp-filter,
+.adp-legend {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--notion-space-2);
+  margin: 0;
+  padding: var(--notion-space-2) var(--notion-space-4);
+  list-style: none;
+  background: var(--notion-background-menu);
+  border: thin solid var(--notion-border);
+  border-radius: var(--notion-radius-card);
+  box-shadow: var(--notion-shadow-card);
+}
+
+.adp-filter-label {
+  padding: 0;
+  color: var(--notion-text-secondary);
+}
+
+.adp-filter-control {
+  margin-left: var(--notion-space-2);
+  font: inherit;
+  color: inherit;
+  background: var(--notion-background-input);
+  border: thin solid var(--notion-border-strong);
+  border-radius: var(--notion-radius-small);
+}
+
+.adp-chip,
+.adp-filter-match,
+.adp-canvas-viewpoint {
+  min-height: var(--notion-control-height);
+  padding: 0 var(--notion-space-4);
+  font: inherit;
+  color: inherit;
+  background: var(--notion-background-menu);
+  border: thin solid var(--notion-border-strong);
+  border-radius: var(--notion-radius-control);
+  cursor: pointer;
+  transition: var(--notion-transition-hover);
+}
+
+.adp-filter-match {
+  color: var(--notion-text-secondary);
+  border-color: transparent;
+}
+
+.adp-chip:hover,
+.adp-filter-match:hover,
+.adp-canvas-viewpoint:hover {
+  background: var(--notion-background-hover);
+}
+
+.adp-chip[aria-pressed="true"],
+.adp-canvas-viewpoint[aria-pressed="true"] {
+  color: var(--notion-accent-text);
+  background: var(--notion-background-selected);
+  border-color: var(--notion-accent);
+}
+
+.adp-chip:focus-visible,
+.adp-filter-match:focus-visible,
+.adp-filter-control:focus-visible,
+.adp-canvas-viewpoint:focus-visible {
+  outline: none;
+  box-shadow: var(--notion-focus-ring);
+}
+
+.adp-canvas-viewpoint {
+  box-shadow: var(--notion-shadow-card);
+}
+
+.adp-legend-entry {
+  display: flex;
+  align-items: center;
+  gap: var(--notion-space-2);
+}
+
+.adp-legend-swatch {
+  display: inline-block;
+  width: var(--notion-space-5);
+  height: var(--notion-space-5);
+  border: thin solid var(--notion-border-strong);
+  border-radius: var(--notion-radius-small);
+}
+
+/* What a gesture draws over the drawing while it runs (gestures.ts), and the grips of the selection. */
+
+.adp-canvas[data-armed] {
+  cursor: crosshair;
+}
+
+.adp-gesture-preview {
+  pointer-events: none;
+}
+
+.adp-gesture-grip {
+  fill: var(--notion-background);
+  stroke: var(--notion-selection);
+  vector-effect: non-scaling-stroke;
+}
+
+.adp-gesture-grip-x {
+  cursor: ew-resize;
+}
+
+.adp-gesture-grip-y {
+  cursor: ns-resize;
+}
+
+.adp-gesture-grip-handle,
+.adp-gesture-grip-end {
+  cursor: grab;
+}
+
+.adp-gesture-ghost,
+.adp-gesture-hover,
+.adp-gesture-target,
+.adp-gesture-refused {
+  fill: var(--notion-selection-fill);
+  stroke: var(--notion-selection);
+  vector-effect: non-scaling-stroke;
+}
+
+.adp-gesture-ghost {
+  fill: none;
+}
+
+.adp-gesture-target {
+  fill: none;
+  stroke: var(--notion-accent);
+  opacity: var(--notion-disabled-opacity);
+}
+
+.adp-gesture-hover {
+  stroke: var(--notion-accent);
+}
+
+.adp-gesture-refused {
+  fill: var(--notion-error-background);
+  stroke: var(--notion-error-border);
+}
+
+.adp-gesture-line {
+  fill: none;
+}
+
+/* The editor of a label in place (inPlaceEdit.ts): HTML over the drawing, where the label is. */
+
+.adp-inplace {
+  position: fixed;
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  gap: var(--notion-space-1);
+}
+
+.adp-inplace-input {
+  box-sizing: border-box;
+  width: 100%;
+  margin: 0;
+  padding: 0 var(--notion-space-2);
+  font-family: var(--notion-font-family);
+  color: var(--notion-text);
+  background: var(--notion-background-input);
+  border: thin solid var(--notion-border-strong);
+  border-radius: var(--notion-radius-small);
+  resize: none;
+}
+
+.adp-inplace-input:focus-visible {
+  outline: none;
+  box-shadow: var(--notion-focus-ring);
+}
+
+.adp-inplace-input[aria-invalid="true"] {
+  border-color: var(--notion-error-border);
+}
+
+.adp-inplace-refusal {
+  padding: var(--notion-space-1) var(--notion-space-2);
+  font-family: var(--notion-font-family);
+  font-size: var(--notion-font-size-caption);
+  line-height: var(--notion-line-height-caption);
+  color: var(--notion-error-text);
+  background: var(--notion-error-background);
+  border: thin solid var(--notion-error-border);
+  border-radius: var(--notion-radius-small);
+}
+
+.adp-inplace-refusal:empty {
+  display: none;
+}
