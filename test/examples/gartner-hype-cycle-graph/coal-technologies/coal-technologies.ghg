@@ -1,0 +1,832 @@
+gartner-hypecycle-graph: 1
+# A hand-authored hype cycle of the technologies around coal, from the Newcomen engine to what
+# may follow the phase-out. Dates after 2026 are projections, and dates and influences are
+# illustrative, not a claim: see readme.md.
+trends:
+  - id: newcomen-engine
+    name: Newcomen pumping engine
+    start: 1712-01
+    stop: 1800-01
+    row: 0
+    phases: 4
+    tags: [mining, steam]
+    description: Pumped water out of flooded coal mines; the first practical steam engine.
+  - id: safety-lamp
+    name: Miner's safety lamp
+    start: 1815-01
+    stop: 1900-01
+    row: 2
+    phases: 4
+    tags: [mining, safety]
+    description: Davy's and Stephenson's lamps of 1815, which let miners work among firedamp.
+  - id: mechanised-coal-cutting
+    name: Mechanised coal cutting
+    start: 1880-01
+    stop: 1960-01
+    row: 0
+    phases: 4
+    tags: [mining]
+  - id: surface-mining
+    name: Surface mining
+    start: 1920-01
+    stop: 2026-01
+    row: 2
+    phases: 4
+    tags: [mining]
+    description: Draglines and shovels stripping the ground above shallow seams.
+  - id: longwall-mining
+    name: Powered longwall mining
+    start: 1950-01
+    stop: 2026-01
+    row: 4
+    phases: 4
+    tags: [mining]
+    description: A shearer runs along the coal face under self-advancing roof supports.
+  - id: mountaintop-removal
+    name: Mountaintop removal
+    start: 1970-01
+    stop: 2026-01
+    row: 0
+    phases: 3
+    tags: [mining, environment]
+  - id: autonomous-mining
+    name: Autonomous mining
+    start: 2008-01
+    stop: 2040-01
+    row: 6
+    phases: 2
+    tags: [mining, automation]
+    description: Driverless haul trucks and remotely run longwalls.
+  - id: coke-smelting
+    name: Coke iron smelting
+    start: 1709-01
+    stop: 1800-01
+    row: 8
+    phases: 4
+    tags: [iron]
+    description: Abraham Darby smelted iron with coke instead of charcoal at Coalbrookdale in 1709.
+  - id: watt-steam-engine
+    name: Watt steam engine
+    start: 1776-03
+    stop: 1850-01
+    row: 10
+    phases: 4
+    tags: [steam]
+    description: A separate condenser made the steam engine efficient enough to use anywhere.
+  - id: coal-gas-lighting
+    name: Coal gas lighting
+    start: 1812-04
+    stop: 1960-01
+    row: 12
+    phases: 4
+    tags: [gas]
+    description: Town gas made by heating coal lit streets and homes for a century and a half.
+  - id: steamships
+    name: Steamships
+    start: 1819-01
+    stop: 1950-01
+    row: 8
+    phases: 4
+    tags: [steam, transport]
+  - id: steam-locomotive
+    name: Steam locomotive
+    start: 1825-09
+    stop: 1960-01
+    row: 14
+    phases: 4
+    peak-end: 1846-01
+    tags: [steam, transport]
+    description: From the Stockton and Darlington railway on; railway mania peaked in 1845.
+  - id: coal-tar-chemistry
+    name: Coal tar chemistry
+    start: 1856-03
+    stop: 1950-01
+    row: 10
+    phases: 4
+    tags: [chemistry]
+    description: Perkin's mauveine turned the gasworks' waste tar into dyes, drugs and explosives.
+  - id: coal-power-stations
+    name: Coal-fired power stations
+    start: 1882-01
+    stop: 2026-01
+    row: 16
+    phases: 4
+    tags: [power]
+    description: From Holborn Viaduct and Pearl Street in 1882.
+  - id: electrostatic-precipitators
+    name: Electrostatic precipitators
+    start: 1907-01
+    stop: 1990-01
+    row: 18
+    phases: 4
+    tags: [environment, power]
+    description: Frederick Cottrell's electrified plates pulled fly ash out of the flue gas.
+  - id: pulverised-coal-firing
+    name: Pulverised coal firing
+    start: 1918-01
+    stop: 2000-01
+    row: 20
+    phases: 4
+    tags: [power]
+  - id: supercritical-boilers
+    name: Supercritical boilers
+    start: 1957-01
+    stop: 2026-01
+    row: 22
+    phases: 4
+    tags: [power]
+    description: Steam above its critical point, from Philo 6 in 1957 to ultra-supercritical plants.
+  - id: flue-gas-desulfurisation
+    name: Flue-gas desulfurisation
+    start: 1970-01
+    stop: 2026-01
+    row: 24
+    phases: 4
+    tags: [environment, power]
+    description: Scrubbers against acid rain, required by clean air laws from 1970 on.
+  - id: fluidised-bed-combustion
+    name: Fluidised bed combustion
+    start: 1975-01
+    stop: 2020-01
+    row: 26
+    phases: 3
+    tags: [power]
+  - id: igcc
+    name: Integrated gasification combined cycle
+    start: 1984-01
+    stop: 2025-01
+    row: 28
+    phases: 2
+    tags: [power, gasification]
+    description: Gasify the coal first, then burn the gas in a turbine; from Cool Water in 1984.
+  - id: coal-hydrogenation
+    name: Coal hydrogenation
+    start: 1913-01
+    stop: 1950-01
+    row: 30
+    phases: 3
+    tags: [liquids]
+    description: Friedrich Bergius's process for turning coal into oil.
+  - id: fischer-tropsch
+    name: Fischer-Tropsch coal-to-liquids
+    start: 1925-01
+    stop: 2020-01
+    row: 32
+    phases: 4
+    tags: [liquids, gasification]
+  - id: coal-gasification
+    name: Coal gasification
+    start: 1931-01
+    stop: 2020-01
+    row: 34
+    phases: 4
+    tags: [gasification]
+    description: The Lurgi gasifier of 1931 and its successors, making synthesis gas from coal.
+  - id: underground-coal-gasification
+    name: Underground coal gasification
+    start: 1933-01
+    stop: 2035-01
+    row: 36
+    phases: 2
+    tags: [gasification]
+    description: Gasifying a seam where it lies, tried in the Soviet Union from the 1930s.
+  - id: coal-to-chemicals
+    name: Coal-to-chemicals
+    start: 2004-01
+    stop: 2035-01
+    row: 30
+    phases: 2
+    tags: [chemistry, gasification]
+    description: China's plants making methanol, olefins and fertiliser from coal.
+  - id: smoke-abatement
+    name: Smoke abatement
+    start: 1853-01
+    stop: 1970-01
+    row: 38
+    phases: 4
+    tags: [environment, policy]
+    description: From London's Smoke Nuisance Act of 1853 to the Clean Air Act after the Great Smog of 1952.
+  - id: carbon-capture-and-storage
+    name: Carbon capture and storage
+    start: 2005-01
+    stop: 2045-01
+    row: 38
+    phases: 2
+    peak-end: 2015-12
+    tags: [climate, power]
+    description: Capturing a coal plant's carbon dioxide and burying it; most projects stalled after 2015.
+  - id: mine-water-heat
+    name: Mine water heat
+    start: 2008-10
+    stop: 2040-01
+    row: 40
+    phases: 2
+    tags: [heat, reuse]
+    description: Flooded mines as heat stores, as in Heerlen since 2008.
+  - id: coal-phase-out
+    name: Coal phase-out
+    start: 2017-11
+    stop: 2045-01
+    row: 42
+    phases: 1
+    tags: [climate, policy]
+    description: Governments committing to close their coal plants, from the Powering Past Coal Alliance on.
+  - id: coal-to-hydrogen
+    name: Coal to hydrogen with capture
+    start: 2021-01
+    stop: 2040-01
+    row: 44
+    phases: 1
+    tags: [gasification, climate, upcoming]
+    description: Hydrogen gasified from coal, with its carbon dioxide captured.
+  - id: coal-plant-repowering
+    name: Coal plants repowered
+    start: 2021-06
+    stop: 2045-01
+    row: 46
+    phases: 1
+    tags: [power, reuse, upcoming]
+    description: Old coal sites reused for reactors and batteries, keeping their grid connection.
+  - id: critical-minerals-from-coal-ash
+    name: Critical minerals from coal ash
+    start: 2026-01
+    stop: 2042-01
+    row: 48
+    phases: 1
+    tags: [mining, reuse, conceptual]
+    description: Rare earths and lithium recovered from a century of ash ponds.
+  - id: coal-to-carbon-materials
+    name: Coal to carbon materials
+    start: 2027-01
+    stop: 2045-01
+    row: 50
+    phases: 1
+    tags: [chemistry, conceptual]
+    description: Coal as the feedstock for graphite, carbon fibre and graphene instead of fuel.
+  - id: direct-carbon-fuel-cells
+    name: Direct carbon fuel cells
+    start: 2030-01
+    stop: 2048-01
+    row: 52
+    phases: 1
+    tags: [power, conceptual]
+    description: Turning carbon into electricity electrochemically, without burning it.
+triggers:
+  - id: rainhill-trials
+    name: Rainhill trials
+    date: 1829-10
+    row: 13
+    tags: [steam, transport]
+    description: Stephenson's Rocket won the trials for the Liverpool and Manchester Railway, and with them the case for the steam locomotive.
+  - id: pearl-street-station
+    name: Pearl Street Station opens
+    date: 1882-09
+    row: 15
+    tags: [power]
+    description: Edison's first commercial central power station, in Manhattan, burned coal to light the streets around it.
+  - id: great-smog
+    name: Great Smog of London
+    date: 1952-12
+    row: 37
+    tags: [environment, policy]
+    description: Five days of coal smoke trapped under fog in London; thousands died, and the Clean Air Act followed in 1956.
+  - id: us-clean-air-act
+    name: US Clean Air Act
+    date: 1970-12
+    row: 23
+    tags: [environment, policy]
+    description: Federal limits on sulphur dioxide made scrubbers a condition of building a coal plant.
+  - id: oil-crisis-1973
+    name: 1973 oil crisis
+    date: 1973-10
+    row: 33
+    tags: [policy, liquids]
+    description: The oil embargo made fuels and gas made from coal look strategic again.
+  - id: paris-agreement
+    name: Paris Agreement
+    date: 2015-12
+    row: 41
+    tags: [climate, policy]
+    description: The goal of holding warming well below two degrees put a date on unabated coal power.
+  - id: felling-disaster
+    name: Felling mine disaster
+    date: 1812-05
+    row: 1
+    tags: [mining, safety]
+    description: An explosion of firedamp killed 92 at Felling colliery and led to the call for a safe lamp.
+  - id: liverpool-manchester-railway
+    name: Liverpool and Manchester Railway opens
+    date: 1830-09
+    row: 15
+    tags: [steam, transport]
+    description: The first intercity railway worked entirely by steam locomotives.
+  - id: mauveine
+    name: Perkin makes mauveine
+    date: 1856-03
+    row: 9
+    tags: [chemistry]
+    description: A dye made by accident from coal tar, and the start of the synthetic dye industry.
+notes:
+  - id: note-projections
+    text: |-
+      Everything drawn after 2026 is a projection, not a record.
+      See the readme.
+    at: 2042-01
+    row: 40
+    width: 260
+    height: 80
+influences:
+  - id: coke-smelting--newcomen-engine
+    from: coke-smelting
+    from-phase: peak
+    from-edge: top
+    from-at: 0.51
+    to: newcomen-engine
+    to-phase: peak
+    to-edge: bottom
+    to-at: 0.48
+    description: Coalbrookdale cast the cylinders for Newcomen engines.
+  - id: newcomen-engine--watt-steam-engine
+    from: newcomen-engine
+    from-phase: slope
+    from-edge: bottom
+    from-at: 0.62
+    to: watt-steam-engine
+    to-phase: peak
+    to-edge: top
+    to-at: 0.24
+    description: Watt found the condenser while repairing a model Newcomen engine.
+  - id: watt-steam-engine--coke-smelting
+    from: watt-steam-engine
+    from-phase: peak
+    from-edge: top
+    from-at: 0.00
+    to: coke-smelting
+    to-phase: slope
+    to-edge: bottom
+    to-at: 0.96
+    description: Steam-driven bellows made coke furnaces bigger.
+  - id: newcomen-engine--safety-lamp
+    from: newcomen-engine
+    from-phase: plateau
+    from-edge: bottom
+    from-at: 0.60
+    to: safety-lamp
+    to-phase: peak
+    to-edge: top
+    to-at: 0.28
+    description: Pumped mines went deeper, into the firedamp the lamp was made for.
+  - id: watt-steam-engine--coal-gas-lighting
+    from: watt-steam-engine
+    from-phase: trough
+    from-edge: bottom
+    from-at: 0.60
+    to: coal-gas-lighting
+    to-phase: peak
+    to-edge: top
+    to-at: 0.40
+    description: William Murdoch, gas lighting's pioneer, worked for Boulton and Watt.
+  - id: coke-smelting--coal-gas-lighting
+    from: coke-smelting
+    from-phase: plateau
+    from-edge: bottom
+    from-at: 0.60
+    to: coal-gas-lighting
+    to-phase: peak
+    to-edge: top
+    to-at: 0.04
+  - id: watt-steam-engine--steamships
+    from: watt-steam-engine
+    from-phase: slope
+    from-edge: top
+    from-at: 0.62
+    to: steamships
+    to-phase: peak
+    to-edge: bottom
+    to-at: 0.44
+  - id: watt-steam-engine--steam-locomotive
+    from: watt-steam-engine
+    from-phase: slope
+    from-edge: bottom
+    from-at: 0.59
+    to: steam-locomotive
+    to-phase: peak
+    to-edge: top
+    to-at: 0.26
+  - id: coal-gas-lighting--coal-tar-chemistry
+    from: coal-gas-lighting
+    from-phase: trough
+    from-edge: top
+    from-at: 0.50
+    to: coal-tar-chemistry
+    to-phase: peak
+    to-edge: bottom
+    to-at: 0.50
+    description: Coal tar was the gasworks' waste.
+  - id: coal-gas-lighting--smoke-abatement
+    from: coal-gas-lighting
+    from-phase: trough
+    from-edge: bottom
+    from-at: 0.49
+    to: smoke-abatement
+    to-phase: peak
+    to-edge: top
+    to-at: 0.51
+  - id: coal-power-stations--mechanised-coal-cutting
+    from: coal-power-stations
+    from-phase: peak
+    from-edge: top
+    from-at: 0.47
+    to: mechanised-coal-cutting
+    to-phase: peak
+    to-edge: bottom
+    to-at: 0.96
+    description: Electric motors drove the first reliable coal cutters.
+  - id: coal-power-stations--smoke-abatement
+    from: coal-power-stations
+    from-phase: peak
+    from-edge: bottom
+    from-at: 0.29
+    to: smoke-abatement
+    to-phase: trough
+    to-edge: top
+    to-at: 0.35
+  - id: smoke-abatement--electrostatic-precipitators
+    from: smoke-abatement
+    from-phase: trough
+    from-edge: top
+    from-at: 0.74
+    to: electrostatic-precipitators
+    to-phase: peak
+    to-edge: bottom
+    to-at: 0.37
+  - id: coal-tar-chemistry--coal-hydrogenation
+    from: coal-tar-chemistry
+    from-phase: slope
+    from-edge: bottom
+    from-at: 0.53
+    to: coal-hydrogenation
+    to-phase: peak
+    to-edge: top
+    to-at: 0.44
+  - id: coal-power-stations--pulverised-coal-firing
+    from: coal-power-stations
+    from-phase: trough
+    from-edge: bottom
+    from-at: 0.39
+    to: pulverised-coal-firing
+    to-phase: peak
+    to-edge: top
+    to-at: 0.69
+  - id: steam-locomotive--surface-mining
+    from: steam-locomotive
+    from-phase: slope
+    from-edge: top
+    from-at: 0.60
+    to: surface-mining
+    to-phase: peak
+    to-edge: bottom
+    to-at: 0.40
+    description: Steam shovels dug the first large open-cast pits.
+  - id: coal-hydrogenation--fischer-tropsch
+    from: coal-hydrogenation
+    from-phase: trough
+    from-edge: bottom
+    from-at: 0.57
+    to: fischer-tropsch
+    to-phase: peak
+    to-edge: top
+    to-at: 0.47
+  - id: coal-gasification--fischer-tropsch
+    from: coal-gasification
+    from-phase: peak
+    from-edge: top
+    from-at: 0.38
+    to: fischer-tropsch
+    to-phase: peak
+    to-edge: bottom
+    to-at: 0.62
+    description: Fischer-Tropsch plants run on the gasifiers' synthesis gas.
+  - id: coal-gasification--underground-coal-gasification
+    from: coal-gasification
+    from-phase: peak
+    from-edge: bottom
+    from-at: 0.62
+    to: underground-coal-gasification
+    to-phase: peak
+    to-edge: top
+    to-at: 0.45
+  - id: mechanised-coal-cutting--longwall-mining
+    from: mechanised-coal-cutting
+    from-phase: plateau
+    from-edge: bottom
+    from-at: 0.58
+    to: longwall-mining
+    to-phase: peak
+    to-edge: top
+    to-at: 0.42
+  - id: pulverised-coal-firing--supercritical-boilers
+    from: pulverised-coal-firing
+    from-phase: trough
+    from-edge: bottom
+    from-at: 0.64
+    to: supercritical-boilers
+    to-phase: peak
+    to-edge: top
+    to-at: 0.34
+  - id: smoke-abatement--flue-gas-desulfurisation
+    from: smoke-abatement
+    from-phase: plateau
+    from-edge: top
+    from-at: 0.72
+    to: flue-gas-desulfurisation
+    to-phase: peak
+    to-edge: bottom
+    to-at: 0.28
+    description: The clean air laws led on to controls against acid rain.
+  - id: electrostatic-precipitators--flue-gas-desulfurisation
+    from: electrostatic-precipitators
+    from-phase: plateau
+    from-edge: bottom
+    from-at: 0.50
+    to: flue-gas-desulfurisation
+    to-phase: peak
+    to-edge: top
+    to-at: 0.72
+  - id: surface-mining--mountaintop-removal
+    from: surface-mining
+    from-phase: trough
+    from-edge: top
+    from-at: 0.62
+    to: mountaintop-removal
+    to-phase: peak
+    to-edge: bottom
+    to-at: 0.33
+  - id: coal-power-stations--fluidised-bed-combustion
+    from: coal-power-stations
+    from-phase: slope
+    from-edge: bottom
+    from-at: 0.57
+    to: fluidised-bed-combustion
+    to-phase: peak
+    to-edge: top
+    to-at: 0.68
+  - id: flue-gas-desulfurisation--fluidised-bed-combustion
+    from: flue-gas-desulfurisation
+    from-phase: peak
+    from-edge: bottom
+    from-at: 0.68
+    to: fluidised-bed-combustion
+    to-phase: peak
+    to-edge: top
+    to-at: 0.31
+    description: Limestone in the bed captures the sulphur as it burns.
+  - id: coal-gasification--igcc
+    from: coal-gasification
+    from-phase: slope
+    from-edge: top
+    from-at: 0.55
+    to: igcc
+    to-phase: peak
+    to-edge: bottom
+    to-at: 0.44
+  - id: fischer-tropsch--coal-to-chemicals
+    from: fischer-tropsch
+    from-phase: plateau
+    from-edge: top
+    from-at: 0.52
+    to: coal-to-chemicals
+    to-phase: peak
+    to-edge: bottom
+    to-at: 0.46
+  - id: coal-power-stations--carbon-capture-and-storage
+    from: coal-power-stations
+    from-phase: plateau
+    from-edge: bottom
+    from-at: 0.22
+    to: carbon-capture-and-storage
+    to-phase: peak
+    to-edge: top
+    to-at: 0.16
+  - id: igcc--carbon-capture-and-storage
+    from: igcc
+    from-phase: trough
+    from-edge: bottom
+    from-at: 0.28
+    to: carbon-capture-and-storage
+    to-phase: peak
+    to-edge: top
+    to-at: 0.50
+    description: Kemper County was to capture carbon from a gasification plant.
+  - id: supercritical-boilers--carbon-capture-and-storage
+    from: supercritical-boilers
+    from-phase: plateau
+    from-edge: bottom
+    from-at: 0.33
+    to: carbon-capture-and-storage
+    to-phase: peak
+    to-edge: top
+    to-at: 0.87
+  - id: longwall-mining--autonomous-mining
+    from: longwall-mining
+    from-phase: plateau
+    from-edge: bottom
+    from-at: 0.28
+    to: autonomous-mining
+    to-phase: peak
+    to-edge: top
+    to-at: 0.28
+  - id: surface-mining--autonomous-mining
+    from: surface-mining
+    from-phase: plateau
+    from-edge: bottom
+    from-at: 0.55
+    to: autonomous-mining
+    to-phase: peak
+    to-edge: top
+    to-at: 0.70
+  - id: longwall-mining--mine-water-heat
+    from: longwall-mining
+    from-phase: plateau
+    from-edge: bottom
+    from-at: 0.67
+    to: mine-water-heat
+    to-phase: peak
+    to-edge: top
+    to-at: 0.71
+    description: Closed deep mines left flooded galleries behind.
+  - id: coal-power-stations--coal-phase-out
+    from: coal-power-stations
+    from-phase: plateau
+    from-edge: bottom
+    from-at: 0.53
+    to: coal-phase-out
+    to-phase: peak
+    to-edge: top
+    to-at: 0.35
+  - id: mountaintop-removal--coal-phase-out
+    from: mountaintop-removal
+    from-phase: slope
+    from-edge: bottom
+    from-at: 0.68
+    to: coal-phase-out
+    to-phase: peak
+    to-edge: top
+    to-at: 0.58
+  - id: carbon-capture-and-storage--coal-phase-out
+    from: carbon-capture-and-storage
+    from-phase: trough
+    from-edge: bottom
+    from-at: 0.79
+    to: coal-phase-out
+    to-phase: peak
+    to-edge: top
+    to-at: 0.83
+    description: Without working capture, closing the plants was the remaining route.
+  - id: coal-gasification--coal-to-hydrogen
+    from: coal-gasification
+    from-phase: plateau
+    from-edge: bottom
+    from-at: 0.60
+    to: coal-to-hydrogen
+    to-phase: peak
+    to-edge: top
+    to-at: 0.28
+  - id: carbon-capture-and-storage--coal-to-hydrogen
+    from: carbon-capture-and-storage
+    from-phase: trough
+    from-edge: bottom
+    from-at: 0.50
+    to: coal-to-hydrogen
+    to-phase: peak
+    to-edge: top
+    to-at: 0.71
+  - id: coal-phase-out--coal-plant-repowering
+    from: coal-phase-out
+    from-phase: peak
+    from-edge: bottom
+    from-at: 0.29
+    to: coal-plant-repowering
+    to-phase: peak
+    to-edge: top
+    to-at: 0.44
+  - id: coal-power-stations--critical-minerals-from-coal-ash
+    from: coal-power-stations
+    from-phase: plateau
+    from-edge: bottom
+    from-at: 0.79
+    to: critical-minerals-from-coal-ash
+    to-phase: peak
+    to-edge: top
+    to-at: 0.28
+    description: The ash ponds are what the plants leave behind.
+  - id: coal-phase-out--critical-minerals-from-coal-ash
+    from: coal-phase-out
+    from-phase: peak
+    from-edge: bottom
+    from-at: 0.72
+    to: critical-minerals-from-coal-ash
+    to-phase: peak
+    to-edge: top
+    to-at: 0.72
+  - id: coal-to-chemicals--coal-to-carbon-materials
+    from: coal-to-chemicals
+    from-phase: trough
+    from-edge: bottom
+    from-at: 0.66
+    to: coal-to-carbon-materials
+    to-phase: peak
+    to-edge: top
+    to-at: 0.69
+  - id: coal-tar-chemistry--coal-to-carbon-materials
+    from: coal-tar-chemistry
+    from-phase: plateau
+    from-edge: bottom
+    from-at: 0.60
+    to: coal-to-carbon-materials
+    to-phase: peak
+    to-edge: top
+    to-at: 0.28
+    description: Coal tar pitch was already the stuff of carbon electrodes.
+  - id: igcc--direct-carbon-fuel-cells
+    from: igcc
+    from-phase: trough
+    from-edge: bottom
+    from-at: 0.72
+    to: direct-carbon-fuel-cells
+    to-phase: peak
+    to-edge: top
+    to-at: 0.40
+    description: Electricity from coal without a flame.
+  - id: rainhill-trials--steam-locomotive
+    from: rainhill-trials
+    to: steam-locomotive
+    to-phase: peak
+    to-edge: top
+    to-at: 0.69
+  - id: pearl-street-station--coal-power-stations
+    from: pearl-street-station
+    to: coal-power-stations
+    to-phase: peak
+    to-edge: top
+    to-at: 0.04
+  - id: great-smog--smoke-abatement
+    from: great-smog
+    to: smoke-abatement
+    to-phase: plateau
+    to-edge: top
+    to-at: 0.42
+  - id: great-smog--electrostatic-precipitators
+    from: great-smog
+    to: electrostatic-precipitators
+    to-phase: slope
+    to-edge: bottom
+    to-at: 0.45
+  - id: us-clean-air-act--flue-gas-desulfurisation
+    from: us-clean-air-act
+    to: flue-gas-desulfurisation
+    to-phase: peak
+    to-edge: top
+    to-at: 0.27
+  - id: oil-crisis-1973--coal-gasification
+    from: oil-crisis-1973
+    to: coal-gasification
+    to-phase: trough
+    to-edge: top
+    to-at: 0.93
+  - id: oil-crisis-1973--fischer-tropsch
+    from: oil-crisis-1973
+    to: fischer-tropsch
+    to-phase: slope
+    to-edge: bottom
+    to-at: 0.41
+  - id: paris-agreement--coal-phase-out
+    from: paris-agreement
+    to: coal-phase-out
+    to-phase: peak
+    to-edge: top
+    to-at: 0.16
+  - id: paris-agreement--carbon-capture-and-storage
+    from: paris-agreement
+    to: carbon-capture-and-storage
+    to-phase: trough
+    to-edge: bottom
+    to-at: 0.20
+  - id: felling-disaster--safety-lamp
+    from: felling-disaster
+    to: safety-lamp
+    to-phase: peak
+    to-edge: top
+    to-at: 0.67
+  - id: liverpool-manchester-railway--steam-locomotive
+    from: liverpool-manchester-railway
+    to: steam-locomotive
+    to-phase: peak
+    to-edge: bottom
+    to-at: 0.45
+  - id: mauveine--coal-tar-chemistry
+    from: mauveine
+    to: coal-tar-chemistry
+    to-phase: peak
+    to-edge: top
+    to-at: 0.40

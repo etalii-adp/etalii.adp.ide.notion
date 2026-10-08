@@ -1,0 +1,13 @@
+gartner-hypecycle-graph: 1
+trends:
+  - id: a
+    name: A
+    start: 1900-01
+    stop: 1920-01
+    row: 0
+    phases: 4
+triggers:
+  - id: t
+    name: T
+    date: some day
+    row: 1

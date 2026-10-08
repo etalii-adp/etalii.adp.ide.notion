@@ -1,0 +1,729 @@
+gartner-hypecycle-graph: 1
+# A hand-authored history of about thirty digital trends, from the mainframe to AI agents.
+# Dates and influences are illustrative, not a historical claim: see readme.md.
+trends:
+  - id: mainframe-computing
+    name: Mainframe computing
+    start: 1960-01
+    stop: 1990-01
+    row: 0
+    phases: 4
+    tags: [computing]
+    description: Room-sized shared computers, from the IBM System/360 onwards.
+  - id: minicomputers
+    name: Minicomputers
+    start: 1965-01
+    stop: 1990-01
+    row: 1
+    phases: 4
+    tags: [computing]
+    description: The PDP-8 and its successors brought computers into labs and departments.
+  - id: relational-databases
+    name: Relational databases
+    start: 1974-01
+    stop: 2005-01
+    row: 2
+    phases: 4
+    tags: [computing, data]
+  - id: personal-computer
+    name: Personal computer
+    start: 1975-01
+    stop: 2010-01
+    row: 4
+    phases: 4
+    tags: [computing]
+    description: From the Altair and the Apple II to the IBM PC and its clones.
+  - id: graphical-user-interface
+    name: Graphical user interface
+    start: 1973-03
+    stop: 2000-01
+    row: 5
+    phases: 4
+    tags: [computing]
+    description: Windows, icons and a mouse, from the Xerox Alto to the Macintosh and Windows.
+  - id: internet
+    name: Internet
+    start: 1969-10
+    stop: 2010-01
+    row: 6
+    phases: 4
+    tags: [communication]
+    description: From ARPANET to TCP/IP everywhere.
+  - id: email
+    name: Email
+    start: 1971-10
+    stop: 2005-01
+    row: 7
+    phases: 4
+    tags: [communication]
+  - id: cybersecurity
+    name: Cybersecurity
+    start: 1988-11
+    stop: 2026-01
+    row: 8
+    phases: 4
+    tags: [security]
+    description: Taken seriously after the Morris worm.
+  - id: open-source
+    name: Open source
+    start: 1983-09
+    stop: 2015-01
+    row: 9
+    phases: 4
+    tags: [computing, society]
+    description: From the GNU project through Linux to the default way software is built.
+  - id: world-wide-web
+    name: World Wide Web
+    start: 1989-03
+    stop: 2012-01
+    row: 10
+    phases: 4
+    tags: [communication, media]
+  - id: search-engines
+    name: Search engines
+    start: 1994-01
+    stop: 2015-01
+    row: 0
+    phases: 4
+    tags: [data, media]
+  - id: dot-com-bubble
+    name: Dot-com bubble
+    start: 1995-01
+    stop: 2003-01
+    row: 1
+    phases: 4
+    peak-end: 2000-03
+    trough-end: 2002-10
+    slope-end: 2002-12
+    tags: [commerce, finance]
+    description: The boom in internet stocks and its crash.
+  - id: e-commerce
+    name: E-commerce
+    start: 1995-07
+    stop: 2020-01
+    row: 11
+    phases: 4
+    tags: [commerce]
+  - id: mobile-phones
+    name: Mobile phones
+    start: 1983-10
+    stop: 2010-01
+    row: 12
+    phases: 4
+    tags: [communication]
+  - id: wifi
+    name: Wi-Fi
+    start: 1997-09
+    stop: 2020-01
+    row: 13
+    phases: 4
+    tags: [communication]
+  - id: broadband
+    name: Broadband
+    start: 1999-01
+    stop: 2020-01
+    row: 14
+    phases: 4
+    tags: [communication]
+  - id: software-as-a-service
+    name: Software as a service
+    start: 1999-03
+    stop: 2026-01
+    row: 15
+    phases: 4
+    tags: [computing, commerce]
+  - id: internet-of-things
+    name: Internet of things
+    start: 1999-01
+    stop: 2026-01
+    row: 16
+    phases: 3
+    tags: [computing, communication]
+  - id: social-media
+    name: Social media
+    start: 2004-02
+    stop: 2026-01
+    row: 5
+    phases: 4
+    tags: [media, society]
+  - id: streaming-media
+    name: Streaming media
+    start: 2005-02
+    stop: 2026-01
+    row: 1
+    phases: 4
+    tags: [media]
+  - id: cloud-computing
+    name: Cloud computing
+    start: 2006-08
+    stop: 2026-01
+    row: 17
+    phases: 4
+    tags: [computing]
+    description: Rented infrastructure by the hour, starting with Amazon Web Services.
+  - id: smartphones
+    name: Smartphones
+    start: 2007-06
+    stop: 2026-01
+    row: 2
+    phases: 4
+    tags: [communication, computing]
+  - id: big-data
+    name: Big data
+    start: 2008-01
+    stop: 2022-01
+    row: 7
+    phases: 4
+    tags: [data]
+  - id: blockchain
+    name: Blockchain and cryptocurrency
+    start: 2009-01
+    stop: 2030-01
+    row: 18
+    phases: 3
+    peak-end: 2017-12
+    trough-end: 2019-01
+    tags: [finance, data]
+  - id: deep-learning
+    name: Deep learning
+    start: 2012-09
+    stop: 2030-01
+    row: 4
+    phases: 3
+    tags: [ai, data]
+    description: Neural networks that finally worked, from AlexNet on.
+  - id: virtual-reality
+    name: Virtual reality
+    start: 2012-08
+    stop: 2030-01
+    row: 6
+    phases: 3
+    peak-end: 2016-06
+    trough-end: 2021-01
+    tags: [media, computing]
+  - id: quantum-computing
+    name: Quantum computing
+    start: 2016-05
+    stop: 2035-01
+    row: 10
+    phases: 1
+    tags: [computing, science]
+  - id: 5g
+    name: 5G
+    start: 2019-04
+    stop: 2030-01
+    row: 0
+    phases: 2
+    tags: [communication]
+  - id: large-language-models
+    name: Large language models
+    start: 2020-06
+    stop: 2030-01
+    row: 9
+    phases: 2
+    tags: [ai]
+    description: From GPT-3 on, language became a general interface to computing.
+  - id: ai-agents
+    name: AI agents
+    start: 2024-01
+    stop: 2032-01
+    row: 7
+    phases: 1
+    tags: [ai]
+triggers:
+  - id: morris-worm
+    name: Morris worm
+    date: 1988-11
+    row: 11
+    tags: [security]
+    description: The first worm to spread widely over the Internet, which led to the first computer emergency response team.
+  - id: ibm-pc-launch
+    name: IBM PC launched
+    date: 1981-08
+    row: 3
+    tags: [computing]
+    description: An open architecture that made the personal computer a business machine and a market for clones.
+  - id: mosaic-release
+    name: Mosaic browser released
+    date: 1993-04
+    row: 13
+    tags: [communication, media]
+    description: The first widely used graphical browser, which put images inline with text.
+  - id: nasdaq-crash
+    name: Nasdaq peak and crash
+    date: 2000-03
+    row: 3
+    tags: [finance]
+    description: The Nasdaq peaked on 10 March 2000 and lost three quarters of its value by 2002.
+  - id: iphone-announced
+    name: iPhone announced
+    date: 2007-01
+    row: 3
+    tags: [communication, computing]
+    description: A phone that was a touch-screen computer first.
+  - id: bitcoin-white-paper
+    name: Bitcoin white paper
+    date: 2008-10
+    row: 19
+    tags: [finance]
+    description: Satoshi Nakamoto's paper describing a peer-to-peer electronic cash system.
+  - id: alexnet
+    name: AlexNet wins ImageNet
+    date: 2012-09
+    row: 3
+    tags: [ai]
+    description: A deep convolutional network trained on GPUs halved the error rate of the image recognition challenge.
+  - id: chatgpt-launch
+    name: ChatGPT launched
+    date: 2022-11
+    row: 12
+    tags: [ai]
+    description: A chat interface to a large language model reached a hundred million users in two months.
+influences:
+  - id: mainframe-computing--minicomputers
+    from: mainframe-computing
+    from-phase: peak
+    from-edge: bottom
+    from-at: 0.59
+    to: minicomputers
+    to-phase: peak
+    to-edge: top
+    to-at: 0.39
+  - id: minicomputers--internet
+    from: minicomputers
+    from-phase: peak
+    from-edge: bottom
+    from-at: 0.68
+    to: internet
+    to-phase: peak
+    to-edge: top
+    to-at: 0.39
+    description: ARPANET's routers were minicomputers.
+  - id: mainframe-computing--relational-databases
+    from: mainframe-computing
+    from-phase: trough
+    from-edge: bottom
+    from-at: 0.65
+    to: relational-databases
+    to-phase: peak
+    to-edge: top
+    to-at: 0.36
+  - id: minicomputers--personal-computer
+    from: minicomputers
+    from-phase: trough
+    from-edge: bottom
+    from-at: 0.59
+    to: personal-computer
+    to-phase: peak
+    to-edge: top
+    to-at: 0.27
+  - id: graphical-user-interface--personal-computer
+    from: graphical-user-interface
+    from-phase: peak
+    from-edge: top
+    from-at: 0.57
+    to: personal-computer
+    to-phase: peak
+    to-edge: bottom
+    to-at: 0.45
+    description: The Macintosh and Windows made the PC usable by anyone.
+  - id: internet--email
+    from: internet
+    from-phase: peak
+    from-edge: bottom
+    from-at: 0.51
+    to: email
+    to-phase: peak
+    to-edge: top
+    to-at: 0.48
+  - id: internet--world-wide-web
+    from: internet
+    from-phase: trough
+    from-edge: bottom
+    from-at: 0.73
+    to: world-wide-web
+    to-phase: peak
+    to-edge: top
+    to-at: 0.14
+  - id: personal-computer--world-wide-web
+    from: personal-computer
+    from-phase: trough
+    from-edge: bottom
+    from-at: 0.57
+    to: world-wide-web
+    to-phase: peak
+    to-edge: top
+    to-at: 0.37
+  - id: graphical-user-interface--world-wide-web
+    from: graphical-user-interface
+    from-phase: slope
+    from-edge: bottom
+    from-at: 0.57
+    to: world-wide-web
+    to-phase: peak
+    to-edge: top
+    to-at: 0.59
+    description: The browser is a graphical user interface to the web.
+  - id: internet--cybersecurity
+    from: internet
+    from-phase: trough
+    from-edge: bottom
+    from-at: 0.33
+    to: cybersecurity
+    to-phase: peak
+    to-edge: top
+    to-at: 0.28
+    description: The Morris worm spread over the internet.
+  - id: world-wide-web--search-engines
+    from: world-wide-web
+    from-phase: peak
+    from-edge: top
+    from-at: 0.85
+    to: search-engines
+    to-phase: peak
+    to-edge: bottom
+    to-at: 0.47
+  - id: world-wide-web--dot-com-bubble
+    from: world-wide-web
+    from-phase: trough
+    from-edge: top
+    from-at: 0.31
+    to: dot-com-bubble
+    to-phase: peak
+    to-edge: bottom
+    to-at: 0.34
+  - id: world-wide-web--e-commerce
+    from: world-wide-web
+    from-phase: trough
+    from-edge: bottom
+    from-at: 0.57
+    to: e-commerce
+    to-phase: peak
+    to-edge: top
+    to-at: 0.71
+  - id: search-engines--e-commerce
+    from: search-engines
+    from-phase: peak
+    from-edge: bottom
+    from-at: 0.70
+    to: e-commerce
+    to-phase: peak
+    to-edge: top
+    to-at: 0.36
+  - id: dot-com-bubble--broadband
+    from: dot-com-bubble
+    from-phase: peak
+    from-edge: bottom
+    from-at: 0.74
+    to: broadband
+    to-phase: peak
+    to-edge: top
+    to-at: 0.40
+    description: The bubble paid for fibre that later carried broadband.
+  - id: relational-databases--software-as-a-service
+    from: relational-databases
+    from-phase: plateau
+    from-edge: bottom
+    from-at: 0.57
+    to: software-as-a-service
+    to-phase: peak
+    to-edge: top
+    to-at: 0.70
+  - id: internet--software-as-a-service
+    from: internet
+    from-phase: slope
+    from-edge: bottom
+    from-at: 0.62
+    to: software-as-a-service
+    to-phase: peak
+    to-edge: top
+    to-at: 0.24
+  - id: open-source--cloud-computing
+    from: open-source
+    from-phase: slope
+    from-edge: bottom
+    from-at: 0.60
+    to: cloud-computing
+    to-phase: peak
+    to-edge: top
+    to-at: 0.11
+    description: Linux and open-source tooling run most of the cloud.
+  - id: e-commerce--cloud-computing
+    from: e-commerce
+    from-phase: trough
+    from-edge: bottom
+    from-at: 0.63
+    to: cloud-computing
+    to-phase: peak
+    to-edge: top
+    to-at: 0.46
+    description: Amazon sold the infrastructure it had built for its own shop.
+  - id: software-as-a-service--cloud-computing
+    from: software-as-a-service
+    from-phase: trough
+    from-edge: bottom
+    from-at: 0.51
+    to: cloud-computing
+    to-phase: peak
+    to-edge: top
+    to-at: 0.67
+  - id: world-wide-web--social-media
+    from: world-wide-web
+    from-phase: slope
+    from-edge: top
+    from-at: 0.57
+    to: social-media
+    to-phase: peak
+    to-edge: bottom
+    to-at: 0.26
+  - id: broadband--streaming-media
+    from: broadband
+    from-phase: trough
+    from-edge: top
+    from-at: 0.45
+    to: streaming-media
+    to-phase: peak
+    to-edge: bottom
+    to-at: 0.30
+  - id: mobile-phones--smartphones
+    from: mobile-phones
+    from-phase: plateau
+    from-edge: top
+    from-at: 0.96
+    to: smartphones
+    to-phase: peak
+    to-edge: bottom
+    to-at: 0.65
+  - id: wifi--smartphones
+    from: wifi
+    from-phase: trough
+    from-edge: top
+    from-at: 0.60
+    to: smartphones
+    to-phase: peak
+    to-edge: bottom
+    to-at: 0.30
+  - id: open-source--smartphones
+    from: open-source
+    from-phase: plateau
+    from-edge: top
+    from-at: 0.50
+    to: smartphones
+    to-phase: peak
+    to-edge: bottom
+    to-at: 0.85
+    description: Android is built on Linux.
+  - id: smartphones--social-media
+    from: smartphones
+    from-phase: peak
+    from-edge: bottom
+    from-at: 0.36
+    to: social-media
+    to-phase: peak
+    to-edge: top
+    to-at: 0.92
+    description: Social media moved into everyone's pocket.
+  - id: smartphones--streaming-media
+    from: smartphones
+    from-phase: peak
+    from-edge: top
+    from-at: 0.35
+    to: streaming-media
+    to-phase: peak
+    to-edge: bottom
+    to-at: 0.76
+  - id: wifi--internet-of-things
+    from: wifi
+    from-phase: peak
+    from-edge: bottom
+    from-at: 0.59
+    to: internet-of-things
+    to-phase: peak
+    to-edge: top
+    to-at: 0.45
+  - id: cloud-computing--internet-of-things
+    from: cloud-computing
+    from-phase: peak
+    from-edge: top
+    from-at: 0.12
+    to: internet-of-things
+    to-phase: peak
+    to-edge: bottom
+    to-at: 0.91
+  - id: social-media--big-data
+    from: social-media
+    from-phase: peak
+    from-edge: bottom
+    from-at: 0.73
+    to: big-data
+    to-phase: peak
+    to-edge: top
+    to-at: 0.41
+  - id: cloud-computing--big-data
+    from: cloud-computing
+    from-phase: peak
+    from-edge: top
+    from-at: 0.81
+    to: big-data
+    to-phase: peak
+    to-edge: bottom
+    to-at: 0.72
+  - id: big-data--deep-learning
+    from: big-data
+    from-phase: trough
+    from-edge: top
+    from-at: 0.55
+    to: deep-learning
+    to-phase: peak
+    to-edge: bottom
+    to-at: 0.28
+    description: Large labelled datasets made deep networks trainable.
+  - id: cloud-computing--deep-learning
+    from: cloud-computing
+    from-phase: trough
+    from-edge: top
+    from-at: 0.61
+    to: deep-learning
+    to-phase: peak
+    to-edge: bottom
+    to-at: 0.70
+  - id: open-source--blockchain
+    from: open-source
+    from-phase: plateau
+    from-edge: bottom
+    from-at: 0.55
+    to: blockchain
+    to-phase: peak
+    to-edge: top
+    to-at: 0.46
+  - id: smartphones--virtual-reality
+    from: smartphones
+    from-phase: trough
+    from-edge: bottom
+    from-at: 0.50
+    to: virtual-reality
+    to-phase: peak
+    to-edge: top
+    to-at: 0.50
+    description: Cheap phone screens and sensors made headsets affordable.
+  - id: smartphones--5g
+    from: smartphones
+    from-phase: slope
+    from-edge: top
+    from-at: 0.57
+    to: 5g
+    to-phase: peak
+    to-edge: bottom
+    to-at: 0.27
+  - id: 5g--internet-of-things
+    from: 5g
+    from-phase: peak
+    from-edge: bottom
+    from-at: 0.65
+    to: internet-of-things
+    to-phase: slope
+    to-edge: top
+    to-at: 0.65
+  - id: deep-learning--large-language-models
+    from: deep-learning
+    from-phase: trough
+    from-edge: bottom
+    from-at: 0.51
+    to: large-language-models
+    to-phase: peak
+    to-edge: top
+    to-at: 0.28
+  - id: cloud-computing--large-language-models
+    from: cloud-computing
+    from-phase: slope
+    from-edge: top
+    from-at: 0.62
+    to: large-language-models
+    to-phase: peak
+    to-edge: bottom
+    to-at: 0.25
+  - id: large-language-models--ai-agents
+    from: large-language-models
+    from-phase: peak
+    from-edge: top
+    from-at: 0.79
+    to: ai-agents
+    to-phase: peak
+    to-edge: bottom
+    to-at: 0.68
+  - id: quantum-computing--cybersecurity
+    from: quantum-computing
+    from-phase: peak
+    from-edge: top
+    from-at: 0.38
+    to: cybersecurity
+    to-phase: plateau
+    to-edge: bottom
+    to-at: 0.74
+    description: Quantum computers threaten today's public-key cryptography.
+  - id: morris-worm--cybersecurity
+    from: morris-worm
+    to: cybersecurity
+    to-phase: peak
+    to-edge: bottom
+    to-at: 0.40
+  - id: ibm-pc-launch--personal-computer
+    from: ibm-pc-launch
+    to: personal-computer
+    to-phase: peak
+    to-edge: top
+    to-at: 0.76
+  - id: mosaic-release--world-wide-web
+    from: mosaic-release
+    to: world-wide-web
+    to-phase: peak
+    to-edge: bottom
+    to-at: 0.72
+  - id: mosaic-release--search-engines
+    from: mosaic-release
+    to: search-engines
+    to-phase: peak
+    to-edge: bottom
+    to-at: 0.19
+  - id: nasdaq-crash--dot-com-bubble
+    from: nasdaq-crash
+    to: dot-com-bubble
+    to-phase: trough
+    to-edge: bottom
+    to-at: 0.40
+  - id: iphone-announced--smartphones
+    from: iphone-announced
+    to: smartphones
+    to-phase: peak
+    to-edge: bottom
+    to-at: 0.14
+  - id: iphone-announced--mobile-phones
+    from: iphone-announced
+    to: mobile-phones
+    to-phase: plateau
+    to-edge: top
+    to-at: 0.55
+  - id: bitcoin-white-paper--blockchain
+    from: bitcoin-white-paper
+    to: blockchain
+    to-phase: peak
+    to-edge: bottom
+    to-at: 0.40
+  - id: alexnet--deep-learning
+    from: alexnet
+    to: deep-learning
+    to-phase: peak
+    to-edge: top
+    to-at: 0.40
+  - id: chatgpt-launch--large-language-models
+    from: chatgpt-launch
+    to: large-language-models
+    to-phase: peak
+    to-edge: bottom
+    to-at: 0.71
+  - id: chatgpt-launch--ai-agents
+    from: chatgpt-launch
+    to: ai-agents
+    to-phase: peak
+    to-edge: bottom
+    to-at: 0.26

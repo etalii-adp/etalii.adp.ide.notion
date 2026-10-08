@@ -1,8 +1,10 @@
 # Checks every pull request into develop and every change to develop (etalii.adp spec 001-ci-and-badges), and
 # starts the publication of what is merged (etalii.adp spec 011-notion-repository, contracts/publication.md).
-# The addons job writes the tree this repository publishes at https://etalii.net/adp-notion, with the same
-# command the deploy workflow of etalii.adp.site runs, and checks it. The publish job uploads nothing: on a
-# push to develop it starts that deploy workflow, which builds this repository beside the site.
+# The test job runs the tests, the linter and the type check of the shared parts. The addons job writes the tree
+# this repository publishes at https://etalii.net/adp-notion, with the same command the deploy workflow of
+# etalii.adp.site runs, and checks it (etalii.adp spec 012-notion-hype-cycle-addon, contracts/published-tree.md).
+# The publish job uploads nothing: on a push to develop it starts that deploy workflow, which builds this
+# repository beside the site.
 name: Build
 
 on:
@@ -31,6 +33,20 @@ jobs:
       - name: Check JSON, YAML and markdown links
         run: python .github/scripts/check-files.py
 
+  test:
+    needs: check
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
+        with:
+          node-version: '24'
+      - run: npm ci
+      - name: Run the tests, the words test among them
+        run: npm test
+      - run: npm run lint
+      - run: npm run typecheck
+
   addons:
     needs: check
     runs-on: ubuntu-latest
@@ -51,6 +67,15 @@ jobs:
             [ -d "$folder" ] || continue
             test -f "$RUNNER_TEMP/adp-notion/$(basename "$folder")/index.html"
           done
+      # The files of every add-on's folder, no name of a tool type in addon.js, and nothing that reads as a secret.
+      # This job reads no secret, so there is no text of one to search for.
+      - name: Check the published tree
+        run: node scripts/check-tree.mjs "$RUNNER_TEMP/adp-notion"
+      - name: Check every copy against its PROVENANCE.md
+        run: |
+          node scripts/sync-specifications.mjs --check
+          node scripts/sync-fbl.mjs --check
+          node scripts/sync-examples.mjs --check
 
   # Flags a retired use of the ADP vocabulary (etalii.adp spec 002, FR-017). The runner and its list of retired
   # patterns and allowances live in etalii.adp and are read from its develop branch, so every repository is checked
@@ -72,7 +97,7 @@ jobs:
 
   # The one job that reads a secret. A pull request, from a fork or not, never runs it.
   publish:
-    needs: [check, addons]
+    needs: [check, test, addons]
     if: github.event_name == 'push' && github.ref == 'refs/heads/develop'
     runs-on: ubuntu-latest
     steps:

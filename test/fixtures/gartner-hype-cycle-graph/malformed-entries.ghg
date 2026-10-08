@@ -1,0 +1,27 @@
+gartner-hypecycle-graph: 1
+trends:
+  - id: good
+    name: Good
+    start: 1900-01
+    stop: 1910-01
+    row: 0
+    phases: 4
+  - id: odd
+    name: Odd
+    start: 19xx-01
+    stop: 1910-01
+    row: two
+    phases: many
+    colour: puce
+  - just a string
+influences:
+  - id: link
+    from: good
+    from-phase: peak
+    from-edge: top
+    from-at: 0.5
+    to: odd
+    to-phase: peak
+    to-edge: top
+    to-at: 0.5
+    weight: heavy

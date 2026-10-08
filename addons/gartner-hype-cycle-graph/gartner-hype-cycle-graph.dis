@@ -1,0 +1,1433 @@
+{
+  "$schema": "https://etalii.net/adp/disl/schema/0.2/disl.schema.json#/$defs/Specification",
+  "disl": "0.3",
+  "language": {
+    "id": "net.etalii.adp.gartner.hypecycle-graph",
+    "version": "1.1.0",
+    "origin": "gartner/hypecycle-graph",
+    "label": "Gartner hype cycle graph",
+    "fileExtension": "ghg",
+    "license": "Apache-2.0",
+    "authors": [ { "name": "Peter Vrenken" } ],
+    "homepage": "https://github.com/etalii-adp/etalii.adp.ide.standalone/tree/develop/src/diagrams/gartner-hype-cycle-graph",
+    "icon": "mdi-chart-bell-curve-cumulative",
+    "doc": {
+      "summary": "Trends placed on a shared time axis, each showing how far it has travelled through the phases of the Gartner hype cycle, with the influences trends have had on one another.",
+      "description": "Each **trend** is a banner along a horizontal time axis, from its `start` to its `stop`, cut into up to four phases: Peak of Inflated Expectations, Trough of Disillusionment, Slope of Enlightenment and Plateau of Productivity. Phases are spread evenly until a boundary is dragged. A **trigger** is a dated moment, a **note** is free text pinned to a date and row, and an **influence** is a directed curve from a phase of one trend (or from a trigger) to a phase of another trend. The `.ghg` document is read and written through the FBL binding the standalone module ships. What DISL 0.2 cannot state is declared under `x-` keys, each shaped as the construct proposed for DISL, and described in `gartner-hype-cycle-graph.md` beside this file.",
+      "rationale": "The Hype Cycle's meaning lies in the position on its curve; a dedicated tool keeps each item on the curve and relates them, which free drawing loses.",
+      "seeAlso": [
+        { "title": "Gartner hype cycle", "href": "https://en.wikipedia.org/wiki/Gartner_hype_cycle" },
+        { "title": "What DISL cannot express for this tool", "href": "gartner-hype-cycle-graph.md" }
+      ]
+    },
+    "requires": {
+      "conformance": "standard",
+      "features": [ "axis.yearMonth", "ruler.adaptive", "snap.byGesture", "anchor.part", "canvas.filters", "viewpoint.variants", "placement.bound", "shape.custom", "shape.composite", "edge.bezier", "label.parse", "persistence.fbl" ]
+    }
+  },
+
+  "functions": {
+    "unitMonths": {
+      "params": [ { "name": "u", "type": "string" } ],
+      "returns": "int",
+      "cel": "u == 'year' ? 12 : u == 'decade' ? 120 : u == 'century' ? 1200 : 1",
+      "doc": "Months in one step of the diagram's time unit."
+    },
+    "monthText": {
+      "params": [ { "name": "m", "type": "yearMonth" } ],
+      "returns": "string",
+      "cel": "formatYearMonth(m, 'uuuu-MM')",
+      "doc": "A month as the document and the property grid write it: the signed year padded to four digits, a dash and the month, such as `1947-12` or `-3200-01` (`GhgScale.FormatMonth`)."
+    },
+    "formatWhen": {
+      "params": [ { "name": "m", "type": "yearMonth" }, { "name": "u", "type": "string" }, { "name": "long", "type": "bool" } ],
+      "returns": "string",
+      "cel": "unitMonths(u) > 1 ? string(m.year()) : (long ? ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'] : ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'])[m.month() - 1] + ' ' + string(m.year())",
+      "doc": "A date as a trigger shows it: `Dec 1947` (or `December 1947` when long) in a diagram of months, the year alone, unpadded, in one of years or coarser (`GhgScale.FormatWhen`, `FormatWhenLong`)."
+    },
+    "phaseName": {
+      "params": [ { "name": "i", "type": "int" } ],
+      "returns": "string",
+      "cel": "['peak', 'trough', 'slope', 'plateau'][i]"
+    },
+    "phaseTitle": {
+      "params": [ { "name": "phase", "type": "string" } ],
+      "returns": "string",
+      "cel": "phase in ['peak', 'trough', 'slope', 'plateau'] ? enumLabel('Phase', phase) : phase",
+      "doc": "A phase's title, Peak to Plateau, or the stored text when it names no phase."
+    },
+    "visiblePhases": {
+      "params": [ { "name": "t", "type": "Element" } ],
+      "returns": "int",
+      "cel": "t.phases < 1 ? 1 : t.phases > 4 ? 4 : t.phases",
+      "doc": "The phases a trend draws: its `phases`, kept within 1 to 4."
+    },
+    "spread": {
+      "params": [
+        { "name": "pv", "type": "int" }, { "name": "pi", "type": "int" },
+        { "name": "nv", "type": "int" }, { "name": "ni", "type": "int" },
+        { "name": "i", "type": "int" }
+      ],
+      "returns": "int",
+      "cel": "int(math.round(double(pv) + double(nv - pv) * double(i - pi) / double(ni - pi)))",
+      "doc": "Boundary `i` spread evenly between the anchor `pv` at position `pi` and the anchor `nv` at position `ni`, rounded to a month half away from zero."
+    },
+    "phaseBoundaries": {
+      "params": [ { "name": "t", "type": "Element" } ],
+      "returns": "list(int)",
+      "cel": "cel.bind(s, t.start, cel.bind(e, t.stop, cel.bind(n, visiblePhases(t) - 1, cel.bind(d0, n > 0 && has(t.peakEnd), cel.bind(d1, n > 1 && has(t.troughEnd), cel.bind(d2, n > 2 && has(t.slopeEnd), cel.bind(a0, d0 ? clamp(t.peakEnd, s, e) : s, cel.bind(a1, d1 ? clamp(t.troughEnd, a0, e) : a0, cel.bind(a2, d2 ? clamp(t.slopeEnd, a1, e) : a1, cel.bind(b0, d0 ? a0 : (d1 ? spread(s, -1, a1, 1, 0) : d2 ? spread(s, -1, a2, 2, 0) : spread(s, -1, e, n, 0)), cel.bind(b1, d1 ? a1 : (d0 ? (d2 ? spread(a0, 0, a2, 2, 1) : spread(a0, 0, e, n, 1)) : (d2 ? spread(s, -1, a2, 2, 1) : spread(s, -1, e, n, 1))), cel.bind(b2, d2 ? a2 : (d1 ? spread(a1, 1, e, 3, 2) : d0 ? spread(a0, 0, e, 3, 2) : spread(s, -1, e, 3, 2)), n == 0 ? [] : n == 1 ? [b0] : n == 2 ? [b0, b1] : [b0, b1, b2]))))))))))))",
+      "doc": {
+        "summary": "The drawn inner boundaries of a trend, as month indices: one fewer than its visible phases.",
+        "description": "The last visible phase ends at `stop`. An inner boundary is its stored (dragged) month, clamped between the previous anchor and `stop`; otherwise it is spread evenly between its nearest stored neighbours or the trend's ends. A stored boundary at or beyond the last visible phase is kept in the document but neither drawn nor used as a neighbour. Mirrors `GhgPhases.BoundariesOf`."
+      }
+    },
+    "phaseFractions": {
+      "params": [ { "name": "t", "type": "Element" } ],
+      "returns": "list(double)",
+      "cel": "cel.bind(n, visiblePhases(t), cel.bind(f, phaseBoundaries(t).map(b, double(b - t.start) / double(max(1, t.stop - t.start))), f.size() == n - 1 && lists.range(f.size()).all(i, f[i] > 0.0 && f[i] < 1.0 && (i == 0 || f[i] > f[i - 1])) ? f : lists.range(n - 1).map(i, double(i + 1) / double(n))))",
+      "doc": "The drawn boundaries as fractions of the banner (`GhgPhases.FractionsOf`). Fractions that are not strictly increasing inside (0, 1) draw as an even spread instead (`segments.ts`, the standalone client's segment layout)."
+    },
+    "boundaryFraction": {
+      "params": [ { "name": "t", "type": "Element" }, { "name": "i", "type": "int" } ],
+      "returns": "double",
+      "cel": "cel.bind(f, phaseFractions(t), i <= f.size() ? f[i - 1] : 1.0)",
+      "doc": "Where inner boundary `i` (1 to 3) lies, as a fraction of the trend's width; 1 when that boundary is not drawn."
+    },
+    "boundaryLanding": {
+      "params": [ { "name": "t", "type": "Element" }, { "name": "i", "type": "int" }, { "name": "v", "type": "double" } ],
+      "returns": "double",
+      "uses": [ "diagram" ],
+      "cel": "cel.bind(u, double(unitMonths(diagram.unit)), cel.bind(span, double(t.stop - t.start), cel.bind(f, phaseFractions(t), cel.bind(prev, i == 1 ? 0.0 : f[i - 2], cel.bind(next, i == f.size() ? 1.0 : f[i], cel.bind(o, double(t.start - yearMonth(1900, 1)) / u, cel.bind(g, (math.round(o + v * span / u) - o) * u / span, cel.bind(lo, prev + u / span, cel.bind(hi, next - u / span, lo <= hi ? min(max(g, lo), hi) : (prev + next) / 2.0)))))))))",
+      "doc": "Where a dragged boundary lands, as a fraction: on the step grid counted from 1900-01, halves away from zero, then kept one step from its neighbouring drawn boundaries or the trend's ends, or halfway between them when there is no such room (`boundaryLanding` in the standalone client's `segments.ts`)."
+    },
+    "boundaryMonth": {
+      "params": [ { "name": "t", "type": "Element" }, { "name": "v", "type": "double" } ],
+      "returns": "int",
+      "uses": [ "diagram" ],
+      "cel": "cel.bind(u, unitMonths(diagram.unit), cel.bind(o, yearMonth(1900, 1), o + int(math.floor((double(t.start - o) + v * double(t.stop - t.start)) / double(u) + 0.5)) * u))",
+      "doc": "The month a landed boundary is written as: the step nearest its position, halves rounded up, as the client's `monthAt` sends it."
+    },
+    "dropMonth": {
+      "params": [ { "name": "x", "type": "double" } ],
+      "returns": "int",
+      "uses": [ "diagram" ],
+      "cel": "cel.bind(u, unitMonths(diagram.unit), cel.bind(o, yearMonth(1900, 1), o + int(math.floor((x - double(o)) / double(u))) * u))",
+      "doc": "The first month of the step that contains a drop point (`GhgScale.MonthContaining`)."
+    },
+    "atText": {
+      "params": [ { "name": "a", "type": "double" } ],
+      "returns": "string",
+      "cel": "cel.bind(r, math.round(a * 100.0) / 100.0, string(r) + (r == math.trunc(r) ? '.0' : ''))",
+      "doc": "An attachment fraction with one or two decimals, such as `0.5`, `0.25` or `1.0` (`GhgEnd.FormatAt`)."
+    },
+    "sizeText": {
+      "params": [ { "name": "a", "type": "double" } ],
+      "returns": "string",
+      "cel": "string(math.round(a * 100.0) / 100.0)",
+      "doc": "A note dimension with at most two decimals and none when whole, such as `160` (`SetGhgNoteSizeCommand.Format`)."
+    },
+    "endSpec": {
+      "params": [ { "name": "phase", "type": "dyn" }, { "name": "edge", "type": "dyn" }, { "name": "at", "type": "dyn" } ],
+      "returns": "string",
+      "cel": "phase.orValue('') + '/' + edge.orValue('') + '/' + (at.hasValue() ? atText(at.value()) : '')",
+      "doc": "An end as the property grid shows it: `phase/edge/at`, each part empty when absent (`GhgEnd.ToString`). Called with optionals, such as `self.?fromPhase`."
+    },
+    "endReadable": {
+      "params": [ { "name": "phase", "type": "dyn" }, { "name": "edge", "type": "dyn" }, { "name": "at", "type": "dyn" } ],
+      "returns": "bool",
+      "cel": "phase.hasValue() && phase.value() in ['peak', 'trough', 'slope', 'plateau'] && edge.hasValue() && edge.value() in ['top', 'bottom'] && at.hasValue() && at.value() >= 0.0 && at.value() <= 1.0",
+      "doc": "Whether an end names a phase, a top or bottom edge, and an `at` from 0 to 1 (`GhgEnd.IsReadable`). A phase or edge the enum does not know is kept as written (4.5), so it is checked by name."
+    },
+    "endText": {
+      "params": [ { "name": "e", "type": "dyn" }, { "name": "phase", "type": "string" } ],
+      "returns": "string",
+      "cel": "cel.bind(name, e.name != '' ? e.name : e.id, e.isA('Trigger') ? name : name + ' · ' + phaseTitle(phase))",
+      "doc": "An influence end as the property grid lists it: `Steam engine · Plateau`, or a trigger's name alone; an empty name shows the id (`GhgContextPropertyProvider.Describe`)."
+    },
+    "listOrNone": {
+      "params": [ { "name": "items", "type": "list(string)" } ],
+      "returns": "string",
+      "cel": "items.size() == 0 ? 'None' : items.join('\\n')"
+    },
+    "uniqueName": {
+      "params": [ { "name": "base", "type": "string" }, { "name": "taken", "type": "list(string)" } ],
+      "returns": "string",
+      "cel": "!(base in taken) ? base : base + ' ' + string(lists.range(taken.size() + 2).filter(k, k >= 2 && !((base + ' ' + string(k)) in taken))[0])",
+      "doc": "`base` when it is free, otherwise `base 2`, `base 3` and so on: the first number not taken (`GhgEdits.UniqueName`)."
+    },
+    "badBoundary": {
+      "params": [ { "name": "t", "type": "Element" } ],
+      "returns": "string",
+      "cel": "cel.bind(s, t.start, cel.bind(e, t.stop, cel.bind(p, has(t.peakEnd) ? t.peakEnd : s, has(t.peakEnd) && (t.peakEnd <= s || t.peakEnd >= e) ? 'peak-end: ' + monthText(t.peakEnd) : cel.bind(q, has(t.troughEnd) ? t.troughEnd : p, has(t.troughEnd) && (t.troughEnd <= p || t.troughEnd >= e) ? 'trough-end: ' + monthText(t.troughEnd) : (has(t.slopeEnd) && (t.slopeEnd <= q || t.slopeEnd >= e) ? 'slope-end: ' + monthText(t.slopeEnd) : '')))))",
+      "doc": "The first stored boundary that is not strictly after the previous stored one (or `start`) and strictly before `stop`, written `key: YYYY-MM`; empty when every stored boundary is in order."
+    },
+    "tooShort": {
+      "params": [ { "name": "months", "type": "int" }, { "name": "phases", "type": "int" } ],
+      "returns": "string",
+      "cel": "months >= max(1, phases) ? '' : (phases <= 1 ? 'A trend must be at least one month long.' : 'A trend showing ' + string(phases) + ' phases must be at least ' + string(phases) + ' months long, one per phase.')",
+      "doc": "The refusal for a span too short for the phases it shows, or empty when it is long enough (`GhgEdits.TooShort`)."
+    }
+  },
+
+  "metamodel": {
+    "diagram": {
+      "attributes": {
+        "unit": {
+          "type": "TimeUnit",
+          "default": "month",
+          "doc": "The time unit of the diagram: one step of the axis, the snapping unit and the precision a trigger's date is shown in. Written as the optional top-level `unit:` key; an unknown value draws in months."
+        }
+      }
+    },
+    "enums": {
+      "TimeUnit": {
+        "ordered": true,
+        "values": {
+          "month": { "label": "Month" },
+          "year": { "label": "Year" },
+          "decade": { "label": "Decade" },
+          "century": { "label": "Century" }
+        },
+        "doc": "Unit names as DISL's time units spell them, so the axis scale and the snap rule can bind to the diagram's `unit` (`GhgTimeUnit`)."
+      },
+      "Phase": {
+        "ordered": true,
+        "values": {
+          "peak": { "label": "Peak", "color": { "token": "ghg.peak" }, "doc": "Peak of Inflated Expectations" },
+          "trough": { "label": "Trough", "color": { "token": "ghg.trough" }, "doc": "Trough of Disillusionment" },
+          "slope": { "label": "Slope", "color": { "token": "ghg.slope" }, "doc": "Slope of Enlightenment" },
+          "plateau": { "label": "Plateau", "color": { "token": "ghg.plateau" }, "doc": "Plateau of Productivity" }
+        }
+      },
+      "Edge": {
+        "values": {
+          "top": { "label": "Top" },
+          "bottom": { "label": "Bottom" }
+        }
+      }
+    },
+    "types": {
+      "Trend": {
+        "label": "Trend",
+        "icon": "mdi-arrow-right-bold-box-outline",
+        "labelAttribute": "name",
+        "doc": "A trend through the hype cycle, from `start` to `stop`, showing its first `phases` phases.",
+        "attributes": {
+          "name": { "type": "string", "group": "Identity", "order": 1 },
+          "description": { "type": "text", "group": "Identity", "order": 2, "doc": "Shown in the property grid only, never drawn." },
+          "tags": { "type": "string", "many": true, "group": "Identity", "order": 3, "doc": "Filtered on, case-insensitively." },
+          "start": { "type": "yearMonth", "group": "Time", "order": 1 },
+          "stop": { "type": "yearMonth", "group": "Time", "order": 2 },
+          "row": { "type": "int", "default": 0, "doc": "The row the trend is drawn in; row tops are 56 canvas units apart." },
+          "phases": { "type": "int", "default": 4, "group": "Phases", "order": 1, "doc": "How many phases are shown, from Peak onwards: 1 to 4. A changed count keeps the stored boundaries." },
+          "peakEnd": { "type": "yearMonth", "group": "Phases", "order": 2, "doc": "Where Peak ends, once dragged. Absent means spread evenly." },
+          "troughEnd": { "type": "yearMonth", "group": "Phases", "order": 3, "doc": "Where Trough ends, once dragged." },
+          "slopeEnd": { "type": "yearMonth", "group": "Phases", "order": 4, "doc": "Where Slope ends, once dragged." }
+        },
+        "bounds": {
+          "neighbour": {
+            "attributes": [ "peakEnd", "troughEnd", "slopeEnd" ],
+            "between": [ "start", "stop" ],
+            "gap": 1,
+            "inner": { "cel": "visiblePhases(self) - 1" },
+            "absent": "spread",
+            "on": [ "change", "handle" ],
+            "pinned": "edited",
+            "doc": "After a boundary is set (pinned) or the span changes, every stored boundary is clamped so each visible phase, including those spread evenly around it, stays at least one month long; a stored boundary beyond the last visible phase is only kept inside the span (`GhgPhases.KeptAMonthApart`). See the companion, Keeping every phase at least a month long."
+          }
+        }
+      },
+      "Trigger": {
+        "label": "Trigger",
+        "icon": "mdi-circle-slice-8",
+        "labelAttribute": "name",
+        "doc": "An innovation trigger: a dated moment that can start influences.",
+        "attributes": {
+          "name": { "type": "string", "group": "Identity", "order": 1 },
+          "description": { "type": "text", "group": "Identity", "order": 2 },
+          "tags": { "type": "string", "many": true, "group": "Identity", "order": 3 },
+          "date": { "type": "yearMonth", "group": "Time", "order": 1 },
+          "row": { "type": "int", "default": 0 }
+        }
+      },
+      "Note": {
+        "label": "Note",
+        "icon": "mdi-note-text-outline",
+        "labelAttribute": "text",
+        "doc": "Free text pinned to a date and a row. It has no tags, takes part in no influence, and stays visible under every filter.",
+        "attributes": {
+          "text": { "type": "text", "default": "", "group": "Identity", "order": 1 },
+          "at": { "type": "yearMonth", "doc": "The month of the note's left edge." },
+          "row": { "type": "int", "default": 0, "doc": "The row of the note's top edge." },
+          "width": { "type": "number", "default": 160, "precision": 2, "unit": "canvas units" },
+          "height": { "type": "number", "default": 64, "precision": 2, "unit": "canvas units" }
+        }
+      }
+    },
+    "relations": {
+      "Influence": {
+        "label": "Influence",
+        "source": [ "Trend", "Trigger" ],
+        "target": "Trend",
+        "directed": true,
+        "allowSelfLoops": false,
+        "allowParallel": false,
+        "doc": "One trend (or a trigger) influencing another trend: at most one per direction, never to itself. Each end names the phase, the edge and the fraction along that phase's edge where it attaches; an end at a trigger names nothing.",
+        "attributes": {
+          "fromPhase": { "type": "Phase", "doc": "Absent for, and ignored on, an influence from a trigger." },
+          "fromEdge": { "type": "Edge" },
+          "fromAt": { "type": "number", "min": 0, "max": 1, "precision": 2, "doc": "The fraction along the phase's edge." },
+          "toPhase": { "type": "Phase" },
+          "toEdge": { "type": "Edge" },
+          "toAt": { "type": "number", "min": 0, "max": 1, "precision": 2 },
+          "description": { "type": "text", "group": "Identity", "doc": "Shown in the property grid only, never drawn." }
+        }
+      }
+    }
+  },
+
+  "coordinates": {
+    "axes": {
+      "time": {
+        "kind": "time",
+        "valueType": "yearMonth",
+        "label": "Time",
+        "origin": "1900-01",
+        "scale": { "unit": { "attribute": "unit" }, "size": 4 },
+        "ruler": {
+          "visible": true,
+          "position": "bottom",
+          "attach": "view",
+          "levels": [
+            { "unit": "month", "format": "MMM uuuu", "minSpacingPx": 64 },
+            { "unit": "quarter", "format": "MMM uuuu", "minSpacingPx": 64 },
+            { "unit": "year", "format": "uuuu", "minSpacingPx": 64 },
+            { "unit": "decade", "format": "uuuu", "minSpacingPx": 64 },
+            { "unit": "century", "format": "uuuu", "minSpacingPx": 64 },
+            { "unit": "millennium", "format": "uuuu", "minSpacingPx": 64 }
+          ],
+          "minUnit": { "attribute": "unit" }
+        },
+        "doc": "A month-index axis counted from 1900-01, four canvas units per step of the diagram's `unit`, linear and never logarithmic. Dates are signed astronomical years (`0000` is 1 BCE, `-3200-01` is 3201 BCE). The ruler is pinned to the bottom of the view; a level finer than one step of the unit is never shown (`minUnit`)."
+      },
+      "rows": {
+        "kind": "linear",
+        "label": "Rows",
+        "unit": "row",
+        "scale": 56,
+        "origin": 0,
+        "doc": "Rows 56 canvas units apart: a 32-unit trend plus a 24-unit gutter."
+      },
+      "track": {
+        "kind": "linear",
+        "label": "Order",
+        "unit": "canvas units",
+        "scale": 1,
+        "origin": 0,
+        "doc": "The compact view's horizontal axis: canvas units placed by the row-packed layout, with no ruler, because a compact x is no date."
+      }
+    },
+    "systems": {
+      "hypeCycle": {
+        "kind": "cartesian",
+        "x": "time",
+        "y": "rows",
+        "orientation": "y-down",
+        "infinite": true,
+        "grid": { "visible": false },
+        "snapping": {
+          "x": { "calendar": { "unit": { "attribute": "unit" } }, "direction": "nearest", "ties": "away-from-zero" },
+          "y": { "grid": { "spacing": 1 }, "direction": "nearest", "ties": "away-from-zero" },
+          "reference": "anchor",
+          "byGesture": {
+            "drop": {
+              "x": { "calendar": { "unit": { "attribute": "unit" } }, "direction": "floor" }
+            }
+          },
+          "doc": "A move or resize snaps the placement anchor to the nearest step start and row, halves away from zero on both sides of the origin (`GhgScale.NearestMonthAt`, `RowAtTop`); a drop lands in the step that contains it (`MonthContaining`). The row a drop lands in differs per type and is set on each node notation."
+        }
+      },
+      "compact": {
+        "kind": "cartesian",
+        "x": "track",
+        "y": "rows",
+        "orientation": "y-down",
+        "infinite": true,
+        "grid": { "visible": false }
+      }
+    },
+    "default": "hypeCycle"
+  },
+
+  "notation": {
+    "textMetric": { "kind": "average", "advance": 0.55, "count": "utf16" },
+    "theme": {
+      "tokens": {
+        "ghg.peak": "#f7e7a1",
+        "ghg.trough": "#dfe3e8",
+        "ghg.slope": "#f6c99a",
+        "ghg.plateau": "#cde8a8",
+        "ghg.chevron": "#475569",
+        "ghg.trigger": "#7c3aed",
+        "ghg.note": "#fef9c3",
+        "ghg.noteText": "#0f172a",
+        "ghg.border": "#e2e8f0",
+        "ghg.influence": "#64748b"
+      },
+      "modes": {
+        "light": {},
+        "dark": {
+          "ghg.peak": "#6b5a17",
+          "ghg.trough": "#475569",
+          "ghg.slope": "#7c4a1c",
+          "ghg.plateau": "#3f6212",
+          "ghg.chevron": "#e2e8f0",
+          "ghg.trigger": "#c4b5fd",
+          "ghg.note": "#423a10",
+          "ghg.noteText": "#f1f5f9",
+          "ghg.border": "#334155",
+          "ghg.influence": "#94a3b8"
+        }
+      },
+      "followSystem": true,
+      "doc": "Peak yellow, Trough light grey, Slope orange, Plateau lime green, as ruled by the owner; the dark values are the same hues darkened. `ghg.border` and `ghg.influence` are the host's border and muted-text colours, which the note outline and the influence line use."
+    },
+    "styles": {
+      "segment": { "stroke": { "width": 0 } },
+      "chevron": { "fill": "none", "stroke": { "color": { "token": "ghg.chevron" }, "width": 1.5 } },
+      "attachment": { "fill": "none", "stroke": { "width": 0 } }
+    },
+    "shapes": {
+      "phasedBanner": {
+        "label": "Phased banner",
+        "doc": "The outline `(0,0) (w-d,0) (w,h/2) (w-d,h) (0,h)` with `d = min(h/2, w/2)`, cut into up to four coloured segments by right-pointing chevrons. A chevron's tip lies on its boundary; its tails reach back by `d`, or less where the previous boundary is nearer, and never past the shoulder `w - d`. The parts `peak` to `plateau` are each segment's stretch of the top and bottom edges, from its left tails to its right tails (the last to the shoulder), which influence ends attach to. Mirrors `segmentLayoutOf` in the standalone client.",
+        "params": {
+          "count": { "type": "int", "default": 4, "min": 1, "max": 4, "unit": "count", "persist": "none" },
+          "b1": { "type": "number", "default": 0.25, "min": 0, "max": 1, "unit": "fraction", "persist": "none" },
+          "b2": { "type": "number", "default": 0.5, "min": 0, "max": 1, "unit": "fraction", "persist": "none" },
+          "b3": { "type": "number", "default": 0.75, "min": 0, "max": 1, "unit": "fraction", "persist": "none" }
+        },
+        "outline": {
+          "segments": [
+            { "op": "M", "x": 0, "y": 0 },
+            { "op": "L", "x": "w - min(h / 2.0, w / 2.0)", "y": 0 },
+            { "op": "L", "x": "w", "y": "h / 2.0" },
+            { "op": "L", "x": "w - min(h / 2.0, w / 2.0)", "y": "h" },
+            { "op": "L", "x": 0, "y": "h" },
+            { "op": "Z" }
+          ]
+        },
+        "parts": [
+          {
+            "id": "peakFill",
+            "style": { "extends": "segment", "fill": { "token": "ghg.peak" } },
+            "box": { "x": 0, "y": 0, "w": "w", "h": "h" },
+            "shape": { "path": { "segments": [
+              { "op": "M", "x": 0, "y": 0 },
+              { "op": "L", "x": "p.count == 1 ? w - min(h / 2.0, w / 2.0) : min(w * p.b1 - min(min(h / 2.0, w / 2.0), w * p.b1), w - min(h / 2.0, w / 2.0))", "y": 0 },
+              { "op": "L", "x": "p.count == 1 ? w : w * p.b1", "y": "h / 2.0" },
+              { "op": "L", "x": "p.count == 1 ? w - min(h / 2.0, w / 2.0) : min(w * p.b1 - min(min(h / 2.0, w / 2.0), w * p.b1), w - min(h / 2.0, w / 2.0))", "y": "h" },
+              { "op": "L", "x": 0, "y": "h" },
+              { "op": "Z" } ] } },
+            "tooltip": "Peak of Inflated Expectations"
+          },
+          {
+            "id": "troughFill",
+            "when": "p.count >= 2",
+            "style": { "extends": "segment", "fill": { "token": "ghg.trough" } },
+            "box": { "x": 0, "y": 0, "w": "w", "h": "h" },
+            "shape": { "path": { "segments": [
+              { "op": "M", "x": "min(w * p.b1 - min(min(h / 2.0, w / 2.0), w * p.b1), w - min(h / 2.0, w / 2.0))", "y": 0 },
+              { "op": "L", "x": "p.count == 2 ? w - min(h / 2.0, w / 2.0) : min(w * p.b2 - min(min(h / 2.0, w / 2.0), w * (p.b2 - p.b1)), w - min(h / 2.0, w / 2.0))", "y": 0 },
+              { "op": "L", "x": "p.count == 2 ? w : w * p.b2", "y": "h / 2.0" },
+              { "op": "L", "x": "p.count == 2 ? w - min(h / 2.0, w / 2.0) : min(w * p.b2 - min(min(h / 2.0, w / 2.0), w * (p.b2 - p.b1)), w - min(h / 2.0, w / 2.0))", "y": "h" },
+              { "op": "L", "x": "min(w * p.b1 - min(min(h / 2.0, w / 2.0), w * p.b1), w - min(h / 2.0, w / 2.0))", "y": "h" },
+              { "op": "L", "x": "w * p.b1", "y": "h / 2.0" },
+              { "op": "Z" } ] } },
+            "tooltip": "Trough of Disillusionment"
+          },
+          {
+            "id": "slopeFill",
+            "when": "p.count >= 3",
+            "style": { "extends": "segment", "fill": { "token": "ghg.slope" } },
+            "box": { "x": 0, "y": 0, "w": "w", "h": "h" },
+            "shape": { "path": { "segments": [
+              { "op": "M", "x": "min(w * p.b2 - min(min(h / 2.0, w / 2.0), w * (p.b2 - p.b1)), w - min(h / 2.0, w / 2.0))", "y": 0 },
+              { "op": "L", "x": "p.count == 3 ? w - min(h / 2.0, w / 2.0) : min(w * p.b3 - min(min(h / 2.0, w / 2.0), w * (p.b3 - p.b2)), w - min(h / 2.0, w / 2.0))", "y": 0 },
+              { "op": "L", "x": "p.count == 3 ? w : w * p.b3", "y": "h / 2.0" },
+              { "op": "L", "x": "p.count == 3 ? w - min(h / 2.0, w / 2.0) : min(w * p.b3 - min(min(h / 2.0, w / 2.0), w * (p.b3 - p.b2)), w - min(h / 2.0, w / 2.0))", "y": "h" },
+              { "op": "L", "x": "min(w * p.b2 - min(min(h / 2.0, w / 2.0), w * (p.b2 - p.b1)), w - min(h / 2.0, w / 2.0))", "y": "h" },
+              { "op": "L", "x": "w * p.b2", "y": "h / 2.0" },
+              { "op": "Z" } ] } },
+            "tooltip": "Slope of Enlightenment"
+          },
+          {
+            "id": "plateauFill",
+            "when": "p.count >= 4",
+            "style": { "extends": "segment", "fill": { "token": "ghg.plateau" } },
+            "box": { "x": 0, "y": 0, "w": "w", "h": "h" },
+            "shape": { "path": { "segments": [
+              { "op": "M", "x": "min(w * p.b3 - min(min(h / 2.0, w / 2.0), w * (p.b3 - p.b2)), w - min(h / 2.0, w / 2.0))", "y": 0 },
+              { "op": "L", "x": "w - min(h / 2.0, w / 2.0)", "y": 0 },
+              { "op": "L", "x": "w", "y": "h / 2.0" },
+              { "op": "L", "x": "w - min(h / 2.0, w / 2.0)", "y": "h" },
+              { "op": "L", "x": "min(w * p.b3 - min(min(h / 2.0, w / 2.0), w * (p.b3 - p.b2)), w - min(h / 2.0, w / 2.0))", "y": "h" },
+              { "op": "L", "x": "w * p.b3", "y": "h / 2.0" },
+              { "op": "Z" } ] } },
+            "tooltip": "Plateau of Productivity"
+          },
+          {
+            "id": "chevron1",
+            "when": "p.count >= 2",
+            "hit": false,
+            "style": "chevron",
+            "box": { "x": 0, "y": 0, "w": "w", "h": "h" },
+            "shape": { "path": { "segments": [
+              { "op": "M", "x": "min(w * p.b1 - min(min(h / 2.0, w / 2.0), w * p.b1), w - min(h / 2.0, w / 2.0))", "y": 0 },
+              { "op": "L", "x": "w * p.b1", "y": "h / 2.0" },
+              { "op": "L", "x": "min(w * p.b1 - min(min(h / 2.0, w / 2.0), w * p.b1), w - min(h / 2.0, w / 2.0))", "y": "h" } ] } }
+          },
+          {
+            "id": "chevron2",
+            "when": "p.count >= 3",
+            "hit": false,
+            "style": "chevron",
+            "box": { "x": 0, "y": 0, "w": "w", "h": "h" },
+            "shape": { "path": { "segments": [
+              { "op": "M", "x": "min(w * p.b2 - min(min(h / 2.0, w / 2.0), w * (p.b2 - p.b1)), w - min(h / 2.0, w / 2.0))", "y": 0 },
+              { "op": "L", "x": "w * p.b2", "y": "h / 2.0" },
+              { "op": "L", "x": "min(w * p.b2 - min(min(h / 2.0, w / 2.0), w * (p.b2 - p.b1)), w - min(h / 2.0, w / 2.0))", "y": "h" } ] } }
+          },
+          {
+            "id": "chevron3",
+            "when": "p.count >= 4",
+            "hit": false,
+            "style": "chevron",
+            "box": { "x": 0, "y": 0, "w": "w", "h": "h" },
+            "shape": { "path": { "segments": [
+              { "op": "M", "x": "min(w * p.b3 - min(min(h / 2.0, w / 2.0), w * (p.b3 - p.b2)), w - min(h / 2.0, w / 2.0))", "y": 0 },
+              { "op": "L", "x": "w * p.b3", "y": "h / 2.0" },
+              { "op": "L", "x": "min(w * p.b3 - min(min(h / 2.0, w / 2.0), w * (p.b3 - p.b2)), w - min(h / 2.0, w / 2.0))", "y": "h" } ] } }
+          },
+          {
+            "id": "peak",
+            "shape": "rect",
+            "hit": false,
+            "style": "attachment",
+            "box": { "x": 0, "y": 0, "w": "p.count == 1 ? w - min(h / 2.0, w / 2.0) : min(w * p.b1 - min(min(h / 2.0, w / 2.0), w * p.b1), w - min(h / 2.0, w / 2.0))", "h": "h" }
+          },
+          {
+            "id": "trough",
+            "when": "p.count >= 2",
+            "shape": "rect",
+            "hit": false,
+            "style": "attachment",
+            "box": { "x": "min(w * p.b1 - min(min(h / 2.0, w / 2.0), w * p.b1), w - min(h / 2.0, w / 2.0))", "y": 0, "w": "(p.count == 2 ? w - min(h / 2.0, w / 2.0) : min(w * p.b2 - min(min(h / 2.0, w / 2.0), w * (p.b2 - p.b1)), w - min(h / 2.0, w / 2.0))) - min(w * p.b1 - min(min(h / 2.0, w / 2.0), w * p.b1), w - min(h / 2.0, w / 2.0))", "h": "h" }
+          },
+          {
+            "id": "slope",
+            "when": "p.count >= 3",
+            "shape": "rect",
+            "hit": false,
+            "style": "attachment",
+            "box": { "x": "min(w * p.b2 - min(min(h / 2.0, w / 2.0), w * (p.b2 - p.b1)), w - min(h / 2.0, w / 2.0))", "y": 0, "w": "(p.count == 3 ? w - min(h / 2.0, w / 2.0) : min(w * p.b3 - min(min(h / 2.0, w / 2.0), w * (p.b3 - p.b2)), w - min(h / 2.0, w / 2.0))) - min(w * p.b2 - min(min(h / 2.0, w / 2.0), w * (p.b2 - p.b1)), w - min(h / 2.0, w / 2.0))", "h": "h" }
+          },
+          {
+            "id": "plateau",
+            "when": "p.count >= 4",
+            "shape": "rect",
+            "hit": false,
+            "style": "attachment",
+            "box": { "x": "min(w * p.b3 - min(min(h / 2.0, w / 2.0), w * (p.b3 - p.b2)), w - min(h / 2.0, w / 2.0))", "y": 0, "w": "(w - min(h / 2.0, w / 2.0)) - min(w * p.b3 - min(min(h / 2.0, w / 2.0), w * (p.b3 - p.b2)), w - min(h / 2.0, w / 2.0))", "h": "h" }
+          }
+        ],
+        "handles": [
+          {
+            "param": "b1", "x": "w * p.b1", "y": "h / 2.0", "axis": "x",
+            "visible": "env.viewpoint == 'trueTime' && visiblePhases(self) >= 2",
+            "snap": { "cel": "boundaryLanding(self, 1, value)" },
+            "write": [ { "set": { "peakEnd": "boundaryMonth(self, value)" } } ],
+            "refusals": { "move": "Only a boundary between two visible phases can be moved." }
+          },
+          {
+            "param": "b2", "x": "w * p.b2", "y": "h / 2.0", "axis": "x",
+            "visible": "env.viewpoint == 'trueTime' && visiblePhases(self) >= 3",
+            "snap": { "cel": "boundaryLanding(self, 2, value)" },
+            "write": [ { "set": { "troughEnd": "boundaryMonth(self, value)" } } ],
+            "refusals": { "move": "Only a boundary between two visible phases can be moved." }
+          },
+          {
+            "param": "b3", "x": "w * p.b3", "y": "h / 2.0", "axis": "x",
+            "visible": "env.viewpoint == 'trueTime' && visiblePhases(self) >= 4",
+            "snap": { "cel": "boundaryLanding(self, 3, value)" },
+            "write": [ { "set": { "slopeEnd": "boundaryMonth(self, value)" } } ],
+            "refusals": { "move": "Only a boundary between two visible phases can be moved." }
+          }
+        ]
+      }
+    },
+    "nodes": {
+      "Trend": {
+        "shape": {
+          "type": "phasedBanner",
+          "params": {
+            "count": { "cel": "visiblePhases(self)" },
+            "b1": { "cel": "boundaryFraction(self, 1)" },
+            "b2": { "cel": "boundaryFraction(self, 2)" },
+            "b3": { "cel": "boundaryFraction(self, 3)" }
+          }
+        },
+        "size": { "default": [ 48, 32 ], "min": [ null, 32 ], "max": [ null, 32 ], "resizable": "horizontal" },
+        "placement": {
+          "system": "hypeCycle",
+          "x": { "attribute": "start" },
+          "x2": { "attribute": "stop" },
+          "y": { "attribute": "row" },
+          "anchor": "top-left",
+          "movable": { "x": true, "y": true },
+          "resizable": { "x": true, "y": false }
+        },
+        "snapping": {
+          "byGesture": {
+            "drop": { "y": { "cel": "math.round(value - 2.0 / 7.0)" } }
+          },
+          "doc": "A dropped trend takes the row its middle is nearest to: `round((y - 16) / 56)`, halves away from zero (`GhgScale.RowAtMiddle`)."
+        },
+        "labels": [
+          { "id": "name", "text": { "attribute": "name" }, "position": "outside-left", "distance": 8, "editable": "inline", "wrap": "none" }
+        ]
+      },
+      "Trigger": {
+        "shape": "ellipse",
+        "style": { "fill": { "token": "ghg.trigger" }, "stroke": { "color": { "token": "ghg.trigger" }, "width": 1.5 } },
+        "size": { "fixed": [ 16, 16 ] },
+        "placement": {
+          "system": "hypeCycle",
+          "x": { "attribute": "date" },
+          "y": { "attribute": "row", "offset": 0.2857142857142857, "doc": "Centred on the middle of its row: 16 of the row's 56 units down." },
+          "anchor": "center",
+          "movable": true,
+          "resizable": false
+        },
+        "snapping": {
+          "y": { "grid": { "spacing": 1, "offset": 0.2857142857142857 }, "direction": "nearest", "ties": "away-from-zero" },
+          "byGesture": {
+            "drop": { "y": { "cel": "math.round(value - 2.0 / 7.0) + 2.0 / 7.0" } }
+          },
+          "doc": "A trigger's centre snaps to a row's middle; a dropped trigger takes the row its centre is nearest to (`GhgScale.RowAtMiddle`)."
+        },
+        "labels": [
+          {
+            "id": "name",
+            "text": { "cel": "self.name + ' · ' + formatWhen(self.date, diagram.unit, false)" },
+            "position": "outside-left",
+            "distance": 8,
+            "editable": "inline",
+            "wrap": "none",
+            "parse": {
+              "write": [ { "set": { "name": "value.trim()" } } ],
+              "doc": "Only the name is edited; the date part is shown, not written."
+            },
+            "editText": { "attribute": "name" }
+          }
+        ],
+        "tooltip": { "cel": "'Trigger: ' + self.name + ', ' + formatWhen(self.date, diagram.unit, true)" },
+        "anchors": {
+          "mode": "fixed",
+          "points": [
+            { "id": "n", "x": 0.5, "y": 0 },
+            { "id": "e", "x": 1, "y": 0.5 },
+            { "id": "s", "x": 0.5, "y": 1 }
+          ],
+          "drawnFrom": "outline",
+          "doc": "An influence leaves a trigger from its top, right or bottom handle; the line is drawn from the outline facing its target. The anchors are never drawn."
+        }
+      },
+      "Note": {
+        "shape": "rect",
+        "style": {
+          "fill": { "token": "ghg.note" },
+          "stroke": { "color": { "token": "ghg.border" }, "width": 1.5 },
+          "font": { "color": { "token": "ghg.noteText" }, "size": 12 },
+          "padding": [ 6, 6 ]
+        },
+        "size": {
+          "default": [ 160, 64 ],
+          "width": { "attribute": "width" },
+          "height": { "attribute": "height" },
+          "resizable": true
+        },
+        "placement": {
+          "system": "hypeCycle",
+          "x": { "attribute": "at" },
+          "y": { "attribute": "row" },
+          "anchor": "top-left",
+          "movable": true,
+          "resizable": true
+        },
+        "snapping": {
+          "byGesture": {
+            "drop": { "y": { "grid": { "spacing": 1 }, "direction": "floor" } }
+          },
+          "doc": "A dropped note's top takes the row that contains the drop point (`AddGhgNoteCommandHandler`)."
+        },
+        "labels": [
+          {
+            "id": "text",
+            "text": { "attribute": "text" },
+            "position": "center",
+            "editable": "multiline",
+            "wrap": "word",
+            "maxWidth": "parent",
+            "overflow": "ellipsis"
+          }
+        ],
+        "connectable": false
+      }
+    },
+    "edges": {
+      "Influence": {
+        "line": {
+          "stroke": { "color": { "token": "ghg.influence" }, "width": 1.5 },
+          "routing": "bezier",
+          "startDirection": "normal",
+          "endDirection": "normal",
+          "bendpoints": { "editable": false }
+        },
+        "sourceMarker": "none",
+        "targetMarker": "arrowFilled",
+        "anchoring": {
+          "source": {
+            "mode": "part",
+            "part": { "attribute": "fromPhase" },
+            "side": { "attribute": "fromEdge" },
+            "at": { "attribute": "fromAt" },
+            "movable": true,
+            "default": { "part": { "cel": "phaseName(visiblePhases(self.source) - 1)" }, "side": "bottom", "at": 0.5 }
+          },
+          "target": {
+            "mode": "part",
+            "part": { "attribute": "toPhase" },
+            "side": { "attribute": "toEdge" },
+            "at": { "attribute": "toAt" },
+            "movable": true,
+            "default": { "part": "peak", "side": "top", "at": 0.5 }
+          }
+        },
+        "variants": [
+          {
+            "when": "self.source.isA('Trigger')",
+            "anchoring": { "source": { "mode": "fixed", "points": [ { "id": "n", "x": 0.5, "y": 0 }, { "id": "e", "x": 1, "y": 0.5 }, { "id": "s", "x": 0.5, "y": 1 } ] } }
+          }
+        ],
+        "doc": "An end is a phase, an edge and a fraction along that phase's stretch of the edge, bound to the relation's attributes: a resize or a boundary drag moves it proportionally, dragging it writes the attributes, and an end on a phase the trend does not draw hides the influence without removing it. A connect gesture that carries no end takes the defaults: the source's last visible phase at the bottom, halfway, and the target's Peak at the top, halfway."
+      }
+    },
+    "canvas": {
+      "filters": {
+        "tags": {
+          "label": "Filter by tags",
+          "control": "chips",
+          "appliesTo": [ "Trend", "Trigger" ],
+          "options": { "cel": "(diagram.nodesOfType('Trend').map(n, n.tags).flatten() + diagram.nodesOfType('Trigger').map(n, n.tags).flatten()).distinct()" },
+          "default": [],
+          "match": { "default": "any", "userToggle": true },
+          "keep": "value.size() == 0 || (match == 'any' ? value.exists(t, self.tags.exists(s, lower(s) == lower(t))) : value.all(t, self.tags.exists(s, lower(s) == lower(t))))",
+          "effect": "hide",
+          "position": "outside-top-left",
+          "doc": "Hides trends and triggers without the chosen tags, and every influence to or from them. Notes always stay. View state only, never saved."
+        }
+      },
+      "legend": {
+        "visible": true,
+        "position": "outside-top-left",
+        "entries": [ "Phase" ]
+      },
+      "doc": "The phase legend sits under the filter box, one swatch per phase painted with the phase's theme token (its `color`), so it follows dark mode; the Compact toggle sits under the legend."
+    }
+  },
+
+  "toolbox": {
+    "groups": [
+      {
+        "id": "hypeCycle",
+        "tools": [
+          {
+            "id": "trend",
+            "creates": "Trend",
+            "label": "Trend",
+            "icon": "mdi-arrow-right-bold-box-outline",
+            "mode": "drop",
+            "doc": "A trend through the hype cycle. Drop it where it starts; it is a year long with all four phases.",
+            "initial": {
+              "name": { "cel": "uniqueName('New trend', diagram.nodesOfType('Trend').map(t, t.name))" },
+              "start": { "cel": "dropMonth(double(position.x))" },
+              "stop": { "cel": "dropMonth(double(position.x)) + 12 * unitMonths(diagram.unit)" },
+              "row": { "cel": "int(math.round(double(position.y) - 2.0 / 7.0))" },
+              "phases": 4
+            },
+            "after": "none"
+          },
+          {
+            "id": "trigger",
+            "creates": "Trigger",
+            "label": "Trigger",
+            "icon": "mdi-circle-slice-8",
+            "mode": "drop",
+            "doc": "A moment in time that set trends off - an invention, a political moment, a disaster. Drop it where it happened; draw influences from it.",
+            "initial": {
+              "name": { "cel": "uniqueName('Trigger', diagram.nodesOfType('Trigger').map(t, t.name))" },
+              "date": { "cel": "dropMonth(double(position.x))" },
+              "row": { "cel": "int(math.round(double(position.y) - 2.0 / 7.0))" }
+            },
+            "after": "none"
+          },
+          {
+            "id": "note",
+            "creates": "Note",
+            "label": "Note",
+            "icon": "mdi-note-text-outline",
+            "mode": "drop",
+            "doc": "A remark of your own, placed where it applies. Drop it and start typing.",
+            "initial": {
+              "text": "",
+              "at": { "cel": "dropMonth(double(position.x))" },
+              "row": { "cel": "int(math.floor(double(position.y)))" },
+              "width": 160,
+              "height": 64
+            },
+            "size": [ 160, 64 ],
+            "after": "editLabel"
+          }
+        ]
+      }
+    ],
+    "contextMenus": [
+      {
+        "for": [ "Trend" ],
+        "placement": "menu",
+        "standardEntries": false,
+        "tools": [
+          { "kind": "editLabel", "group": "edit", "label": "Rename…", "icon": "mdi-pencil-outline", "shortcut": "F2", "visible": "!env.readOnly" },
+          { "kind": "operation", "operation": "evenPhases", "group": "edit", "label": "Even phases", "icon": "mdi-arrow-split-vertical", "visible": "!env.readOnly && (has(self.peakEnd) || has(self.troughEnd) || has(self.slopeEnd))" },
+          { "kind": "delete", "group": "edit", "label": "Remove", "icon": "mdi-delete-outline", "shortcut": "Delete", "visible": "!env.readOnly" },
+          { "kind": "operation", "operation": "arrange", "group": "arrange", "label": "Arrange diagram", "icon": "mdi-sitemap-outline", "visible": "!env.readOnly" }
+        ]
+      },
+      {
+        "for": [ "Trigger" ],
+        "placement": "menu",
+        "standardEntries": false,
+        "tools": [
+          { "kind": "editLabel", "group": "edit", "label": "Rename…", "icon": "mdi-pencil-outline", "shortcut": "F2", "visible": "!env.readOnly" },
+          { "kind": "delete", "group": "edit", "label": "Remove", "icon": "mdi-delete-outline", "shortcut": "Delete", "visible": "!env.readOnly" },
+          { "kind": "operation", "operation": "arrange", "group": "arrange", "label": "Arrange diagram", "icon": "mdi-sitemap-outline", "visible": "!env.readOnly" }
+        ]
+      },
+      {
+        "for": [ "Note" ],
+        "placement": "menu",
+        "standardEntries": false,
+        "tools": [
+          { "kind": "editLabel", "group": "edit", "label": "Edit text…", "icon": "mdi-pencil-outline", "shortcut": "F2", "visible": "!env.readOnly" },
+          { "kind": "delete", "group": "edit", "label": "Remove", "icon": "mdi-delete-outline", "shortcut": "Delete", "visible": "!env.readOnly" },
+          { "kind": "operation", "operation": "arrange", "group": "arrange", "label": "Arrange diagram", "icon": "mdi-sitemap-outline", "visible": "!env.readOnly" }
+        ]
+      },
+      {
+        "for": [ "Influence" ],
+        "placement": "menu",
+        "standardEntries": false,
+        "tools": [
+          { "kind": "delete", "group": "edit", "label": "Remove influence", "icon": "mdi-vector-polyline-remove", "shortcut": "Delete", "visible": "!env.readOnly" },
+          { "kind": "operation", "operation": "arrange", "group": "arrange", "label": "Arrange diagram", "icon": "mdi-sitemap-outline", "visible": "!env.readOnly" }
+        ]
+      },
+      {
+        "for": [ "diagram" ],
+        "when": "env.viewpoint == 'trueTime'",
+        "placement": "menu",
+        "standardEntries": false,
+        "tools": [
+          { "kind": "operation", "operation": "addTrendHere", "group": "add", "label": "Add trend here", "icon": "mdi-plus", "visible": "!env.readOnly" },
+          { "kind": "operation", "operation": "addTriggerHere", "group": "add", "label": "Add trigger here", "icon": "mdi-circle-slice-8", "visible": "!env.readOnly" },
+          { "kind": "operation", "operation": "addNoteHere", "group": "add", "label": "Add note here", "icon": "mdi-note-text-outline", "visible": "!env.readOnly" },
+          { "kind": "operation", "operation": "arrange", "group": "arrange", "label": "Arrange diagram", "icon": "mdi-sitemap-outline", "visible": "!env.readOnly" }
+        ],
+        "doc": "Empty canvas in true time only: a compact x is no date, so compact has no background menu."
+      },
+      {
+        "for": [ "connection" ],
+        "placement": "menu",
+        "standardEntries": false,
+        "runSingle": true,
+        "tools": [
+          { "kind": "connect", "via": "Influence", "label": "Influence", "icon": "mdi-ray-start-arrow", "visible": "!env.readOnly" }
+        ],
+        "doc": "A finished connect gesture from a phase's edge, or a trigger's handle, to a phase of another trend."
+      }
+    ]
+  },
+
+  "forms": {
+    "trend": {
+      "for": "Trend",
+      "usage": [ "inspector" ],
+      "items": [
+        { "kind": "section", "label": "Identity", "items": [
+          { "attribute": "name", "label": "Name" },
+          { "attribute": "description", "label": "Description", "widget": "textarea" },
+          { "attribute": "tags", "label": "Tags", "widget": "tags", "options": { "cel": "(diagram.nodesOfType('Trend').map(e, e.tags).flatten() + diagram.nodesOfType('Trigger').map(e, e.tags).flatten()).distinct()" } }
+        ] },
+        { "kind": "section", "label": "Time", "items": [
+          { "attribute": "start", "label": "Start", "widget": "text", "validate": [ { "rule": "parseYearMonth(string(value)).hasValue()", "message": { "cel": "'\\'' + string(value) + '\\' is not a date; write it as YYYY-MM, such as 2007-06.'" }, "timing": "commit" } ] },
+          { "attribute": "stop", "label": "Stop", "widget": "text", "validate": [ { "rule": "parseYearMonth(string(value)).hasValue()", "message": { "cel": "'\\'' + string(value) + '\\' is not a date; write it as YYYY-MM, such as 2007-06.'" }, "timing": "commit" } ] }
+        ] },
+        { "kind": "section", "label": "Phases", "items": [
+          {
+            "attribute": "phases",
+            "label": "Phases",
+            "widget": "slider",
+            "widgetOptions": { "min": 1, "max": 4, "step": 1, "marks": [ { "value": 1, "label": "Peak" }, { "value": 2, "label": "Peak and Trough" }, { "value": 3, "label": "Peak, Trough and Slope" }, { "value": 4, "label": "All four" } ] },
+            "display": { "cel": "['Peak', 'Peak and Trough', 'Peak, Trough and Slope', 'All four'][visiblePhases(self) - 1]" },
+            "parse": {
+              "accepts": "value.trim() in ['Peak', 'Peak and Trough', 'Peak, Trough and Slope', 'All four']",
+              "write": [ { "set": { "phases": "['Peak', 'Peak and Trough', 'Peak, Trough and Slope', 'All four'].indexOf(value.trim()) + 1" } } ],
+              "refusal": { "cel": "'\\'' + value + '\\' is not one of Peak, Peak and Trough, Peak, Trough and Slope, All four.'" }
+            }
+          },
+          { "attribute": "peakEnd", "label": "Peak ends", "widget": "text", "visible": "has(self.start) && has(self.stop) && self.stop > self.start && visiblePhases(self) >= 2", "display": { "cel": "monthText(phaseBoundaries(self)[0])" }, "validate": [ { "rule": "parseYearMonth(string(value)).hasValue()", "message": { "cel": "'\\'' + string(value) + '\\' is not a date; write it as YYYY-MM, such as 2007-06.'" }, "timing": "commit" } ] },
+          { "attribute": "troughEnd", "label": "Trough ends", "widget": "text", "visible": "has(self.start) && has(self.stop) && self.stop > self.start && visiblePhases(self) >= 3", "display": { "cel": "monthText(phaseBoundaries(self)[1])" }, "validate": [ { "rule": "parseYearMonth(string(value)).hasValue()", "message": { "cel": "'\\'' + string(value) + '\\' is not a date; write it as YYYY-MM, such as 2007-06.'" }, "timing": "commit" } ] },
+          { "attribute": "slopeEnd", "label": "Slope ends", "widget": "text", "visible": "has(self.start) && has(self.stop) && self.stop > self.start && visiblePhases(self) >= 4", "display": { "cel": "monthText(phaseBoundaries(self)[2])" }, "validate": [ { "rule": "parseYearMonth(string(value)).hasValue()", "message": { "cel": "'\\'' + string(value) + '\\' is not a date; write it as YYYY-MM, such as 2007-06.'" }, "timing": "commit" } ] }
+        ] },
+        { "kind": "section", "label": "Peak", "items": [
+          { "kind": "computed", "id": "peakInfluences", "label": "Influence", "widget": "textarea", "readOnlyReasons": [ "Draw, reattach or delete an influence on the canvas." ], "value": { "cel": "listOrNone(self.outgoingOf('Influence').filter(r, r.?fromPhase.orValue('') == 'peak').map(r, endText(r.target, r.?toPhase.orValue(''))))" } },
+          { "kind": "computed", "id": "peakInfluencedBy", "label": "Influenced by", "widget": "textarea", "readOnlyReasons": [ "Draw, reattach or delete an influence on the canvas." ], "value": { "cel": "listOrNone(self.incomingOf('Influence').filter(r, r.?toPhase.orValue('') == 'peak').map(r, endText(r.source, r.?fromPhase.orValue(''))))" } }
+        ] },
+        { "kind": "section", "label": { "cel": "visiblePhases(self) >= 2 ? 'Trough' : 'Trough (hidden)'" },
+          "visible": "visiblePhases(self) >= 2 || self.outgoingOf('Influence').exists(r, r.?fromPhase.orValue('') == 'trough') || self.incomingOf('Influence').exists(r, r.?toPhase.orValue('') == 'trough')",
+          "items": [
+          { "kind": "computed", "id": "troughInfluences", "label": "Influence", "widget": "textarea", "readOnlyReasons": [ "Draw, reattach or delete an influence on the canvas." ], "value": { "cel": "listOrNone(self.outgoingOf('Influence').filter(r, r.?fromPhase.orValue('') == 'trough').map(r, endText(r.target, r.?toPhase.orValue(''))))" } },
+          { "kind": "computed", "id": "troughInfluencedBy", "label": "Influenced by", "widget": "textarea", "readOnlyReasons": [ "Draw, reattach or delete an influence on the canvas." ], "value": { "cel": "listOrNone(self.incomingOf('Influence').filter(r, r.?toPhase.orValue('') == 'trough').map(r, endText(r.source, r.?fromPhase.orValue(''))))" } }
+        ] },
+        { "kind": "section", "label": { "cel": "visiblePhases(self) >= 3 ? 'Slope' : 'Slope (hidden)'" },
+          "visible": "visiblePhases(self) >= 3 || self.outgoingOf('Influence').exists(r, r.?fromPhase.orValue('') == 'slope') || self.incomingOf('Influence').exists(r, r.?toPhase.orValue('') == 'slope')",
+          "items": [
+          { "kind": "computed", "id": "slopeInfluences", "label": "Influence", "widget": "textarea", "readOnlyReasons": [ "Draw, reattach or delete an influence on the canvas." ], "value": { "cel": "listOrNone(self.outgoingOf('Influence').filter(r, r.?fromPhase.orValue('') == 'slope').map(r, endText(r.target, r.?toPhase.orValue(''))))" } },
+          { "kind": "computed", "id": "slopeInfluencedBy", "label": "Influenced by", "widget": "textarea", "readOnlyReasons": [ "Draw, reattach or delete an influence on the canvas." ], "value": { "cel": "listOrNone(self.incomingOf('Influence').filter(r, r.?toPhase.orValue('') == 'slope').map(r, endText(r.source, r.?fromPhase.orValue(''))))" } }
+        ] },
+        { "kind": "section", "label": { "cel": "visiblePhases(self) >= 4 ? 'Plateau' : 'Plateau (hidden)'" },
+          "visible": "visiblePhases(self) >= 4 || self.outgoingOf('Influence').exists(r, r.?fromPhase.orValue('') == 'plateau') || self.incomingOf('Influence').exists(r, r.?toPhase.orValue('') == 'plateau')",
+          "items": [
+          { "kind": "computed", "id": "plateauInfluences", "label": "Influence", "widget": "textarea", "readOnlyReasons": [ "Draw, reattach or delete an influence on the canvas." ], "value": { "cel": "listOrNone(self.outgoingOf('Influence').filter(r, r.?fromPhase.orValue('') == 'plateau').map(r, endText(r.target, r.?toPhase.orValue(''))))" } },
+          { "kind": "computed", "id": "plateauInfluencedBy", "label": "Influenced by", "widget": "textarea", "readOnlyReasons": [ "Draw, reattach or delete an influence on the canvas." ], "value": { "cel": "listOrNone(self.incomingOf('Influence').filter(r, r.?toPhase.orValue('') == 'plateau').map(r, endText(r.source, r.?fromPhase.orValue(''))))" } }
+        ] }
+      ]
+    },
+    "trigger": {
+      "for": "Trigger",
+      "usage": [ "inspector" ],
+      "items": [
+        { "kind": "section", "label": "Identity", "items": [
+          { "attribute": "name", "label": "Name" },
+          { "attribute": "description", "label": "Description", "widget": "textarea" },
+          { "attribute": "tags", "label": "Tags", "widget": "tags", "options": { "cel": "(diagram.nodesOfType('Trend').map(e, e.tags).flatten() + diagram.nodesOfType('Trigger').map(e, e.tags).flatten()).distinct()" } }
+        ] },
+        { "kind": "section", "label": "Time", "items": [
+          { "attribute": "date", "label": "Date", "widget": "text", "validate": [ { "rule": "parseYearMonth(string(value)).hasValue()", "message": { "cel": "'\\'' + string(value) + '\\' is not a date; write it as YYYY-MM, such as 1947-12.'" }, "timing": "commit" } ] }
+        ] }
+      ]
+    },
+    "note": {
+      "for": "Note",
+      "usage": [ "inspector" ],
+      "items": [
+        { "kind": "section", "label": "Identity", "items": [
+          { "attribute": "text", "label": "Text", "widget": "textarea" },
+          {
+            "kind": "computed",
+            "label": "Size",
+            "value": { "cel": "has(self.width) && has(self.height) ? sizeText(self.width) + ' x ' + sizeText(self.height) : ''" },
+            "parse": {
+              "accepts": "value.matches('^\\\\s*[0-9.]+\\\\s*x\\\\s*[0-9.]+\\\\s*(at\\\\s+\\\\S+)?\\\\s*(row\\\\s+-?[0-9]+)?\\\\s*$')",
+              "write": [ { "set": { "width": "double(value.trim().split('x')[0].trim())", "height": "double(value.trim().split('x')[1].trim().split(' ')[0])" } } ],
+              "refusal": { "cel": "'\\'' + value + '\\' is not a size; write it as width x height, such as 160 x 64.'" },
+              "doc": "The same text a resize sends, `W x H at YYYY-MM row N`, so size and position change in one undo step; the grid sends `W x H`."
+            }
+          }
+        ] }
+      ]
+    },
+    "influence": {
+      "for": "Influence",
+      "usage": [ "inspector" ],
+      "items": [
+        { "kind": "section", "label": "Identity", "items": [
+          { "attribute": "description", "label": "Description", "widget": "textarea" }
+        ] },
+        { "kind": "section", "label": "Ends", "items": [
+          { "kind": "computed", "label": "From", "readOnlyReasons": [ "Where it is attached; drag the end on the canvas to move it." ], "value": { "cel": "endText(self.source, self.?fromPhase.orValue(''))" } },
+          { "kind": "computed", "label": "To", "readOnlyReasons": [ "Where it is attached; drag the end on the canvas to move it." ], "value": { "cel": "endText(self.target, self.?toPhase.orValue(''))" } },
+          {
+            "kind": "computed",
+            "label": "From attachment",
+            "value": { "cel": "endSpec(self.?fromPhase, self.?fromEdge, self.?fromAt)" },
+            "parse": {
+              "accepts": "value.trim().split('/').size() == 3 && value.trim().split('/')[0].trim() in ['peak', 'trough', 'slope', 'plateau'] && value.trim().split('/')[1].trim() in ['top', 'bottom'] && value.trim().split('/')[2].trim().matches('^[-+]?[0-9]*\\\\.?[0-9]+([eE][-+]?[0-9]+)?$') && double(value.trim().split('/')[2].trim()) >= 0.0 && double(value.trim().split('/')[2].trim()) <= 1.0",
+              "write": [ { "set": { "fromPhase": "value.trim().split('/')[0].trim()", "fromEdge": "value.trim().split('/')[1].trim()", "fromAt": "math.round(double(value.trim().split('/')[2].trim()) * 100.0) / 100.0" } } ],
+              "refusal": { "cel": "'\\'' + value + '\\' is not an attachment; write it as phase/edge/at, such as plateau/bottom/0.3.'" }
+            }
+          },
+          {
+            "kind": "computed",
+            "label": "To attachment",
+            "value": { "cel": "endSpec(self.?toPhase, self.?toEdge, self.?toAt)" },
+            "parse": {
+              "accepts": "value.trim().split('/').size() == 3 && value.trim().split('/')[0].trim() in ['peak', 'trough', 'slope', 'plateau'] && value.trim().split('/')[1].trim() in ['top', 'bottom'] && value.trim().split('/')[2].trim().matches('^[-+]?[0-9]*\\\\.?[0-9]+([eE][-+]?[0-9]+)?$') && double(value.trim().split('/')[2].trim()) >= 0.0 && double(value.trim().split('/')[2].trim()) <= 1.0",
+              "write": [ { "set": { "toPhase": "value.trim().split('/')[0].trim()", "toEdge": "value.trim().split('/')[1].trim()", "toAt": "math.round(double(value.trim().split('/')[2].trim()) * 100.0) / 100.0" } } ],
+              "refusal": { "cel": "'\\'' + value + '\\' is not an attachment; write it as phase/edge/at, such as plateau/bottom/0.3.'" }
+            }
+          }
+        ] }
+      ]
+    }
+  },
+
+  "constraints": {
+    "defaults": { "severity": "warning", "timing": [ "live" ] },
+    "blockSaveOn": "never",
+    "order": [
+      "ghg.duplicate-influence", "ghg.self-influence", "ghg.stop-before-start", "ghg.phase-count", "ghg.boundary-order", "ghg.bad-attachment",
+      "ghg.dangling-reference", "ghg.duplicate-id", "ghg.unreadable-entry", "ghg.influence-into-trigger", "ghg.trigger-date", "ghg.note-position"
+    ],
+    "builtIn": {
+      "std.facets": { "severity": "warning" },
+      "std.endpoints": {
+        "severity": "warning",
+        "message": { "cel": "cel.bind(v, detail.?violation.orValue(self.target.isA('Trigger') ? 'target' : (self.source == self.target ? 'selfLoop' : 'parallel')), v == 'target' ? '`' + self.id + '` ends at the trigger `' + self.target.id + '`; an influence cannot end at a trigger.' : (v == 'selfLoop' ? '`' + self.id + '` has `' + self.source.id + '` influence itself; a trend cannot.' : '`' + self.source.id + '` influences `' + self.target.id + '` ' + string(self.source.outgoingOf('Influence').filter(r, r.target == self.target).size()) + ' times; a trend influences another once in each direction.'))" },
+        "refusal": { "cel": "target.isA('Trigger') ? 'An influence cannot end at a trigger.' : (!target.isA('Trend') || !(source.isA('Trend') || source.isA('Trigger')) ? 'An influence is drawn from one trend to another.' : (source == target ? 'A trend cannot influence itself.' : 'This trend already influences that one; a trend influences another once in each direction.'))" },
+        "code": { "cel": "cel.bind(v, detail.?violation.orValue(self.target.isA('Trigger') ? 'target' : (self.source == self.target ? 'selfLoop' : 'parallel')), v == 'target' ? 'ghg.influence-into-trigger' : (v == 'selfLoop' ? 'ghg.self-influence' : 'ghg.duplicate-influence'))" },
+        "oncePerGroup": "second",
+        "doc": "Covers ghg.influence-into-trigger, ghg.self-influence and ghg.duplicate-influence; the code per case is the computed `code`, by `detail.violation` (`target`, `selfLoop` or `parallel`), so an influence that is both a loop and a repeat is reported as each. A repeat is reported once per pair, on the second influence, however many follow (`oncePerGroup`). A hidden influence counts like any other, because the rule reads the model, not what is drawn."
+      },
+      "std.references": {
+        "severity": "warning",
+        "code": "ghg.dangling-reference",
+        "message": { "cel": "detail.?end.orValue('target') == 'source' ? '`' + self.id + '` comes from `' + detail.missingId + '`, which is not a trend or a trigger in this document.' : '`' + self.id + '` names `' + detail.missingId + '`, which is not a trend in this document.'" }
+      },
+      "std.duplicateId": {
+        "code": "ghg.duplicate-id",
+        "message": { "cel": "'`' + detail.id + '` is declared ' + string(detail.?count.orValue(2)) + ' times; an id names one entry.'" },
+        "oncePerGroup": "last",
+        "doc": "Ids are unique across all four lists together. The later holder of an id is drawn, with an ephemeral id. An id held several times is reported once, on its last holder, with the count (`oncePerGroup`)."
+      },
+      "std.unreadableEntry": { "code": "ghg.unreadable-entry", "message": { "cel": "detail.reason" } },
+      "std.unparseable": { "severity": "warning", "code": "ghg.unreadable-entry", "message": { "cel": "'The document could not be read as YAML: ' + detail.reason" } }
+    },
+    "rules": [
+      {
+        "id": "stopAfterStart",
+        "code": "ghg.stop-before-start",
+        "scope": "Trend",
+        "when": "has(self.start) && has(self.stop)",
+        "rule": "self.stop > self.start",
+        "attribute": "stop",
+        "message": { "cel": "'`' + self.id + '` stops at ' + monthText(self.stop) + ', not after it starts at ' + monthText(self.start) + '; a trend is at least a month long.'" }
+      },
+      {
+        "id": "phaseCount",
+        "code": "ghg.phase-count",
+        "scope": "Trend",
+        "rule": "self.phases >= 1 && self.phases <= 4",
+        "attribute": "phases",
+        "message": { "cel": "'`' + self.id + '` shows ' + string(self.phases) + ' phases; a trend shows 1 to 4.'" }
+      },
+      {
+        "id": "boundaryOrder",
+        "code": "ghg.boundary-order",
+        "scope": "Trend",
+        "when": "has(self.start) && has(self.stop) && self.stop > self.start",
+        "rule": "badBoundary(self) == ''",
+        "message": { "cel": "'`' + self.id + '`\\'s `' + badBoundary(self) + '` is out of order or outside ' + monthText(self.start) + ' to ' + monthText(self.stop) + '.'" },
+        "doc": "Stored boundaries lie strictly inside the span and strictly in phase order; one finding per trend, for the first that does not. For drawing they are clamped, never rejected."
+      },
+      {
+        "id": "fromAttachment",
+        "code": "ghg.bad-attachment",
+        "scope": "Influence",
+        "when": "!self.source.isA('Trigger')",
+        "rule": "endReadable(self.?fromPhase, self.?fromEdge, self.?fromAt)",
+        "message": { "cel": "'`' + self.id + '`\\'s from end (' + endSpec(self.?fromPhase, self.?fromEdge, self.?fromAt) + ') does not name a phase, a top or bottom edge, and an `at` from 0 to 1.'" },
+        "doc": "An influence leaving a trend names where it leaves; one leaving a trigger names nothing."
+      },
+      {
+        "id": "toAttachment",
+        "code": "ghg.bad-attachment",
+        "scope": "Influence",
+        "when": "!self.target.isA('Trigger')",
+        "rule": "endReadable(self.?toPhase, self.?toEdge, self.?toAt)",
+        "message": { "cel": "'`' + self.id + '`\\'s to end (' + endSpec(self.?toPhase, self.?toEdge, self.?toAt) + ') does not name a phase, a top or bottom edge, and an `at` from 0 to 1.'" },
+        "doc": "An end at a trigger is ghg.influence-into-trigger's to report."
+      },
+      {
+        "id": "triggerDate",
+        "code": "ghg.trigger-date",
+        "scope": "Trigger",
+        "rule": "has(self.date)",
+        "attribute": "date",
+        "message": { "cel": "'`' + self.id + '` has no `date` written as YYYY-MM; a trigger cannot be drawn without one.'" }
+      },
+      {
+        "id": "notePosition",
+        "code": "ghg.note-position",
+        "scope": "Note",
+        "rule": "has(self.at) && has(self.width) && has(self.height) && self.width > 0.0 && self.height > 0.0",
+        "message": { "cel": "'`' + self.id + '` needs an `at` written as YYYY-MM and a `width` and `height` that are positive numbers; it cannot be drawn without them.'" }
+      },
+      {
+        "id": "nameNotEmpty",
+        "kind": "change",
+        "scope": [ "Trend", "Trigger" ],
+        "enforcement": "prevent",
+        "rule": "attribute != 'name' || string(newValue).trim() != ''",
+        "message": { "cel": "self.isA('Trend') ? 'A trend needs a name.' : 'A trigger needs a name.'" },
+        "doc": "A note's text may be emptied; a trend's or trigger's name may not."
+      },
+      {
+        "id": "spanReadable",
+        "kind": "change",
+        "scope": "Trend",
+        "enforcement": "prevent",
+        "rule": "!(attribute in ['start', 'stop']) || (has(self.start) && has(self.stop) && self.stop > self.start)",
+        "message": "This trend's dates cannot be read, so it cannot be changed until they are fixed in the file."
+      },
+      {
+        "id": "stopAfterStartEdit",
+        "kind": "change",
+        "scope": "Trend",
+        "enforcement": "prevent",
+        "rule": "!(attribute in ['start', 'stop']) || (attribute == 'stop' ? newValue : self.stop) > (attribute == 'start' ? newValue : self.start)",
+        "message": "A trend must stop after it starts, at least one month later."
+      },
+      {
+        "id": "spanFitsPhases",
+        "kind": "change",
+        "scope": "Trend",
+        "enforcement": "prevent",
+        "when": "has(self.start) && has(self.stop) && self.stop > self.start",
+        "rule": "!(attribute in ['start', 'stop', 'phases']) || tooShort((attribute == 'stop' ? newValue : self.stop) - (attribute == 'start' ? newValue : self.start), attribute == 'phases' ? newValue : visiblePhases(self)) == ''",
+        "message": { "cel": "tooShort((attribute == 'stop' ? newValue : self.stop) - (attribute == 'start' ? newValue : self.start), attribute == 'phases' ? newValue : visiblePhases(self))" },
+        "doc": "A trend showing N phases is at least N months long. A span edit counts the visible phases; a phase-count edit counts the phases asked for, before the range check below."
+      },
+      {
+        "id": "phasesInRange",
+        "kind": "change",
+        "scope": "Trend",
+        "enforcement": "prevent",
+        "rule": "attribute != 'phases' || (newValue >= 1 && newValue <= 4)",
+        "message": "A trend shows 1 to 4 phases."
+      },
+      {
+        "id": "noteSizeNeedsPosition",
+        "kind": "change",
+        "scope": "Note",
+        "enforcement": "prevent",
+        "rule": "!(attribute in ['width', 'height']) || has(self.at)",
+        "message": "This note's position cannot be read, so it cannot be resized until it is fixed in the file.",
+        "doc": "A resize can move a note's left edge, which is written as its month; a note whose month cannot be read has no edge to move from."
+      },
+      {
+        "id": "noteSizePositive",
+        "kind": "change",
+        "scope": "Note",
+        "enforcement": "prevent",
+        "rule": "!(attribute in ['width', 'height']) || double(newValue) > 0.0",
+        "message": "A note needs a width and a height."
+      },
+      {
+        "id": "spanFitsPhasesOnCanvas",
+        "kind": "placement",
+        "scope": "Trend",
+        "enforcement": "prevent",
+        "rule": "gesture != 'resize' || (newBounds.x2 > newBounds.x && tooShort(newBounds.x2 - newBounds.x, visiblePhases(self)) == '')",
+        "message": { "cel": "newBounds.x2 <= newBounds.x ? 'A trend must stop after it starts, at least one month later.' : tooShort(newBounds.x2 - newBounds.x, visiblePhases(self))" }
+      }
+    ]
+  },
+
+  "behavior": {
+    "messages": {
+      "std.readOnly": "The graph could not be read, so it cannot be edited."
+    },
+    "hooks": [
+      {
+        "id": "rescaleBoundaries",
+        "on": "change",
+        "for": "Trend",
+        "attribute": [ "start", "stop" ],
+        "phase": "after",
+        "when": "old != null && has(old.start) && has(old.stop)",
+        "actions": [
+          { "let": {
+            "oldStart": "old.start",
+            "oldSpan": "max(1, old.stop - old.start)",
+            "newStart": "self.start",
+            "newSpan": "self.stop - self.start"
+          } },
+          { "set": { "peakEnd": "newStart + int(math.round(double(old.peakEnd - oldStart) * double(newSpan) / double(oldSpan)))" }, "when": "has(old.peakEnd)" },
+          { "set": { "troughEnd": "newStart + int(math.round(double(old.troughEnd - oldStart) * double(newSpan) / double(oldSpan)))" }, "when": "has(old.troughEnd)" },
+          { "set": { "slopeEnd": "newStart + int(math.round(double(old.slopeEnd - oldStart) * double(newSpan) / double(oldSpan)))" }, "when": "has(old.slopeEnd)" }
+        ],
+        "doc": "Stored boundaries follow the span: a move shifts them exactly, a resize scales each offset from the start by the new span over the old (`GhgPhases.Rescaled`). The clamp that follows is the Trend type's `bounds.neighbour`."
+      }
+    ],
+    "operations": {
+      "evenPhases": {
+        "label": "Even phases",
+        "icon": "mdi-arrow-split-vertical",
+        "for": "Trend",
+        "unavailable": [
+          { "when": "!has(self.peakEnd) && !has(self.troughEnd) && !has(self.slopeEnd)", "message": "This trend's phases are already even." }
+        ],
+        "actions": [ { "unset": [ "peakEnd", "troughEnd", "slopeEnd" ] } ],
+        "doc": "Forgets every dragged boundary, so the phases are spread evenly again."
+      },
+      "arrange": {
+        "label": "Arrange diagram",
+        "icon": "mdi-sitemap-outline",
+        "for": "diagram",
+        "unavailable": [
+          { "when": "diagram.nodes.size() == 0", "message": "There is nothing to arrange until this graph has a trend." }
+        ],
+        "actions": [ { "layout": { "algorithm": "rowArrange", "refusals": { "nothingDrawn": "There is nothing to arrange until this graph has a trend.", "unchanged": "This graph is already arranged." } } } ],
+        "doc": "Puts every trend, trigger and note on the row that leaves the graph least cluttered, as one undoable step; only rows change, never a date. Invoked, never automatic. The algorithm is the layout `rowArrange`."
+      },
+      "addTrendHere": {
+        "label": "Add trend here",
+        "icon": "mdi-plus",
+        "for": "diagram",
+        "actions": [ { "create": { "type": "'Trend'", "at": "position", "attributes": {
+          "name": "uniqueName('New trend', diagram.nodesOfType('Trend').map(t, t.name))",
+          "start": "dropMonth(double(position.x))",
+          "stop": "dropMonth(double(position.x)) + 12 * unitMonths(diagram.unit)",
+          "row": "int(math.round(double(position.y) - 2.0 / 7.0))",
+          "phases": "4"
+        } } } ],
+        "doc": "Adds at the point that was clicked, as a toolbox drop there would."
+      },
+      "addTriggerHere": {
+        "label": "Add trigger here",
+        "icon": "mdi-circle-slice-8",
+        "for": "diagram",
+        "actions": [ { "create": { "type": "'Trigger'", "at": "position", "attributes": {
+          "name": "uniqueName('Trigger', diagram.nodesOfType('Trigger').map(t, t.name))",
+          "date": "dropMonth(double(position.x))",
+          "row": "int(math.round(double(position.y) - 2.0 / 7.0))"
+        } } } ]
+      },
+      "addNoteHere": {
+        "label": "Add note here",
+        "icon": "mdi-note-text-outline",
+        "for": "diagram",
+        "actions": [ { "create": { "type": "'Note'", "at": "position", "attributes": {
+          "text": "''",
+          "at": "dropMonth(double(position.x))",
+          "row": "int(math.floor(double(position.y)))",
+          "width": "160.0",
+          "height": "64.0"
+        } } } ]
+      }
+    },
+    "deletion": {
+      "Trend": {
+        "relations": "delete",
+        "confirm": {
+          "count": "self.incoming.size() + self.outgoing.filter(r, r.target != self).size()",
+          "threshold": 1,
+          "title": "Remove",
+          "message": { "cel": "'Removing this trend also removes the ' + string(count) + (count == 1 ? ' influence' : ' influences') + ' to or from it.'" },
+          "confirmLabel": "Remove",
+          "danger": true
+        }
+      },
+      "Trigger": {
+        "relations": "delete",
+        "confirm": {
+          "count": "self.incoming.size() + self.outgoing.filter(r, r.target != self).size()",
+          "threshold": 1,
+          "title": "Remove",
+          "message": { "cel": "'Removing this trigger also removes the ' + string(count) + (count == 1 ? ' influence' : ' influences') + ' to or from it.'" },
+          "confirmLabel": "Remove",
+          "danger": true
+        }
+      }
+    }
+  },
+
+  "layout": {
+    "algorithms": {
+      "rowPacked": {
+        "algorithm": "rowPacked",
+        "scope": "all",
+        "rowPacked": {
+          "keepRows": true,
+          "order": "start",
+          "gap": 4,
+          "followConnections": "Influence",
+          "targetAfter": "sourceMiddle",
+          "rowsCovered": "int(math.ceil(self.height / 56.0))",
+          "doc": "Every element keeps its stored row; within a row, elements keep the order of their start dates and are placed as far left as they fit, 4 canvas units apart. An influence's target starts after the middle of its source, so causes read to the left of their effects. A note covers every row its height reaches. The whole model is laid out, not only what is on screen (`scope`)."
+        },
+        "doc": "The compact viewpoint's layout."
+      },
+      "rowArrange": {
+        "algorithm": "rows",
+        "rows": {
+          "writes": [ "row" ],
+          "extent": {
+            "Trend": { "from": "x - 8.0 - textWidth(self.name, 12.0)", "to": "x2" },
+            "Trigger": { "from": "x - 8.0 - textWidth(self.name + ' · ' + formatWhen(self.date, diagram.unit, false), 12.0)", "to": "x2" },
+            "Note": { "from": "x", "to": "x + width", "rows": "int(math.ceil(height / 56.0))" }
+          },
+          "clearance": 16,
+          "affinity": "Influence",
+          "ties": "lower",
+          "swapPasses": 64,
+          "doc": "Interval partitioning, into the fewest rows while no note is taller than a row, each element on the free row nearest the average row of its already-placed linked elements (the lower on a tie, the first free row with none), then whole rows swapped with their neighbour while that shortens the links in total, for at most 64 passes, a row a tall note spans never swapped. A trend's extent starts at its name, 8 units before its banner; a trigger's at its label, the name and date, 8 units before its circle; text is measured by the notation's `textMetric`. Only changed rows are written, in one undo step; the refusals are on the `ghg.arrange` operation's `layout` action."
+        },
+        "doc": "Arrange diagram (`ghg.arrange`): rows only, because across is the data."
+      }
+    },
+    "trigger": "manual",
+    "respect": "all"
+  },
+
+  "viewpoints": {
+    "trueTime": {
+      "label": "True time",
+      "default": true,
+      "coordinateSystem": "hypeCycle",
+      "doc": "Every element at its dates on a linear time axis."
+    },
+    "compact": {
+      "label": "Compact",
+      "variantOf": "trueTime",
+      "toggle": { "label": "Compact", "position": "outside-top-left" },
+      "coordinateSystem": "compact",
+      "layout": "rowPacked",
+      "notation": {
+        "nodes": {
+          "Trend": {
+            "shape": {
+              "type": "phasedBanner",
+              "params": {
+                "count": { "cel": "visiblePhases(self)" },
+                "b1": { "cel": "1.0 / double(visiblePhases(self))" },
+                "b2": { "cel": "2.0 / double(visiblePhases(self))" },
+                "b3": { "cel": "3.0 / double(visiblePhases(self))" }
+              }
+            },
+            "size": { "width": { "cel": "24.0 * double(visiblePhases(self))" }, "height": 32, "resizable": false },
+            "placement": {
+              "system": "compact",
+              "x": { "layout": true },
+              "y": { "attribute": "row" },
+              "anchor": "top-left",
+              "movable": false,
+              "resizable": false
+            }
+          },
+          "Trigger": {
+            "placement": {
+              "system": "compact",
+              "x": { "layout": true },
+              "y": { "attribute": "row", "offset": 0.2857142857142857 },
+              "anchor": "center",
+              "movable": false,
+              "resizable": false
+            }
+          },
+          "Note": {
+            "placement": {
+              "system": "compact",
+              "x": { "layout": true },
+              "y": { "attribute": "row" },
+              "anchor": "top-left",
+              "movable": false,
+              "resizable": false
+            }
+          }
+        }
+      },
+      "doc": "Trends shortened to 24 canvas units per visible phase with even phases, packed left in their rows with causes before effects, on an axis with no ruler. Nothing moves or resizes and no boundary is dragged; influences, renaming, the property grid, undo and the filter still work. A toggle under the legend, never saved: every diagram opens in true time."
+    }
+  },
+
+  "persistence": {
+    "format": "fbl",
+    "binding": "https://raw.githubusercontent.com/etalii-adp/etalii.adp.ide.standalone/develop/src/diagrams/gartner-hype-cycle-graph/backend/EtAlii.Adp.Diagram.GartnerHypeCycleGraph/gartner-hype-cycle-graph.fbl#ghg",
+    "ids": {
+      "strategy": "uuid-v4",
+      "encoding": "base36",
+      "stable": true,
+      "doc": "New entries get a ShortGuid: a version 4 GUID written as 25 characters of base 36. Hand-written ids such as `steam-engine` are kept as written. Ids are unique across all four lists together."
+    },
+    "view": { "store": [], "viewer": [ "viewpoint", "filters", "viewport" ] },
+    "typeMap": {
+      "Graph": { "as": "header", "doc": "The `gartner-hypecycle-graph: 1` header; the binding's `header` reads it." },
+      "Unit": { "as": "diagram", "attributes": { "value": "unit" } },
+      "Trend": { "as": "Trend", "hostAttributes": [ "storedId", "unknownKeys" ] },
+      "Trigger": { "as": "Trigger", "hostAttributes": [ "storedId", "unknownKeys" ] },
+      "Note": { "as": "Note", "hostAttributes": [ "storedId", "unknownKeys" ] },
+      "Influence": { "as": "Influence", "attributes": { "from": "source", "to": "target" }, "hostAttributes": [ "storedId", "unknownKeys" ] },
+      "Unreadable": { "as": "unreadable" }
+    },
+    "doc": "The FBL binding's element types and attributes, mapped onto this metamodel. The binding reads an influence as an element with reference attributes, so one whose end names nothing is kept and reported, and the unit and header as elements of their own."
+  },
+
+  "x-ghg": {
+    "doc": "Today's wire ids, which the standalone client (client/ghgIds.ts) and backend share, mapped from this specification's names, as x-abm does for the behavior model. A tool is keyed by its id. An action is keyed by its entry's operation, else its kind; a key \"<Type>/<operation>\" or \"<Type>/<kind>\" overrides that for the entries offered on <Type>. A property is keyed by its form item's row id: its id, else its attribute, else a computed item's label.",
+    "tools": {
+      "trend": { "id": "ghg.toolbox.trend", "drop": "ghg.add.trend" },
+      "trigger": { "id": "ghg.toolbox.trigger", "drop": "ghg.add.trigger" },
+      "note": { "id": "ghg.toolbox.note", "drop": "ghg.add.note" }
+    },
+    "actions": {
+      "editLabel": "ghg.rename",
+      "delete": "ghg.remove",
+      "Influence/delete": "ghg.disconnect",
+      "evenPhases": "ghg.even-phases",
+      "arrange": "ghg.arrange",
+      "addTrendHere": "ghg.add.trend",
+      "addTriggerHere": "ghg.add.trigger",
+      "addNoteHere": "ghg.add.note",
+      "connect": "ghg.connect.influence"
+    },
+    "properties": {
+      "name": "ghg.name",
+      "description": "ghg.description",
+      "tags": "ghg.tags",
+      "start": "ghg.start",
+      "stop": "ghg.stop",
+      "date": "ghg.date",
+      "text": "ghg.text",
+      "Size": "ghg.size",
+      "phases": "ghg.phases",
+      "peakEnd": "ghg.peak-end",
+      "troughEnd": "ghg.trough-end",
+      "slopeEnd": "ghg.slope-end",
+      "peakInfluences": "ghg.peak-influences",
+      "peakInfluencedBy": "ghg.peak-influenced-by",
+      "troughInfluences": "ghg.trough-influences",
+      "troughInfluencedBy": "ghg.trough-influenced-by",
+      "slopeInfluences": "ghg.slope-influences",
+      "slopeInfluencedBy": "ghg.slope-influenced-by",
+      "plateauInfluences": "ghg.plateau-influences",
+      "plateauInfluencedBy": "ghg.plateau-influenced-by",
+      "From": "ghg.from",
+      "To": "ghg.to",
+      "From attachment": "ghg.from-attachment",
+      "To attachment": "ghg.to-attachment"
+    }
+  }
+}

@@ -4,3 +4,8 @@
 # OS
 .DS_Store
 Thumbs.db
+
+# Dependencies and what the build and the Worker's tooling write
+node_modules/
+dist/
+.wrangler/

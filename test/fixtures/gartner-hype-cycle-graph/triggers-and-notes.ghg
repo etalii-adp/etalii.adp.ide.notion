@@ -1,0 +1,55 @@
+gartner-hypecycle-graph: 1
+unit: year
+# Triggers and notes beside the trends they explain.
+trends:
+  - id: transistors
+    name: Transistors
+    start: 1950-01
+    stop: 1990-01
+    row: 1
+    phases: 4
+  - id: radio
+    name: Transistor radio
+    start: 1954-01
+    stop: 1975-01
+    row: 2
+    phases: 3
+triggers:
+  - id: transistor-invented
+    name: Transistor invented
+    date: 1947-12
+    row: 1
+    tags: [electronics, invention]
+    description: Bardeen, Brattain and Shockley at Bell Labs.
+notes:
+  - id: note-1
+    text: |-
+      Dates are illustrative.
+
+      See the readme.
+    at: 1950-01
+    row: 3
+    width: 160
+    height: 64
+  - id: note-2
+    text: A one-line remark
+    at: 1960-01
+    row: 5
+    width: 120
+    height: 40
+influences:
+  - id: i-12
+    from: transistor-invented
+    to: transistors
+    to-phase: peak
+    to-edge: top
+    to-at: 0.2
+  - id: i-13
+    from: transistors
+    from-phase: slope
+    from-edge: bottom
+    from-at: 0.5
+    to: radio
+    to-phase: peak
+    to-edge: top
+    to-at: 0.1

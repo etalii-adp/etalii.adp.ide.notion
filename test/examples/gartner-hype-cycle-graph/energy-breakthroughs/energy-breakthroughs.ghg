@@ -1,0 +1,814 @@
+gartner-hypecycle-graph: 1
+# A hand-authored hype cycle of energy breakthroughs, fusion's many variants among them, from the
+# 1950s to ideas that have not started yet. Dates after 2026 are projections, and dates and
+# influences are illustrative, not a claim: see readme.md.
+trends:
+  - id: stellarator
+    name: Stellarator
+    start: 1951-05
+    stop: 2045-01
+    row: 0
+    phases: 3
+    peak-end: 1961-01
+    trough-end: 2015-12
+    tags: [fusion, science]
+    description: Lyman Spitzer's twisted magnetic bottle, eclipsed by the tokamak and revived by Wendelstein 7-X.
+  - id: tokamak
+    name: Tokamak
+    start: 1968-08
+    stop: 2045-01
+    row: 2
+    phases: 3
+    peak-end: 1985-11
+    trough-end: 2021-12
+    tags: [fusion, science]
+    description: The Soviet T-3 results of 1968 made the tokamak the mainstream of magnetic fusion; ITER is its largest descendant.
+  - id: inertial-confinement-fusion
+    name: Inertial confinement fusion
+    start: 1972-09
+    stop: 2040-01
+    row: 4
+    phases: 3
+    peak-end: 1985-01
+    trough-end: 2022-12
+    tags: [fusion, science]
+    description: Lasers crush a fuel pellet; the National Ignition Facility passed ignition in December 2022.
+  - id: high-temperature-superconductors
+    name: High-temperature superconductors
+    start: 1987-01
+    stop: 2030-01
+    row: 6
+    phases: 4
+    tags: [fusion, materials]
+    description: Discovered in 1986; rare-earth barium copper oxide tape later made far stronger magnets possible.
+  - id: cold-fusion
+    name: Cold fusion
+    start: 1989-03
+    stop: 1998-01
+    row: 8
+    phases: 2
+    peak-end: 1989-11
+    tags: [fusion, science]
+    description: Fleischmann and Pons's tabletop claim, which no one could reproduce.
+  - id: field-reversed-configuration
+    name: Field-reversed configuration
+    start: 1998-04
+    stop: 2040-01
+    row: 8
+    phases: 2
+    tags: [fusion]
+    description: TAE Technologies' route, aimed in the long run at aneutronic proton-boron fuel.
+  - id: magnetized-target-fusion
+    name: Magnetized target fusion
+    start: 2002-01
+    stop: 2038-01
+    row: 10
+    phases: 2
+    tags: [fusion]
+    description: General Fusion squeezes a magnetised plasma inside a liquid-metal wall driven by pistons.
+  - id: pulsed-magneto-inertial-fusion
+    name: Pulsed magneto-inertial fusion
+    start: 2013-01
+    stop: 2036-01
+    row: 12
+    phases: 1
+    tags: [fusion]
+    description: Helion fires two plasmoids into each other and recovers the electricity directly.
+  - id: sheared-flow-z-pinch
+    name: Sheared-flow Z-pinch
+    start: 2017-01
+    stop: 2038-01
+    row: 14
+    phases: 1
+    tags: [fusion]
+    description: Zap Energy's pinch, kept stable by flowing plasma instead of magnets.
+  - id: compact-high-field-tokamak
+    name: Compact high-field tokamak
+    start: 2018-03
+    stop: 2036-01
+    row: 16
+    phases: 1
+    tags: [fusion]
+    description: Commonwealth Fusion Systems' SPARC, a tokamak shrunk by stronger magnets.
+  - id: fusion-power-plants
+    name: Fusion power plants
+    start: 2029-01
+    stop: 2055-01
+    row: 18
+    phases: 1
+    tags: [fusion, upcoming]
+    description: The first plants to put fusion electricity on a grid, as ARC and Helion's Orion plan to.
+  - id: lunar-helium-3
+    name: Lunar helium-3
+    start: 2031-01
+    stop: 2055-01
+    row: 6
+    phases: 1
+    tags: [fusion, space, conceptual]
+    description: Mining the Moon's regolith for helium-3, a fuel for aneutronic fusion.
+  - id: fission-power
+    name: Nuclear fission power
+    start: 1954-06
+    stop: 2026-01
+    row: 20
+    phases: 4
+    peak-end: 1979-03
+    trough-end: 2000-01
+    slope-end: 2011-03
+    tags: [nuclear]
+    description: From Obninsk in 1954; halted by Three Mile Island and Chernobyl, and dependable ever since.
+  - id: molten-salt-reactors
+    name: Molten salt reactors
+    start: 1965-06
+    stop: 2040-01
+    row: 22
+    phases: 3
+    peak-end: 1969-12
+    trough-end: 2011-01
+    tags: [nuclear]
+    description: Oak Ridge's reactor experiment of the 1960s, revived by thorium advocates and new start-ups.
+  - id: small-modular-reactors
+    name: Small modular reactors
+    start: 2007-01
+    stop: 2040-01
+    row: 24
+    phases: 2
+    peak-end: 2023-11
+    tags: [nuclear]
+    description: Factory-built reactors; the first US project was cancelled in November 2023.
+  - id: microreactors
+    name: Microreactors
+    start: 2018-03
+    stop: 2038-01
+    row: 26
+    phases: 1
+    tags: [nuclear]
+    description: Reactors small enough for a truck, after NASA's KRUSTY test of 2018.
+  - id: solar-photovoltaics
+    name: Solar photovoltaics
+    start: 1954-04
+    stop: 2026-01
+    row: 28
+    phases: 4
+    peak-end: 1980-01
+    trough-end: 2000-01
+    slope-end: 2012-01
+    tags: [solar]
+    description: From Bell Labs' silicon cell to the cheapest electricity ever built.
+  - id: wind-power
+    name: Wind power
+    start: 1980-01
+    stop: 2026-01
+    row: 30
+    phases: 4
+    tags: [wind]
+  - id: offshore-wind
+    name: Offshore wind
+    start: 1991-09
+    stop: 2036-01
+    row: 32
+    phases: 3
+    tags: [wind]
+  - id: perovskite-solar-cells
+    name: Perovskite solar cells
+    start: 2012-10
+    stop: 2036-01
+    row: 34
+    phases: 2
+    tags: [solar, materials]
+  - id: next-generation-geothermal
+    name: Next-generation geothermal
+    start: 2020-06
+    stop: 2040-01
+    row: 36
+    phases: 1
+    tags: [geothermal]
+    description: Enhanced geothermal systems drilled with the oil and gas industry's techniques.
+  - id: space-based-solar-power
+    name: Space-based solar power
+    start: 2023-06
+    stop: 2050-01
+    row: 38
+    phases: 1
+    tags: [solar, space, conceptual]
+    description: Peter Glaser's idea of 1968, first beamed down from orbit by Caltech's MAPLE experiment in 2023.
+  - id: superhot-rock-geothermal
+    name: Superhot rock geothermal
+    start: 2028-01
+    stop: 2050-01
+    row: 28
+    phases: 1
+    tags: [geothermal, conceptual]
+    description: Millimetre-wave drilling down to rock hot enough to make water supercritical.
+  - id: lithium-ion-batteries
+    name: Lithium-ion batteries
+    start: 1991-06
+    stop: 2026-01
+    row: 40
+    phases: 4
+    tags: [storage]
+  - id: hydrogen-fuel-cells
+    name: Hydrogen fuel cells
+    start: 1998-01
+    stop: 2012-01
+    row: 42
+    phases: 2
+    tags: [hydrogen]
+    description: The hydrogen economy of the early 2000s, which cars never followed.
+  - id: electric-vehicles
+    name: Electric vehicles
+    start: 2008-02
+    stop: 2036-01
+    row: 44
+    phases: 3
+    tags: [transport, storage]
+  - id: solid-state-batteries
+    name: Solid-state batteries
+    start: 2017-01
+    stop: 2034-01
+    row: 42
+    phases: 2
+    tags: [storage, materials]
+  - id: grid-scale-batteries
+    name: Grid-scale batteries
+    start: 2017-12
+    stop: 2036-01
+    row: 46
+    phases: 2
+    tags: [storage, grid]
+  - id: green-hydrogen
+    name: Green hydrogen
+    start: 2019-06
+    stop: 2040-01
+    row: 48
+    phases: 2
+    tags: [hydrogen]
+  - id: room-temperature-superconductors
+    name: Room-temperature superconductors
+    start: 2023-07
+    stop: 2025-07
+    row: 50
+    phases: 2
+    peak-end: 2024-01
+    tags: [materials, conceptual]
+    description: LK-99's claim of July 2023, refuted within weeks; the breakthrough would change every grid and magnet.
+  - id: smart-grid
+    name: Smart grid
+    start: 2007-12
+    stop: 2030-01
+    row: 52
+    phases: 3
+    tags: [grid]
+  - id: ai-for-fusion-and-grids
+    name: AI for fusion and grids
+    start: 2022-02
+    stop: 2040-01
+    row: 54
+    phases: 1
+    tags: [grid, fusion, ai]
+    description: Reinforcement learning shaped a tokamak's plasma in 2022; the same methods balance grids.
+  - id: ai-data-centre-demand
+    name: AI data-centre demand
+    start: 2023-01
+    stop: 2040-01
+    row: 56
+    phases: 1
+    tags: [grid, ai]
+    description: The load that sent AI companies to sign for nuclear, geothermal and fusion power.
+triggers:
+  - id: atoms-for-peace
+    name: Atoms for Peace
+    date: 1953-12
+    row: 19
+    tags: [nuclear, policy]
+    description: Eisenhower's speech to the UN General Assembly offering civil nuclear power to the world.
+  - id: oil-crisis-1973
+    name: 1973 oil crisis
+    date: 1973-10
+    row: 27
+    tags: [policy]
+    description: The oil embargo started public research programmes into every alternative.
+  - id: three-mile-island
+    name: Three Mile Island accident
+    date: 1979-03
+    row: 19
+    tags: [nuclear, disaster]
+    description: A partial meltdown in Pennsylvania; no new US reactor was ordered for decades.
+  - id: chernobyl
+    name: Chernobyl disaster
+    date: 1986-04
+    row: 19
+    tags: [nuclear, disaster]
+    description: A reactor explosion in Soviet Ukraine spread fallout across Europe.
+  - id: fukushima
+    name: Fukushima Daiichi accident
+    date: 2011-03
+    row: 19
+    tags: [nuclear, disaster]
+    description: A tsunami disabled the cooling of three reactors; Germany decided to leave nuclear power.
+  - id: paris-agreement
+    name: Paris Agreement
+    date: 2015-12
+    row: 31
+    tags: [policy]
+    description: A shared goal of holding warming well below two degrees.
+  - id: nif-ignition
+    name: NIF achieves ignition
+    date: 2022-12
+    row: 3
+    tags: [fusion, science]
+    description: The National Ignition Facility got more fusion energy out of a target than its lasers put in.
+influences:
+  - id: stellarator--tokamak
+    from: stellarator
+    from-phase: trough
+    from-edge: bottom
+    from-at: 0.39
+    to: tokamak
+    to-phase: peak
+    to-edge: top
+    to-at: 0.83
+    description: Princeton turned its Model C stellarator into a tokamak in 1970.
+  - id: tokamak--inertial-confinement-fusion
+    from: tokamak
+    from-phase: peak
+    from-edge: bottom
+    from-at: 0.51
+    to: inertial-confinement-fusion
+    to-phase: peak
+    to-edge: top
+    to-at: 0.48
+  - id: inertial-confinement-fusion--magnetized-target-fusion
+    from: inertial-confinement-fusion
+    from-phase: trough
+    from-edge: bottom
+    from-at: 0.31
+    to: magnetized-target-fusion
+    to-phase: peak
+    to-edge: top
+    to-at: 0.66
+    description: Magnetized target fusion sits between the magnetic and the inertial routes.
+  - id: field-reversed-configuration--magnetized-target-fusion
+    from: field-reversed-configuration
+    from-phase: peak
+    from-edge: bottom
+    from-at: 0.28
+    to: magnetized-target-fusion
+    to-phase: peak
+    to-edge: top
+    to-at: 0.28
+  - id: field-reversed-configuration--pulsed-magneto-inertial-fusion
+    from: field-reversed-configuration
+    from-phase: peak
+    from-edge: bottom
+    from-at: 0.73
+    to: pulsed-magneto-inertial-fusion
+    to-phase: peak
+    to-edge: top
+    to-at: 0.20
+    description: Helion's plasmoids are field-reversed configurations.
+  - id: inertial-confinement-fusion--pulsed-magneto-inertial-fusion
+    from: inertial-confinement-fusion
+    from-phase: trough
+    from-edge: bottom
+    from-at: 0.73
+    to: pulsed-magneto-inertial-fusion
+    to-phase: peak
+    to-edge: top
+    to-at: 0.47
+  - id: magnetized-target-fusion--sheared-flow-z-pinch
+    from: magnetized-target-fusion
+    from-phase: peak
+    from-edge: bottom
+    from-at: 0.65
+    to: sheared-flow-z-pinch
+    to-phase: peak
+    to-edge: top
+    to-at: 0.37
+  - id: tokamak--compact-high-field-tokamak
+    from: tokamak
+    from-phase: trough
+    from-edge: bottom
+    from-at: 0.60
+    to: compact-high-field-tokamak
+    to-phase: peak
+    to-edge: top
+    to-at: 0.23
+    description: SPARC grew out of MIT's Alcator C-Mod.
+  - id: high-temperature-superconductors--compact-high-field-tokamak
+    from: high-temperature-superconductors
+    from-phase: plateau
+    from-edge: bottom
+    from-at: 0.74
+    to: compact-high-field-tokamak
+    to-phase: peak
+    to-edge: top
+    to-at: 0.71
+    description: Stronger magnets let a tokamak shrink.
+  - id: ai-for-fusion-and-grids--tokamak
+    from: ai-for-fusion-and-grids
+    from-phase: peak
+    from-edge: top
+    from-at: 0.53
+    to: tokamak
+    to-phase: slope
+    to-edge: bottom
+    to-at: 0.43
+    description: Deep reinforcement learning held a plasma in shape at the TCV tokamak.
+  - id: high-temperature-superconductors--stellarator
+    from: high-temperature-superconductors
+    from-phase: plateau
+    from-edge: top
+    from-at: 0.45
+    to: stellarator
+    to-phase: slope
+    to-edge: bottom
+    to-at: 0.29
+  - id: high-temperature-superconductors--room-temperature-superconductors
+    from: high-temperature-superconductors
+    from-phase: plateau
+    from-edge: bottom
+    from-at: 0.28
+    to: room-temperature-superconductors
+    to-phase: peak
+    to-edge: top
+    to-at: 0.96
+  - id: cold-fusion--room-temperature-superconductors
+    from: cold-fusion
+    from-phase: trough
+    from-edge: bottom
+    from-at: 0.60
+    to: room-temperature-superconductors
+    to-phase: peak
+    to-edge: top
+    to-at: 0.04
+    description: The same rush to replicate, and the same failure to.
+  - id: ai-data-centre-demand--pulsed-magneto-inertial-fusion
+    from: ai-data-centre-demand
+    from-phase: peak
+    from-edge: top
+    from-at: 0.04
+    to: pulsed-magneto-inertial-fusion
+    to-phase: peak
+    to-edge: bottom
+    to-at: 0.47
+    description: Microsoft agreed in 2023 to buy Helion's first fusion power.
+  - id: ai-data-centre-demand--compact-high-field-tokamak
+    from: ai-data-centre-demand
+    from-phase: peak
+    from-edge: top
+    from-at: 0.25
+    to: compact-high-field-tokamak
+    to-phase: peak
+    to-edge: bottom
+    to-at: 0.52
+  - id: pulsed-magneto-inertial-fusion--fusion-power-plants
+    from: pulsed-magneto-inertial-fusion
+    from-phase: peak
+    from-edge: bottom
+    from-at: 0.93
+    to: fusion-power-plants
+    to-phase: peak
+    to-edge: top
+    to-at: 0.22
+  - id: compact-high-field-tokamak--fusion-power-plants
+    from: compact-high-field-tokamak
+    from-phase: peak
+    from-edge: bottom
+    from-at: 0.96
+    to: fusion-power-plants
+    to-phase: peak
+    to-edge: top
+    to-at: 0.32
+  - id: inertial-confinement-fusion--fusion-power-plants
+    from: inertial-confinement-fusion
+    from-phase: slope
+    from-edge: bottom
+    from-at: 0.67
+    to: fusion-power-plants
+    to-phase: peak
+    to-edge: top
+    to-at: 0.64
+  - id: magnetized-target-fusion--fusion-power-plants
+    from: magnetized-target-fusion
+    from-phase: trough
+    from-edge: bottom
+    from-at: 0.65
+    to: fusion-power-plants
+    to-phase: peak
+    to-edge: top
+    to-at: 0.53
+  - id: tokamak--fusion-power-plants
+    from: tokamak
+    from-phase: slope
+    from-edge: bottom
+    from-at: 0.75
+    to: fusion-power-plants
+    to-phase: peak
+    to-edge: top
+    to-at: 0.86
+    description: ITER's burning plasma is meant to settle the physics for later plants.
+  - id: sheared-flow-z-pinch--fusion-power-plants
+    from: sheared-flow-z-pinch
+    from-phase: peak
+    from-edge: bottom
+    from-at: 0.62
+    to: fusion-power-plants
+    to-phase: peak
+    to-edge: top
+    to-at: 0.42
+  - id: stellarator--fusion-power-plants
+    from: stellarator
+    from-phase: slope
+    from-edge: bottom
+    from-at: 0.74
+    to: fusion-power-plants
+    to-phase: peak
+    to-edge: top
+    to-at: 0.75
+  - id: pulsed-magneto-inertial-fusion--lunar-helium-3
+    from: pulsed-magneto-inertial-fusion
+    from-phase: peak
+    from-edge: top
+    from-at: 0.81
+    to: lunar-helium-3
+    to-phase: peak
+    to-edge: bottom
+    to-at: 0.27
+    description: Deuterium-helium-3 is Helion's intended fuel.
+  - id: field-reversed-configuration--lunar-helium-3
+    from: field-reversed-configuration
+    from-phase: trough
+    from-edge: top
+    from-at: 0.67
+    to: lunar-helium-3
+    to-phase: peak
+    to-edge: bottom
+    to-at: 0.68
+  - id: fission-power--molten-salt-reactors
+    from: fission-power
+    from-phase: peak
+    from-edge: bottom
+    from-at: 0.50
+    to: molten-salt-reactors
+    to-phase: peak
+    to-edge: top
+    to-at: 0.47
+  - id: fission-power--small-modular-reactors
+    from: fission-power
+    from-phase: slope
+    from-edge: bottom
+    from-at: 0.58
+    to: small-modular-reactors
+    to-phase: peak
+    to-edge: top
+    to-at: 0.20
+  - id: molten-salt-reactors--small-modular-reactors
+    from: molten-salt-reactors
+    from-phase: slope
+    from-edge: bottom
+    from-at: 0.35
+    to: small-modular-reactors
+    to-phase: peak
+    to-edge: top
+    to-at: 0.86
+  - id: small-modular-reactors--microreactors
+    from: small-modular-reactors
+    from-phase: peak
+    from-edge: bottom
+    from-at: 0.62
+    to: microreactors
+    to-phase: peak
+    to-edge: top
+    to-at: 0.40
+  - id: ai-data-centre-demand--small-modular-reactors
+    from: ai-data-centre-demand
+    from-phase: peak
+    from-edge: top
+    from-at: 0.78
+    to: small-modular-reactors
+    to-phase: trough
+    to-edge: bottom
+    to-at: 0.78
+    description: Google and Amazon ordered small reactors in October 2024.
+  - id: ai-data-centre-demand--fission-power
+    from: ai-data-centre-demand
+    from-phase: peak
+    from-edge: top
+    from-at: 0.14
+    to: fission-power
+    to-phase: plateau
+    to-edge: bottom
+    to-at: 0.96
+    description: Microsoft's deal to restart a Three Mile Island unit.
+  - id: ai-data-centre-demand--next-generation-geothermal
+    from: ai-data-centre-demand
+    from-phase: peak
+    from-edge: top
+    from-at: 0.62
+    to: next-generation-geothermal
+    to-phase: peak
+    to-edge: bottom
+    to-at: 0.68
+  - id: next-generation-geothermal--superhot-rock-geothermal
+    from: next-generation-geothermal
+    from-phase: peak
+    from-edge: top
+    from-at: 0.57
+    to: superhot-rock-geothermal
+    to-phase: peak
+    to-edge: bottom
+    to-at: 0.44
+  - id: solar-photovoltaics--perovskite-solar-cells
+    from: solar-photovoltaics
+    from-phase: plateau
+    from-edge: bottom
+    from-at: 0.22
+    to: perovskite-solar-cells
+    to-phase: peak
+    to-edge: top
+    to-at: 0.44
+  - id: solar-photovoltaics--space-based-solar-power
+    from: solar-photovoltaics
+    from-phase: plateau
+    from-edge: bottom
+    from-at: 0.84
+    to: space-based-solar-power
+    to-phase: peak
+    to-edge: top
+    to-at: 0.40
+  - id: wind-power--offshore-wind
+    from: wind-power
+    from-phase: trough
+    from-edge: bottom
+    from-at: 0.52
+    to: offshore-wind
+    to-phase: peak
+    to-edge: top
+    to-at: 0.48
+  - id: wind-power--smart-grid
+    from: wind-power
+    from-phase: slope
+    from-edge: bottom
+    from-at: 0.54
+    to: smart-grid
+    to-phase: peak
+    to-edge: top
+    to-at: 0.44
+  - id: solar-photovoltaics--green-hydrogen
+    from: solar-photovoltaics
+    from-phase: plateau
+    from-edge: bottom
+    from-at: 0.53
+    to: green-hydrogen
+    to-phase: peak
+    to-edge: top
+    to-at: 0.78
+  - id: offshore-wind--green-hydrogen
+    from: offshore-wind
+    from-phase: trough
+    from-edge: bottom
+    from-at: 0.65
+    to: green-hydrogen
+    to-phase: peak
+    to-edge: top
+    to-at: 0.55
+  - id: hydrogen-fuel-cells--green-hydrogen
+    from: hydrogen-fuel-cells
+    from-phase: trough
+    from-edge: bottom
+    from-at: 0.60
+    to: green-hydrogen
+    to-phase: peak
+    to-edge: top
+    to-at: 0.17
+    description: The hydrogen economy's second attempt, this time made with renewable power.
+  - id: lithium-ion-batteries--electric-vehicles
+    from: lithium-ion-batteries
+    from-phase: trough
+    from-edge: bottom
+    from-at: 0.60
+    to: electric-vehicles
+    to-phase: peak
+    to-edge: top
+    to-at: 0.40
+  - id: lithium-ion-batteries--solid-state-batteries
+    from: lithium-ion-batteries
+    from-phase: plateau
+    from-edge: bottom
+    from-at: 0.04
+    to: solid-state-batteries
+    to-phase: peak
+    to-edge: top
+    to-at: 0.47
+  - id: electric-vehicles--solid-state-batteries
+    from: electric-vehicles
+    from-phase: trough
+    from-edge: top
+    from-at: 0.45
+    to: solid-state-batteries
+    to-phase: peak
+    to-edge: bottom
+    to-at: 0.55
+  - id: lithium-ion-batteries--grid-scale-batteries
+    from: lithium-ion-batteries
+    from-phase: plateau
+    from-edge: bottom
+    from-at: 0.54
+    to: grid-scale-batteries
+    to-phase: peak
+    to-edge: top
+    to-at: 0.46
+  - id: smart-grid--grid-scale-batteries
+    from: smart-grid
+    from-phase: trough
+    from-edge: top
+    from-at: 0.58
+    to: grid-scale-batteries
+    to-phase: peak
+    to-edge: bottom
+    to-at: 0.44
+  - id: electric-vehicles--grid-scale-batteries
+    from: electric-vehicles
+    from-phase: trough
+    from-edge: bottom
+    from-at: 0.55
+    to: grid-scale-batteries
+    to-phase: peak
+    to-edge: top
+    to-at: 0.96
+  - id: smart-grid--ai-for-fusion-and-grids
+    from: smart-grid
+    from-phase: slope
+    from-edge: bottom
+    from-at: 0.52
+    to: ai-for-fusion-and-grids
+    to-phase: peak
+    to-edge: top
+    to-at: 0.25
+  - id: atoms-for-peace--fission-power
+    from: atoms-for-peace
+    to: fission-power
+    to-phase: peak
+    to-edge: top
+    to-at: 0.40
+  - id: oil-crisis-1973--solar-photovoltaics
+    from: oil-crisis-1973
+    to: solar-photovoltaics
+    to-phase: peak
+    to-edge: top
+    to-at: 0.76
+  - id: oil-crisis-1973--wind-power
+    from: oil-crisis-1973
+    to: wind-power
+    to-phase: peak
+    to-edge: top
+    to-at: 0.29
+  - id: three-mile-island--fission-power
+    from: three-mile-island
+    to: fission-power
+    to-phase: trough
+    to-edge: top
+    to-at: 0.27
+  - id: chernobyl--fission-power
+    from: chernobyl
+    to: fission-power
+    to-phase: trough
+    to-edge: top
+    to-at: 0.70
+  - id: fukushima--fission-power
+    from: fukushima
+    to: fission-power
+    to-phase: plateau
+    to-edge: top
+    to-at: 0.40
+  - id: fukushima--small-modular-reactors
+    from: fukushima
+    to: small-modular-reactors
+    to-phase: peak
+    to-edge: top
+    to-at: 0.49
+  - id: paris-agreement--offshore-wind
+    from: paris-agreement
+    to: offshore-wind
+    to-phase: trough
+    to-edge: top
+    to-at: 0.65
+  - id: paris-agreement--green-hydrogen
+    from: paris-agreement
+    to: green-hydrogen
+    to-phase: peak
+    to-edge: top
+    to-at: 0.35
+  - id: nif-ignition--inertial-confinement-fusion
+    from: nif-ignition
+    to: inertial-confinement-fusion
+    to-phase: slope
+    to-edge: top
+    to-at: 0.40
+  - id: nif-ignition--fusion-power-plants
+    from: nif-ignition
+    to: fusion-power-plants
+    to-phase: peak
+    to-edge: top
+    to-at: 0.10

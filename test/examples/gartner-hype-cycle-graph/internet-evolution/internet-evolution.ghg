@@ -1,0 +1,788 @@
+gartner-hypecycle-graph: 1
+# A hand-authored hype cycle of the internet, from packet switching to ideas that have not started
+# yet. Dates after 2026 are projections, and dates and influences are illustrative, not a claim:
+# see readme.md.
+trends:
+  - id: packet-switching
+    name: Packet switching
+    start: 1964-08
+    stop: 1985-01
+    row: 0
+    phases: 4
+    tags: [networking]
+    description: Paul Baran's and Donald Davies's idea of cutting messages into independently routed packets.
+  - id: arpanet
+    name: ARPANET
+    start: 1969-10
+    stop: 1990-02
+    row: 2
+    phases: 4
+    tags: [networking]
+  - id: tcp-ip
+    name: TCP/IP
+    start: 1974-05
+    stop: 2000-01
+    row: 4
+    phases: 4
+    tags: [networking]
+    description: Cerf and Kahn's protocols of 1974; ARPANET switched over on 1 January 1983.
+  - id: dns
+    name: Domain Name System
+    start: 1983-11
+    stop: 2005-01
+    row: 6
+    phases: 4
+    tags: [networking]
+  - id: nsfnet
+    name: NSFNET
+    start: 1985-01
+    stop: 1995-04
+    row: 0
+    phases: 4
+    tags: [networking]
+    description: The academic backbone whose opening to commercial traffic began the public internet.
+  - id: cdn
+    name: Content delivery networks
+    start: 1998-08
+    stop: 2026-01
+    row: 0
+    phases: 4
+    tags: [infrastructure]
+  - id: ipv6
+    name: IPv6
+    start: 1998-12
+    stop: 2035-01
+    row: 2
+    phases: 3
+    tags: [networking]
+  - id: cloud-computing
+    name: Cloud computing
+    start: 2006-08
+    stop: 2026-01
+    row: 4
+    phases: 4
+    tags: [infrastructure]
+  - id: dial-up-access
+    name: Dial-up access
+    start: 1989-01
+    stop: 2008-01
+    row: 8
+    phases: 4
+    tags: [access]
+  - id: wifi
+    name: Wi-Fi
+    start: 1997-09
+    stop: 2020-01
+    row: 10
+    phases: 4
+    tags: [access]
+  - id: broadband
+    name: Broadband
+    start: 1999-01
+    stop: 2020-01
+    row: 12
+    phases: 4
+    tags: [access]
+  - id: mobile-internet
+    name: Mobile internet
+    start: 2007-06
+    stop: 2026-01
+    row: 14
+    phases: 4
+    tags: [access]
+    description: The smartphone put the internet in every pocket.
+  - id: 5g
+    name: 5G
+    start: 2019-04
+    stop: 2032-01
+    row: 8
+    phases: 2
+    tags: [access]
+  - id: satellite-internet
+    name: Satellite broadband constellations
+    start: 2019-05
+    stop: 2040-01
+    row: 16
+    phases: 1
+    tags: [access, space]
+    description: Thousands of low-orbit satellites, from Starlink's first launch in 2019.
+  - id: email
+    name: Email
+    start: 1971-10
+    stop: 2005-01
+    row: 18
+    phases: 4
+    tags: [communication]
+  - id: bulletin-board-systems
+    name: Bulletin board systems
+    start: 1978-02
+    stop: 1998-01
+    row: 20
+    phases: 4
+    tags: [community]
+  - id: usenet
+    name: Usenet
+    start: 1980-01
+    stop: 2000-01
+    row: 22
+    phases: 4
+    tags: [community, communication]
+  - id: world-wide-web
+    name: World Wide Web
+    start: 1989-03
+    stop: 2012-01
+    row: 24
+    phases: 4
+    tags: [web]
+  - id: web-browsers
+    name: Web browsers
+    start: 1993-04
+    stop: 2015-01
+    row: 26
+    phases: 4
+    tags: [web]
+    description: From Mosaic in 1993 through the browser wars.
+  - id: search-engines
+    name: Search engines
+    start: 1994-01
+    stop: 2015-01
+    row: 28
+    phases: 4
+    tags: [web]
+  - id: social-media
+    name: Web 2.0 and social media
+    start: 2004-02
+    stop: 2026-01
+    row: 20
+    phases: 4
+    tags: [web, community]
+  - id: privacy-regulation
+    name: Privacy regulation
+    start: 2016-04
+    stop: 2035-01
+    row: 18
+    phases: 2
+    tags: [society, policy]
+    description: From the GDPR, adopted in 2016, on.
+  - id: decentralised-social
+    name: Decentralised social networks
+    start: 2016-10
+    stop: 2035-01
+    row: 22
+    phases: 1
+    tags: [community]
+    description: Mastodon, then Bluesky, social networks nobody owns outright.
+  - id: ai-answer-engines
+    name: AI answer engines
+    start: 2022-12
+    stop: 2035-01
+    row: 24
+    phases: 1
+    tags: [web, ai]
+    description: Asking a model instead of scanning ten blue links.
+  - id: dot-com-bubble
+    name: Dot-com bubble
+    start: 1995-08
+    stop: 2003-01
+    row: 32
+    phases: 4
+    peak-end: 2000-03
+    trough-end: 2002-10
+    slope-end: 2002-12
+    tags: [business, finance]
+    description: From Netscape's listing in 1995 to the crash.
+  - id: e-commerce
+    name: E-commerce
+    start: 1995-07
+    stop: 2020-01
+    row: 30
+    phases: 4
+    tags: [business]
+  - id: peer-to-peer-sharing
+    name: Peer-to-peer file sharing
+    start: 1999-06
+    stop: 2012-01
+    row: 36
+    phases: 3
+    tags: [media]
+    description: Napster in 1999, then its many successors.
+  - id: streaming-media
+    name: Streaming media
+    start: 2005-02
+    stop: 2026-01
+    row: 32
+    phases: 4
+    tags: [media]
+  - id: internet-of-things
+    name: Internet of things
+    start: 1999-01
+    stop: 2030-01
+    row: 34
+    phases: 3
+    tags: [devices]
+  - id: web3
+    name: Web3 and blockchain
+    start: 2014-04
+    stop: 2032-01
+    row: 38
+    phases: 2
+    peak-end: 2022-01
+    tags: [web, finance]
+  - id: agentic-web
+    name: Agentic web
+    start: 2026-01
+    stop: 2040-01
+    row: 40
+    phases: 1
+    tags: [web, ai, upcoming]
+    description: Agents browsing, buying and negotiating on people's behalf.
+  - id: 6g
+    name: 6G
+    start: 2030-01
+    stop: 2045-01
+    row: 42
+    phases: 1
+    tags: [access, upcoming]
+  - id: quantum-internet
+    name: Quantum internet
+    start: 2032-01
+    stop: 2050-01
+    row: 44
+    phases: 1
+    tags: [networking, conceptual]
+    description: Entangled links whose messages cannot be read in transit without it showing.
+  - id: interplanetary-internet
+    name: Interplanetary internet
+    start: 2035-01
+    stop: 2055-01
+    row: 46
+    phases: 1
+    tags: [networking, space, conceptual]
+    description: Delay-tolerant networking between Earth, the Moon and Mars, as Vint Cerf proposed.
+triggers:
+  - id: tcp-ip-flag-day
+    name: ARPANET switches to TCP/IP
+    date: 1983-01
+    row: 3
+    tags: [networking]
+    description: Every host on the ARPANET moved to TCP/IP on one day, 1 January 1983.
+  - id: mosaic-release
+    name: Mosaic browser released
+    date: 1993-04
+    row: 25
+    tags: [web]
+    description: The first widely used graphical browser.
+  - id: netscape-ipo
+    name: Netscape IPO
+    date: 1995-08
+    row: 31
+    tags: [business, finance]
+    description: A company without profits doubled its share price on its first day of trading.
+  - id: napster-launch
+    name: Napster launched
+    date: 1999-06
+    row: 35
+    tags: [media]
+    description: Free sharing of music files between users' own computers.
+  - id: iphone-announced
+    name: iPhone announced
+    date: 2007-01
+    row: 13
+    tags: [access]
+    description: A phone with a full web browser.
+  - id: snowden-disclosures
+    name: Snowden disclosures
+    date: 2013-06
+    row: 17
+    tags: [society, policy]
+    description: Documents showing mass surveillance of internet traffic.
+  - id: chatgpt-launch
+    name: ChatGPT launched
+    date: 2022-11
+    row: 23
+    tags: [ai]
+    description: Answers written for the question, rather than links to pages.
+influences:
+  - id: packet-switching--arpanet
+    from: packet-switching
+    from-phase: trough
+    from-edge: bottom
+    from-at: 0.50
+    to: arpanet
+    to-phase: peak
+    to-edge: top
+    to-at: 0.50
+  - id: arpanet--email
+    from: arpanet
+    from-phase: peak
+    from-edge: bottom
+    from-at: 0.32
+    to: email
+    to-phase: peak
+    to-edge: top
+    to-at: 0.39
+  - id: arpanet--tcp-ip
+    from: arpanet
+    from-phase: peak
+    from-edge: bottom
+    from-at: 0.76
+    to: tcp-ip
+    to-phase: peak
+    to-edge: top
+    to-at: 0.38
+  - id: tcp-ip--arpanet
+    from: tcp-ip
+    from-phase: trough
+    from-edge: top
+    from-at: 0.22
+    to: arpanet
+    to-phase: slope
+    to-edge: bottom
+    to-at: 0.71
+    description: ARPANET switched to TCP/IP on flag day, 1 January 1983.
+  - id: tcp-ip--dns
+    from: tcp-ip
+    from-phase: trough
+    from-edge: bottom
+    from-at: 0.61
+    to: dns
+    to-phase: peak
+    to-edge: top
+    to-at: 0.69
+  - id: arpanet--usenet
+    from: arpanet
+    from-phase: slope
+    from-edge: bottom
+    from-at: 0.29
+    to: usenet
+    to-phase: peak
+    to-edge: top
+    to-at: 0.46
+  - id: arpanet--nsfnet
+    from: arpanet
+    from-phase: plateau
+    from-edge: top
+    from-at: 0.39
+    to: nsfnet
+    to-phase: peak
+    to-edge: bottom
+    to-at: 0.78
+  - id: tcp-ip--nsfnet
+    from: tcp-ip
+    from-phase: trough
+    from-edge: top
+    from-at: 0.78
+    to: nsfnet
+    to-phase: peak
+    to-edge: bottom
+    to-at: 0.31
+  - id: bulletin-board-systems--dial-up-access
+    from: bulletin-board-systems
+    from-phase: slope
+    from-edge: top
+    from-at: 0.52
+    to: dial-up-access
+    to-phase: peak
+    to-edge: bottom
+    to-at: 0.47
+    description: The same modems, pointed at a provider instead of a board.
+  - id: tcp-ip--world-wide-web
+    from: tcp-ip
+    from-phase: slope
+    from-edge: bottom
+    from-at: 0.51
+    to: world-wide-web
+    to-phase: peak
+    to-edge: top
+    to-at: 0.28
+  - id: dns--world-wide-web
+    from: dns
+    from-phase: trough
+    from-edge: bottom
+    from-at: 0.55
+    to: world-wide-web
+    to-phase: peak
+    to-edge: top
+    to-at: 0.71
+  - id: nsfnet--dial-up-access
+    from: nsfnet
+    from-phase: slope
+    from-edge: bottom
+    from-at: 0.49
+    to: dial-up-access
+    to-phase: peak
+    to-edge: top
+    to-at: 0.51
+    description: Commercial providers could now reach the backbone.
+  - id: world-wide-web--web-browsers
+    from: world-wide-web
+    from-phase: peak
+    from-edge: bottom
+    from-at: 0.27
+    to: web-browsers
+    to-phase: peak
+    to-edge: top
+    to-at: 0.65
+  - id: world-wide-web--search-engines
+    from: world-wide-web
+    from-phase: peak
+    from-edge: bottom
+    from-at: 0.81
+    to: search-engines
+    to-phase: peak
+    to-edge: top
+    to-at: 0.40
+  - id: web-browsers--dot-com-bubble
+    from: web-browsers
+    from-phase: peak
+    from-edge: bottom
+    from-at: 0.56
+    to: dot-com-bubble
+    to-phase: peak
+    to-edge: top
+    to-at: 0.48
+    description: Netscape's listing started the boom.
+  - id: world-wide-web--e-commerce
+    from: world-wide-web
+    from-phase: trough
+    from-edge: bottom
+    from-at: 0.57
+    to: e-commerce
+    to-phase: peak
+    to-edge: top
+    to-at: 0.71
+  - id: search-engines--e-commerce
+    from: search-engines
+    from-phase: peak
+    from-edge: bottom
+    from-at: 0.52
+    to: e-commerce
+    to-phase: peak
+    to-edge: top
+    to-at: 0.28
+  - id: world-wide-web--cdn
+    from: world-wide-web
+    from-phase: trough
+    from-edge: top
+    from-at: 0.62
+    to: cdn
+    to-phase: peak
+    to-edge: bottom
+    to-at: 0.40
+  - id: dial-up-access--broadband
+    from: dial-up-access
+    from-phase: slope
+    from-edge: bottom
+    from-at: 0.52
+    to: broadband
+    to-phase: peak
+    to-edge: top
+    to-at: 0.48
+  - id: dot-com-bubble--broadband
+    from: dot-com-bubble
+    from-phase: peak
+    from-edge: top
+    from-at: 0.80
+    to: broadband
+    to-phase: peak
+    to-edge: bottom
+    to-at: 0.27
+    description: The bubble paid for fibre that later carried broadband.
+  - id: broadband--peer-to-peer-sharing
+    from: broadband
+    from-phase: peak
+    from-edge: bottom
+    from-at: 0.68
+    to: peer-to-peer-sharing
+    to-phase: peak
+    to-edge: top
+    to-at: 0.77
+  - id: usenet--social-media
+    from: usenet
+    from-phase: plateau
+    from-edge: top
+    from-at: 0.60
+    to: social-media
+    to-phase: peak
+    to-edge: bottom
+    to-at: 0.40
+    description: Online communities went from newsgroups to profiles.
+  - id: broadband--streaming-media
+    from: broadband
+    from-phase: trough
+    from-edge: bottom
+    from-at: 0.45
+    to: streaming-media
+    to-phase: peak
+    to-edge: top
+    to-at: 0.30
+  - id: peer-to-peer-sharing--streaming-media
+    from: peer-to-peer-sharing
+    from-phase: trough
+    from-edge: top
+    from-at: 0.58
+    to: streaming-media
+    to-phase: peak
+    to-edge: bottom
+    to-at: 0.44
+  - id: cdn--streaming-media
+    from: cdn
+    from-phase: trough
+    from-edge: bottom
+    from-at: 0.49
+    to: streaming-media
+    to-phase: peak
+    to-edge: top
+    to-at: 0.73
+  - id: e-commerce--cloud-computing
+    from: e-commerce
+    from-phase: trough
+    from-edge: top
+    from-at: 0.62
+    to: cloud-computing
+    to-phase: peak
+    to-edge: bottom
+    to-at: 0.35
+    description: Amazon sold the infrastructure it had built for its own shop.
+  - id: wifi--mobile-internet
+    from: wifi
+    from-phase: trough
+    from-edge: bottom
+    from-at: 0.66
+    to: mobile-internet
+    to-phase: peak
+    to-edge: top
+    to-at: 0.67
+  - id: mobile-internet--social-media
+    from: mobile-internet
+    from-phase: peak
+    from-edge: bottom
+    from-at: 0.18
+    to: social-media
+    to-phase: peak
+    to-edge: top
+    to-at: 0.77
+  - id: wifi--internet-of-things
+    from: wifi
+    from-phase: slope
+    from-edge: bottom
+    from-at: 0.47
+    to: internet-of-things
+    to-phase: trough
+    to-edge: top
+    to-at: 0.21
+  - id: cloud-computing--internet-of-things
+    from: cloud-computing
+    from-phase: trough
+    from-edge: bottom
+    from-at: 0.52
+    to: internet-of-things
+    to-phase: trough
+    to-edge: top
+    to-at: 0.50
+  - id: ipv6--internet-of-things
+    from: ipv6
+    from-phase: trough
+    from-edge: bottom
+    from-at: 0.50
+    to: internet-of-things
+    to-phase: trough
+    to-edge: top
+    to-at: 0.80
+  - id: peer-to-peer-sharing--web3
+    from: peer-to-peer-sharing
+    from-phase: slope
+    from-edge: bottom
+    from-at: 0.60
+    to: web3
+    to-phase: peak
+    to-edge: top
+    to-at: 0.40
+  - id: social-media--decentralised-social
+    from: social-media
+    from-phase: slope
+    from-edge: bottom
+    from-at: 0.75
+    to: decentralised-social
+    to-phase: peak
+    to-edge: top
+    to-at: 0.43
+  - id: social-media--privacy-regulation
+    from: social-media
+    from-phase: slope
+    from-edge: top
+    from-at: 0.60
+    to: privacy-regulation
+    to-phase: peak
+    to-edge: bottom
+    to-at: 0.45
+    description: The Cambridge Analytica revelations came weeks before the GDPR applied.
+  - id: mobile-internet--5g
+    from: mobile-internet
+    from-phase: slope
+    from-edge: top
+    from-at: 0.62
+    to: 5g
+    to-phase: peak
+    to-edge: bottom
+    to-at: 0.41
+  - id: web3--decentralised-social
+    from: web3
+    from-phase: trough
+    from-edge: top
+    from-at: 0.44
+    to: decentralised-social
+    to-phase: peak
+    to-edge: bottom
+    to-at: 0.54
+  - id: search-engines--ai-answer-engines
+    from: search-engines
+    from-phase: plateau
+    from-edge: top
+    from-at: 0.60
+    to: ai-answer-engines
+    to-phase: peak
+    to-edge: bottom
+    to-at: 0.28
+  - id: cloud-computing--ai-answer-engines
+    from: cloud-computing
+    from-phase: plateau
+    from-edge: bottom
+    from-at: 0.82
+    to: ai-answer-engines
+    to-phase: peak
+    to-edge: top
+    to-at: 0.69
+  - id: mobile-internet--satellite-internet
+    from: mobile-internet
+    from-phase: plateau
+    from-edge: bottom
+    from-at: 0.72
+    to: satellite-internet
+    to-phase: peak
+    to-edge: top
+    to-at: 0.46
+  - id: ai-answer-engines--agentic-web
+    from: ai-answer-engines
+    from-phase: peak
+    from-edge: bottom
+    from-at: 0.74
+    to: agentic-web
+    to-phase: peak
+    to-edge: top
+    to-at: 0.71
+  - id: e-commerce--agentic-web
+    from: e-commerce
+    from-phase: plateau
+    from-edge: bottom
+    from-at: 0.60
+    to: agentic-web
+    to-phase: peak
+    to-edge: top
+    to-at: 0.28
+  - id: 5g--6g
+    from: 5g
+    from-phase: trough
+    from-edge: bottom
+    from-at: 0.66
+    to: 6g
+    to-phase: peak
+    to-edge: top
+    to-at: 0.27
+  - id: satellite-internet--6g
+    from: satellite-internet
+    from-phase: peak
+    from-edge: bottom
+    from-at: 0.32
+    to: 6g
+    to-phase: peak
+    to-edge: top
+    to-at: 0.66
+  - id: privacy-regulation--quantum-internet
+    from: privacy-regulation
+    from-phase: trough
+    from-edge: bottom
+    from-at: 0.69
+    to: quantum-internet
+    to-phase: peak
+    to-edge: top
+    to-at: 0.40
+  - id: satellite-internet--interplanetary-internet
+    from: satellite-internet
+    from-phase: peak
+    from-edge: bottom
+    from-at: 0.76
+    to: interplanetary-internet
+    to-phase: peak
+    to-edge: top
+    to-at: 0.68
+  - id: tcp-ip--interplanetary-internet
+    from: tcp-ip
+    from-phase: plateau
+    from-edge: bottom
+    from-at: 0.60
+    to: interplanetary-internet
+    to-phase: peak
+    to-edge: top
+    to-at: 0.28
+    description: Delay-tolerant networking reworks TCP/IP for minutes-long round trips.
+  - id: tcp-ip-flag-day--tcp-ip
+    from: tcp-ip-flag-day
+    to: tcp-ip
+    to-phase: trough
+    to-edge: top
+    to-at: 0.50
+  - id: tcp-ip-flag-day--dns
+    from: tcp-ip-flag-day
+    to: dns
+    to-phase: peak
+    to-edge: top
+    to-at: 0.26
+  - id: mosaic-release--web-browsers
+    from: mosaic-release
+    to: web-browsers
+    to-phase: peak
+    to-edge: top
+    to-at: 0.27
+  - id: mosaic-release--world-wide-web
+    from: mosaic-release
+    to: world-wide-web
+    to-phase: peak
+    to-edge: bottom
+    to-at: 0.72
+  - id: netscape-ipo--dot-com-bubble
+    from: netscape-ipo
+    to: dot-com-bubble
+    to-phase: peak
+    to-edge: top
+    to-at: 0.20
+  - id: netscape-ipo--e-commerce
+    from: netscape-ipo
+    to: e-commerce
+    to-phase: peak
+    to-edge: bottom
+    to-at: 0.41
+  - id: napster-launch--peer-to-peer-sharing
+    from: napster-launch
+    to: peer-to-peer-sharing
+    to-phase: peak
+    to-edge: top
+    to-at: 0.27
+  - id: iphone-announced--mobile-internet
+    from: iphone-announced
+    to: mobile-internet
+    to-phase: peak
+    to-edge: top
+    to-at: 0.26
+  - id: snowden-disclosures--privacy-regulation
+    from: snowden-disclosures
+    to: privacy-regulation
+    to-phase: peak
+    to-edge: top
+    to-at: 0.34
+  - id: chatgpt-launch--ai-answer-engines
+    from: chatgpt-launch
+    to: ai-answer-engines
+    to-phase: peak
+    to-edge: top
+    to-at: 0.27
