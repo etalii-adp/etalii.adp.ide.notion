@@ -1,0 +1,13 @@
+/*
+ * undoRedo.css: the two buttons of the bar. They are the quiet buttons of reading.css; what is
+ * stated here is only how one looks while there is nothing to take.
+ */
+
+.adp-history-step:disabled {
+  opacity: var(--notion-disabled-opacity);
+  cursor: default;
+}
+
+.adp-history-step:disabled:hover {
+  background: none;
+}

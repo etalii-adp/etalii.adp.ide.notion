@@ -24,8 +24,8 @@ export interface OpenDocument {
   readonly canRedo: boolean;
   /** The handlers of this document's commands, brought by the store and by a part. */
   register(handler: CommandHandler): void;
-  /** One gesture, one command, one step. */
-  edit(change: ModelChange): EditResult;
+  /** One gesture, one command, one step: several changes are carried out together or not at all. */
+  edit(change: ModelChange | readonly ModelChange[]): EditResult;
   undo(): EditResult;
   redo(): EditResult;
   prepare(): Promise<void>;
@@ -51,7 +51,8 @@ export const CHANGE = 'model.change';
 
 export interface ChangeCommand extends Command {
   readonly type: typeof CHANGE;
-  readonly change: ModelChange;
+  /** The changes of one intent, in order. */
+  readonly change: ModelChange | readonly ModelChange[];
 }
 
 /** What the modules of `src/store/` need of an open document to write its store. */

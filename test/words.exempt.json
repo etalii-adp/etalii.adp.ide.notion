@@ -13,6 +13,7 @@
     { "name": "height", "use": "disl", "reason": "a property of Placement in disl.schema.json" },
     { "name": "id", "use": "disl", "reason": "a property of Reason in disl.schema.json" },
     { "name": "month", "use": "disl", "reason": "a value of TimeUnit in disl.schema.json" },
+    { "name": "Note", "use": "icons", "in": "src/panels/icons.ts", "reason": "a word of the Material Design icon id mdi-note-text-outline" },
     { "name": "name", "use": "disl", "reason": "a property of PluginCall in disl.schema.json" },
     { "name": "phase", "use": "disl", "reason": "a property of Hook in disl.schema.json" },
     { "name": "row", "use": "disl", "reason": "a value of FormItem.kind in disl.schema.json" },

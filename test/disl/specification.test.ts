@@ -6,7 +6,7 @@ describe('loadSpecification', () => {
   it('reads the specification the add-on ships without a finding', () => {
     const { value, findings } = loadSpecification(hypeCycleJson());
     expect(findings).toEqual([]);
-    expect(value.disl).toBe('0.3');
+    expect(value['disl']).toBe('0.3');
     expect(value.language.origin).toBe('gartner/hypecycle-graph');
     expect(Object.keys(value.functions ?? {})).toHaveLength(22);
     expect(value.persistence?.format).toBe('fbl');
@@ -42,7 +42,7 @@ describe('loadSpecification', () => {
   it('reads the version key of the format DISL came from', () => {
     const { value, findings } = loadSpecification({ dedl: '0.1', language: { id: 'a.b', version: '1.0.0' }, metamodel: {} });
     expect(findings).toEqual([]);
-    expect(value.disl).toBe('0.1');
+    expect(value['disl']).toBe('0.1');
   });
 
   it('leaves out a section that is not an object, and reports it', () => {

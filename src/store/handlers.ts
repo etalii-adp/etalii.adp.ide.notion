@@ -170,27 +170,38 @@ export function registerHandlers(document: OpenDocument, options: HandlerOptions
     return undefined;
   }
 
+  // Refused as a whole when one of the changes is: the specification's sentence of the first that has one.
+  function refusalOf(changes: readonly ModelChange[], now: Basis, after?: Model): string | undefined {
+    for (const each of changes) {
+      const sentence = refusal(each, now, after);
+      if (sentence !== undefined) return sentence;
+    }
+    return undefined;
+  }
+
   const change: CommandHandler<ChangeCommand> = {
     type: CHANGE,
     handle(command) {
       const now = current();
       if (now.broken !== undefined) return { done: false, sentence: now.broken };
+      // The changes of one intent are planned one after the other on one record, so they are one command with one inverse.
+      const changes: readonly ModelChange[] = Array.isArray(command.change) ? command.change : [command.change as ModelChange];
       let result: Progress | { refused: string };
       try {
-        result = planned(now.record, stepsOf(command.change));
+        result = planned(now.record, changes.flatMap(stepsOf));
       } catch (error) {
         // The library cannot always plan several attributes of one entry as one edit; one by one it can.
-        const each = command.change.kind === 'set' ? Object.entries(command.change.attributes).map(([name, value]): ModelChange => ({ kind: 'set', id: (command.change as { id: string }).id, attributes: { [name]: value } })) : [];
+        const each = changes.flatMap((one) => (one.kind === 'set' ? Object.entries(one.attributes).map(([name, value]): ModelChange => ({ kind: 'set', id: one.id, attributes: { [name]: value } })) : stepsOf(one)));
         try {
-          result = each.length > 1 ? planned(now.record, each) : { refused: sentenceOf(error) };
+          result = each.length > changes.length ? planned(now.record, each) : { refused: sentenceOf(error) };
         } catch (again) {
           result = { refused: sentenceOf(again) };
         }
       }
       // The specification's sentence comes before the binding's.
-      if ('refused' in result) return { done: false, sentence: refusal(command.change, now) ?? result.refused };
+      if ('refused' in result) return { done: false, sentence: refusalOf(changes, now) ?? result.refused };
       const after = options.constraints && result.undo.length > 0 ? readModel(result.record.rows.reading.toModel(), binding, metamodel, persistence).value : undefined;
-      const sentence = refusal(command.change, now, after);
+      const sentence = refusalOf(changes, now, after);
       return sentence === undefined ? finish(now, result) : { done: false, sentence };
     },
   };

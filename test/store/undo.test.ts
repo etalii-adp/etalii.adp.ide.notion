@@ -105,6 +105,34 @@ describe('undo and redo', () => {
     expect(made.written(before)).toEqual({ 'safety-lamp': ['start', 'stop', 'row'] });
   });
 
+  it('an edit of several entries is one step: one undo puts every row back, and a refused change leaves all of them', async () => {
+    const made = await openExample('coal-technologies');
+    const first = made.contents();
+    const before = made.rows();
+    made.sent();
+    expect(await made.apply([{ kind: 'set', id: 'safety-lamp', attributes: { row: 3n } }, { kind: 'set', id: 'note-projections', attributes: { row: 4n, width: 120 } }])).toEqual({ done: true });
+    // One check for somebody else's change, then the rows in the order of the changes.
+    expect(made.sent()).toEqual([QUERY, update('safety-lamp'), update('note-projections')]);
+    expect(made.written(before)).toEqual({ 'safety-lamp': ['row'], 'note-projections': ['row', 'width'] });
+    expect(made.document.undo()).toEqual({ done: true });
+    expect([made.document.canUndo, made.document.canRedo]).toEqual([false, true]);
+    await made.settled();
+    expect(made.written(before)).toEqual({});
+    expect(made.contents()).toEqual(first);
+    expect(made.document.redo()).toEqual({ done: true });
+    await made.settled();
+    expect(made.written(before)).toEqual({ 'safety-lamp': ['row'], 'note-projections': ['row', 'width'] });
+    expect(made.document.undo()).toEqual({ done: true });
+    await made.settled();
+
+    // The second change names nothing, so the first is not made either.
+    made.sent();
+    expect((await made.apply([{ kind: 'set', id: 'safety-lamp', attributes: { row: 9n } }, { kind: 'set', id: 'nobody', attributes: { row: 1n } }])).done).toBe(false);
+    expect(made.sent()).toEqual([]);
+    expect(made.document.canUndo).toBe(false);
+    expect(made.contents()).toEqual(first);
+  });
+
   it('a removal with its cascade is one step, and its undo takes the same rows out of the trash', async () => {
     const made = await openExample('coal-technologies');
     const first = made.contents();

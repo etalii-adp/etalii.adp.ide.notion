@@ -4,9 +4,10 @@
 // the value a new row of a form is given.
 //
 // The first layer makes each one as a change to a model, through the interpreted behavior. The
-// second layer makes the same list against the in-memory Notion; it waits for the commands of an
-// open document (T093) and is skipped until then.
+// second layer makes the same list against the in-memory Notion: each intent's changes become one
+// edit of an open document, and the rows are read again afterwards.
 
+import { readFileSync } from 'node:fs';
 import { describe, expect, it } from 'vitest';
 import { arrangedRows, createScene } from '../../src/canvas/scene';
 import { applyChanges, interpretBehavior, type Change, type Outcome, type Pending } from '../../src/disl/behavior';
@@ -19,6 +20,9 @@ import type { Model } from '../../src/disl/model';
 import { interpretNotation } from '../../src/disl/notation';
 import { interpretToolbox } from '../../src/disl/toolbox';
 import { interpretViewpoints } from '../../src/disl/viewpoints';
+import { modelChangesOf } from '../../src/store/changes';
+import { storeOf } from '../../src/store/document';
+import { openExample } from '../support/openExample';
 import { hypeCycleJson, tool } from './tool';
 
 type Json = Readonly<Record<string, unknown>>;
@@ -275,32 +279,56 @@ describe('an edit the hosts carry out differently from what the specification st
 
 // ---- the second layer: against the in-memory Notion ----
 
-// What T093 brings: a document of the in-memory Notion opened on the fixture, with `apply`, which
-// carries the changes of one intent out as one command and answers with the model the store then
-// holds, or with the sentence of a refusal. Replace `openStore` by that helper and take `.skip` away.
+// The fixture put into an in-memory Notion and opened as the frame opens it. `apply` carries the
+// changes of one intent out as one edit of the document, waits until its writes are stored, and
+// answers with the model the database then holds, read whole, or with the sentence of a refusal.
 interface Stored {
   readonly model: Model;
   apply(changes: readonly Change[]): Promise<{ readonly model: Model } | { readonly refused: string }>;
 }
-const openStore = (): Promise<Stored> => Promise.reject(new Error('T093: the commands of an open document are not written yet.'));
+async function openStore(): Promise<Stored> {
+  const example = await openExample(readFileSync('test/fixtures/gartner-hype-cycle-graph/triggers-and-notes.ghg'));
+  const { document } = example;
+  return {
+    get model() {
+      return document.model;
+    },
+    async apply(changes) {
+      const steps = modelChangesOf(changes, storeOf(document), document.model);
+      if ('refused' in steps) return steps;
+      const result = await example.apply(steps);
+      if (!result.done) return { refused: result.sentence };
+      const failed = example.events.find((event) => event.kind === 'reloaded');
+      if (failed?.kind === 'reloaded') return { refused: failed.sentence };
+      return { model: (await example.reopen()).model };
+    },
+  };
+}
 
-// A model as the store and the interpreter must agree on it: what each element is and holds.
+// A model as the store and the interpreter must agree on it: what each element is and holds. In a
+// store an empty property is an absent key (contracts/store.md), so an empty text or list is none.
+const held = (attributes: Model['diagram']) => Object.fromEntries(Object.entries(attributes).filter(([, value]) => value !== '' && !(Array.isArray(value) && value.length === 0)));
 const comparable = (on: Model) => ({
-  diagram: on.diagram,
-  elements: all(on).map((element) => ({ id: element.id, type: element.type, attributes: element.attributes, source: 'source' in element ? element.source : undefined, target: 'target' in element ? element.target : undefined }))
+  diagram: held(on.diagram),
+  elements: all(on).map((element) => ({ id: element.id, type: element.type, attributes: held(element.attributes), source: 'source' in element ? element.source : undefined, target: 'target' in element ? element.target : undefined }))
     .sort((a, b) => a.id.localeCompare(b.id)),
 });
 
-describe.skip('every offer of the specification, made against the in-memory Notion (waits for T093)', () => {
-  it.each(offers)('$group: $name', async ({ make }) => {
+describe('every offer of the specification, made against the in-memory Notion', () => {
+  const made = async ({ make }: Offer): Promise<string | undefined> => {
     const store = await openStore();
     const prepared = await store.apply(setup(store.model));
-    if ('refused' in prepared) throw new Error(prepared.refused);
+    if ('refused' in prepared) return prepared.refused;
     const outcome = make(prepared.model);
-    expect(outcome.refused).toBeUndefined();
-    if (outcome.refused !== undefined) return;
+    if (outcome.refused !== undefined) return outcome.refused;
     const stored = await store.apply(outcome.changes);
-    expect('refused' in stored ? stored.refused : undefined).toBeUndefined();
-    if (!('refused' in stored)) expect(comparable(stored.model)).toEqual(comparable(outcome.after));
+    if ('refused' in stored) return stored.refused;
+    // What the rows hold afterwards is the model the interpreter said the intent comes to.
+    expect(comparable(stored.model)).toEqual(comparable(outcome.after));
+    return undefined;
+  };
+
+  it.each(offers)('$group: $name', async (offer) => {
+    expect(await made(offer)).toBeUndefined();
   });
 });

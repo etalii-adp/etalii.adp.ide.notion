@@ -33,7 +33,7 @@ export interface OpenExample extends MemoryCalls {
   /** Every event the document told, in order. */
   readonly events: DocumentEvent[];
   /** Makes one edit and waits until its writes are stored, or until their failure is told and the store is read again. */
-  apply(change: ModelChange): Promise<EditResult>;
+  apply(change: ModelChange | readonly ModelChange[]): Promise<EditResult>;
   /** Waits until no write is queued and no read runs. */
   settled(): Promise<void>;
   /**

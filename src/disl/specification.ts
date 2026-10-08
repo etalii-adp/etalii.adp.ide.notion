@@ -287,7 +287,7 @@ export function loadSpecification(json: unknown): Loaded<Specification> {
   }
 
   // `dedl` is the version key of the format DISL came from, still read (DISL 18).
-  const version = json.disl ?? json.dedl;
+  const version = json['disl'] ?? json['dedl'];
   const parts = typeof version === 'string' ? /^(\d+)\.(\d+)$/.exec(version) : null;
   if (!parts) error('The specification does not say which version of DISL it is written in.');
   else if (Number(parts[1]) > 0) {

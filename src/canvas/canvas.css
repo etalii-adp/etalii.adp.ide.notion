@@ -177,3 +177,111 @@ path.adp-canvas-mark {
   border: thin solid var(--notion-border-strong);
   border-radius: var(--notion-radius-small);
 }
+
+/* What a gesture draws over the drawing while it runs (gestures.ts), and the grips of the selection. */
+
+.adp-canvas[data-armed] {
+  cursor: crosshair;
+}
+
+.adp-gesture-preview {
+  pointer-events: none;
+}
+
+.adp-gesture-grip {
+  fill: var(--notion-background);
+  stroke: var(--notion-selection);
+  vector-effect: non-scaling-stroke;
+}
+
+.adp-gesture-grip-x {
+  cursor: ew-resize;
+}
+
+.adp-gesture-grip-y {
+  cursor: ns-resize;
+}
+
+.adp-gesture-grip-handle,
+.adp-gesture-grip-end {
+  cursor: grab;
+}
+
+.adp-gesture-ghost,
+.adp-gesture-hover,
+.adp-gesture-target,
+.adp-gesture-refused {
+  fill: var(--notion-selection-fill);
+  stroke: var(--notion-selection);
+  vector-effect: non-scaling-stroke;
+}
+
+.adp-gesture-ghost {
+  fill: none;
+}
+
+.adp-gesture-target {
+  fill: none;
+  stroke: var(--notion-accent);
+  opacity: var(--notion-disabled-opacity);
+}
+
+.adp-gesture-hover {
+  stroke: var(--notion-accent);
+}
+
+.adp-gesture-refused {
+  fill: var(--notion-error-background);
+  stroke: var(--notion-error-border);
+}
+
+.adp-gesture-line {
+  fill: none;
+}
+
+/* The editor of a label in place (inPlaceEdit.ts): HTML over the drawing, where the label is. */
+
+.adp-inplace {
+  position: fixed;
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  gap: var(--notion-space-1);
+}
+
+.adp-inplace-input {
+  box-sizing: border-box;
+  width: 100%;
+  margin: 0;
+  padding: 0 var(--notion-space-2);
+  font-family: var(--notion-font-family);
+  color: var(--notion-text);
+  background: var(--notion-background-input);
+  border: thin solid var(--notion-border-strong);
+  border-radius: var(--notion-radius-small);
+  resize: none;
+}
+
+.adp-inplace-input:focus-visible {
+  outline: none;
+  box-shadow: var(--notion-focus-ring);
+}
+
+.adp-inplace-input[aria-invalid="true"] {
+  border-color: var(--notion-error-border);
+}
+
+.adp-inplace-refusal {
+  padding: var(--notion-space-1) var(--notion-space-2);
+  font-family: var(--notion-font-family);
+  font-size: var(--notion-font-size-caption);
+  line-height: var(--notion-line-height-caption);
+  color: var(--notion-error-text);
+  background: var(--notion-error-background);
+  border: thin solid var(--notion-error-border);
+  border-radius: var(--notion-radius-small);
+}
+
+.adp-inplace-refusal:empty {
+  display: none;
+}

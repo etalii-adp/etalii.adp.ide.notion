@@ -8,9 +8,11 @@ import { describe, expect, it } from 'vitest';
 // contracts/shared-parts.md). The names come from every specification and binding under addons/.
 
 const root = fileURLToPath(new URL('..', import.meta.url));
-const uses = ['disl', 'fbl', 'typescript', 'web', 'library'];
+const uses = ['disl', 'fbl', 'typescript', 'web', 'library', 'icons'];
 // The copy of the FBL library is another repository's code: its own words are exempt there only.
 const library = 'src/fbl/';
+// An icon id is Material Design's word, not a tool type's: a word of one is exempt in the table of icons only.
+const icons = 'src/panels/icons.ts';
 
 interface Exempt {
   readonly name: string;
@@ -126,9 +128,10 @@ describe('the words of a tool type', () => {
     expect(names.size).toBeGreaterThan(0);
   });
 
-  it('are exempt only for a use that DISL, FBL, TypeScript, the web platform or the copied FBL library makes of them', () => {
+  it('are exempt only for a use that DISL, FBL, TypeScript, the web platform, the copied FBL library or an icon id makes of them', () => {
     expect(exempt.filter((entry) => !uses.includes(entry.use) || !entry.reason?.trim()).map((entry) => entry.name)).toEqual([]);
     expect(exempt.filter((entry) => entry.use === 'library' && entry.in !== library).map((entry) => entry.name)).toEqual([]);
+    expect(exempt.filter((entry) => entry.use === 'icons' && entry.in !== icons).map((entry) => entry.name)).toEqual([]);
     expect(exempt.filter((entry, index) => exempt.findIndex((other) => words(other.name) === words(entry.name)) !== index).map((entry) => entry.name)).toEqual([]);
   });
 

@@ -2,6 +2,7 @@ import { readFileSync } from 'node:fs';
 import { describe, expect, it } from 'vitest';
 import { loadDocument } from '../../src/fbl/documents/documentLoader';
 import type { FblDocument } from '../../src/fbl/documents/types';
+import type { ModelChange } from '../../src/fbl/planning/modelChange';
 import { finding } from '../../src/disl/model';
 import type { Command, CommandHandler } from '../../src/history/command';
 import { CHANGE, openDocument, storeOf, type ChangeCommand, type DocumentEvent, type OpenDocument } from '../../src/store/document';
@@ -213,10 +214,11 @@ describe('an open document', () => {
         type: CHANGE,
         handle(command) {
           handled.push(command);
-          if (command.change.kind === 'save') return { done: true };
-          if (command.change.kind !== 'set') return { done: false, sentence: 'Only a set is carried out here.' };
+          const change = command.change as ModelChange;
+          if (change.kind === 'save') return { done: true };
+          if (change.kind !== 'set') return { done: false, sentence: 'Only a set is carried out here.' };
           storeOf(document).replace(storeOf(document).rows);
-          return { done: true, inverse: { type: CHANGE, change: { ...command.change, attributes: {} } } as ChangeCommand };
+          return { done: true, inverse: { type: CHANGE, change: { ...change, attributes: {} } } as ChangeCommand };
         },
       },
     };
