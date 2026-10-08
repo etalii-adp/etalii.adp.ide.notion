@@ -1,7 +1,10 @@
-"""Checks the files this repository holds while it has no plug-in code yet.
+"""Checks the files this repository holds.
 
 Every tracked JSON and YAML file must parse, and every relative link in a tracked markdown file must
 point at a file or folder that exists. Prints one line per problem and exits 1 when there is any.
+
+The copies of other repositories' files are left out: they are never edited here, and a link in one of
+them points into the repository it was copied from.
 """
 import json
 import re
@@ -11,13 +14,14 @@ from pathlib import Path
 
 import yaml
 
+COPIES = ("src/fbl/", "test/examples/", "test/fixtures/")
 LINK = re.compile(r"\[[^\]]*\]\(([^)\s]+)(?:\s+\"[^\"]*\")?\)")
 problems = []
 
 files = subprocess.run(["git", "ls-files"], capture_output=True, text=True, check=True).stdout.splitlines()
 for name in files:
     path = Path(name)
-    if not path.is_file():
+    if not path.is_file() or name.startswith(COPIES):
         continue
     suffix = path.suffix.lower()
     try:

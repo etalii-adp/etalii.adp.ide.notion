@@ -1,9 +1,19 @@
 // The open document of a store (etalii.adp spec 012, contracts/shared-parts.md, "Interfaces").
-// `openDocument` is added to this file by the task that reads a store.
+// `openDocument` reads a store whole and gives the frame the contract's `OpenDocument`; `storeOf`
+// gives the store's own modules what a write needs, which the frame is not shown.
 
-import type { Finding, Model } from '../disl/model';
+import { interpretMetamodel, type Metamodel } from '../disl/metamodel';
+import { emptyModel, finding, type Finding, type Model } from '../disl/model';
+import { bindingOf, interpretPersistence, readModel, type InterpretedPersistence } from '../disl/persistence';
+import type { Specification } from '../disl/specification';
+import type { FblBinding, FblDocument } from '../fbl/documents/types';
 import type { ModelChange } from '../fbl/planning/modelChange';
-import type { CommandHandler } from '../history/command';
+import type { Command, CommandHandler, CommandResult } from '../history/command';
+import { createDispatcher } from '../history/dispatcher';
+import { createHistoryStack } from '../history/historyStack';
+import { NotionError, type NotionCalls, type NotionDataSource, type NotionRow } from './notion';
+import { readRows, type RowsRead } from './rows';
+import { missing, prepare, storeSchema, type StoreSchema } from './schema';
 
 export interface OpenDocument {
   /** Elements and relations, as the specification's metamodel types them. */
@@ -35,3 +45,265 @@ export type DocumentEvent =
   | { readonly kind: 'status'; readonly status: 'idle' | 'loading' | 'storing' | 'offline' | 'failed' }
   /** The store was read again; the history is empty. */
   | { readonly kind: 'reloaded'; readonly sentence: string };
+
+/** The type of the command an edit runs. Its handler is the store's; an inverse may be of any type. */
+export const CHANGE = 'model.change';
+
+export interface ChangeCommand extends Command {
+  readonly type: typeof CHANGE;
+  readonly change: ModelChange;
+}
+
+/** What the modules of `src/store/` need of an open document to write its store. */
+export interface OpenStore {
+  readonly schema: StoreSchema;
+  readonly binding: FblBinding;
+  readonly metamodel: Metamodel;
+  readonly persistence: InterpretedPersistence;
+  readonly notion: NotionCalls;
+  /** Nothing while the database has no data source that can be a store. */
+  readonly dataSourceId: string | undefined;
+  /** What the rows read as: the body the FBL library plans against, and which row is which entry. */
+  readonly rows: RowsRead;
+  /** The time of the newest row edit the last read saw, as Notion gave it; nothing when it saw no row. */
+  readonly lastRead: string | undefined;
+  /** After a change: what the rows now read as. The model and the findings follow, and `changed` is told. */
+  replace(rows: RowsRead): void;
+  /** Notion refused a write of this person with `403`: read-only from now on, with an empty history. */
+  markReadOnly(): void;
+  /** Reads the store again, empties the history and tells `reloaded` with the sentence. */
+  reload(sentence: string): Promise<void>;
+}
+
+export interface OpenDocumentOptions {
+  specification: Specification;
+  /** The FBL document; the binding used is the fragment of `persistence.binding`. */
+  binding: FblDocument;
+  /** The `store` parameter of the address. */
+  database: string;
+  notion: NotionCalls;
+  /**
+   * The specification's constraints: the findings of a model, given what reading it found. They
+   * restate the reading's findings and add their own, as `check` of `src/disl/constraints.ts` does.
+   */
+  constraints?: (model: Model, read: readonly Finding[]) => readonly Finding[];
+}
+
+const stores = new WeakMap<OpenDocument, OpenStore>();
+
+/** For the modules of `src/store/` only. */
+export function storeOf(document: OpenDocument): OpenStore {
+  const store = stores.get(document);
+  if (!store) throw new Error('The document was not opened by openDocument.');
+  return store;
+}
+
+/** Every row of a data source that is not in the trash, 100 a call, in the order of creation. */
+export async function allRows(notion: NotionCalls, dataSourceId: string): Promise<NotionRow[]> {
+  const rows: NotionRow[] = [];
+  for (let cursor: string | undefined, more = true; more;) {
+    // Sorted, so that a row created while the pages are asked for moves no row to another page.
+    const page = await notion.query(dataSourceId, { cursor, pageSize: 100, sorts: [{ timestamp: 'created_time', direction: 'ascending' }] });
+    rows.push(...page.results);
+    more = page.has_more && page.next_cursor !== null;
+    cursor = page.next_cursor ?? undefined;
+  }
+  return rows;
+}
+
+const refusals: Record<Exclude<OpenDocument['state'], 'ready'>, string> = {
+  'read-only': 'You may not change this database, so the diagram cannot be edited.',
+  unreadable: 'The document could not be read, so it cannot be edited.',
+  unprepared: 'The database is not prepared as a store, so the diagram cannot be edited.',
+};
+
+const isForbidden = (error: unknown): boolean => error instanceof NotionError && error.kind === 'refused' && error.status === 403;
+
+/**
+ * Opens a store: the whole of it is read before anything is given. It rejects with the calls'
+ * error when the database cannot be asked for at all, as when it is not shared with the person or
+ * the person has not connected.
+ */
+export async function openDocument(options: OpenDocumentOptions): Promise<OpenDocument> {
+  const { specification, notion, constraints } = options;
+  const metamodel = interpretMetamodel(specification).value;
+  const persistence = interpretPersistence(specification, metamodel).value;
+  const binding = bindingOf(persistence, options.binding);
+  if (!binding) throw new Error('The FBL document does not hold the binding the specification names.');
+  const schema = storeSchema(binding, metamodel, persistence);
+  // A binding that cannot be stored is read as nothing, with the schema's sentences.
+  const storable = !schema.findings.some((found) => found.severity === 'error');
+
+  const dispatcher = createDispatcher();
+  const history = createHistoryStack(dispatcher);
+  const listeners = new Set<(event: DocumentEvent) => void>();
+
+  let model = emptyModel;
+  let findings: readonly Finding[] = [];
+  let state: OpenDocument['state'] = 'unprepared';
+  let rows = readRows([], schema, binding);
+  let dataSource: NotionDataSource | undefined;
+  let lastRead: string | undefined;
+  let readOnly = false;
+  let closed = false;
+  let told: string = notion.status();
+
+  function tell(event: DocumentEvent): void {
+    if (closed) return;
+    for (const listener of [...listeners]) listener(event);
+  }
+  function tellStatus(status: (DocumentEvent & { kind: 'status' })['status']): void {
+    if (status === told) return;
+    told = status;
+    tell({ kind: 'status', status });
+  }
+  const stopRelay = notion.onStatus(tellStatus);
+
+  function unprepared(sentences: readonly Finding[]): void {
+    model = emptyModel;
+    findings = sentences;
+    state = 'unprepared';
+    rows = readRows([], schema, binding!);
+    lastRead = undefined;
+  }
+
+  function take(next: RowsRead): void {
+    rows = next;
+    const loaded = readModel(next.reading.toModel(), binding!, metamodel, persistence);
+    const read = [...next.findings, ...loaded.findings];
+    const unreadable = !storable || next.reading.unreadable !== undefined || next.findings.some((found) => found.severity === 'error');
+    model = unreadable ? emptyModel : loaded.value;
+    findings = unreadable ? [...schema.findings, ...read] : (constraints?.(model, read) ?? read);
+    state = unreadable ? 'unreadable' : readOnly ? 'read-only' : 'ready';
+  }
+
+  async function read(): Promise<void> {
+    tellStatus('loading');
+    try {
+      const database = await notion.database(options.database);
+      dataSource = undefined;
+      const count = database.data_sources.length;
+      if (count !== 1) {
+        unprepared([finding('store.data-sources', 'error', `The database has ${count === 0 ? 'no data source' : `${count} data sources`}, and a store has one.`)]);
+        return;
+      }
+      const source = await notion.dataSource(database.data_sources[0].id);
+      dataSource = source;
+      if (!storable) {
+        take(readRows([], schema, binding!));
+        return;
+      }
+      const lacking = missing(schema, source);
+      if (!lacking.prepared) {
+        const names = [...(lacking.rename ? [lacking.rename.to] : []), ...lacking.add.map((property) => property.name)];
+        unprepared([
+          ...(names.length > 0 ? [finding('store.unprepared', 'warning', `The database lacks ${names.length === 1 ? 'the property' : 'the properties'} ${names.map((name) => `\`${name}\``).join(', ')}.`)] : []),
+          ...lacking.wrong.map(({ property, has }) => finding('store.unprepared', 'error', `The property \`${property.name}\` of the database is ${has.replace('_', ' ')}, and a store holds it as ${property.type.replace('_', ' ')}. It is left as it is.`)),
+        ]);
+        return;
+      }
+      const held = await allRows(notion, source.id);
+      lastRead = held.reduce<string | undefined>((newest, row) => (newest === undefined || row.last_edited_time > newest ? row.last_edited_time : newest), undefined);
+      take(readRows(held, schema, binding!));
+    } finally {
+      tellStatus(notion.status());
+    }
+  }
+
+  // One read at a time, so that the one asked for last is the one that stays.
+  let reading: Promise<void> = Promise.resolve();
+  function load(): Promise<void> {
+    const next = reading.then(read);
+    reading = next.catch(() => undefined);
+    return next;
+  }
+
+  async function reload(sentence: string): Promise<void> {
+    await load();
+    history.clear();
+    tell({ kind: 'reloaded', sentence });
+  }
+
+  const answer = (result: CommandResult): EditResult => (result.done ? { done: true } : result);
+  const refused = (): EditResult | undefined => (state === 'ready' ? undefined : { done: false, sentence: refusals[state] });
+
+  await load();
+
+  const document: OpenDocument = {
+    get model() {
+      return model;
+    },
+    get findings() {
+      return findings;
+    },
+    get state() {
+      return state;
+    },
+    get canUndo() {
+      return history.canUndo;
+    },
+    get canRedo() {
+      return history.canRedo;
+    },
+    register: (handler) => dispatcher.register(handler),
+    edit: (change) => refused() ?? answer(history.run({ type: CHANGE, change } as ChangeCommand)),
+    undo: () => refused() ?? answer(history.undo()),
+    redo: () => refused() ?? answer(history.redo()),
+
+    async prepare() {
+      if (state !== 'unprepared' || !dataSource) return;
+      try {
+        await prepare(schema, dataSource, notion);
+      } catch (error) {
+        // The refused write changed nothing. Once somebody else prepares the database, it opens read-only.
+        if (isForbidden(error)) readOnly = true;
+        throw error;
+      }
+      await load();
+      tell({ kind: 'changed' });
+    },
+    reload: () => reload('The database was read again.'),
+
+    subscribe(listener) {
+      listeners.add(listener);
+      return () => void listeners.delete(listener);
+    },
+    close() {
+      closed = true;
+      stopRelay();
+      listeners.clear();
+      history.clear();
+    },
+  };
+
+  stores.set(document, {
+    schema,
+    binding,
+    metamodel,
+    persistence,
+    notion,
+    get dataSourceId() {
+      return dataSource?.id;
+    },
+    get rows() {
+      return rows;
+    },
+    get lastRead() {
+      return lastRead;
+    },
+    replace(next) {
+      take(next);
+      tell({ kind: 'changed' });
+    },
+    markReadOnly() {
+      if (readOnly) return;
+      readOnly = true;
+      if (state !== 'ready') return;
+      state = 'read-only';
+      history.clear();
+      tell({ kind: 'changed' });
+    },
+    reload,
+  });
+  return document;
+}

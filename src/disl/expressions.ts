@@ -373,7 +373,8 @@ function plain(value: unknown): Value {
 
 // An LDML pattern as far as a month needs one: `u` and `y` are the signed astronomical year, `M`
 // and `MM` the month's number, `MMM` and `MMMM` its name, and text between apostrophes is itself.
-function formatPattern(index: number, pattern: string, locale: string): string {
+// A ruler writes its ticks with it too (DISL 5.13).
+export function formatPattern(index: number, pattern: string, locale: string): string {
   const { year, month } = yearMonthOf(index);
   return pattern.replace(/'([^']*)'|[uy]+|M+/g, (token: string, quoted: string | undefined) => {
     if (quoted !== undefined) return quoted;
