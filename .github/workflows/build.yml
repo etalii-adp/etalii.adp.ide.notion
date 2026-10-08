@@ -95,27 +95,8 @@ jobs:
           curl -fsSL "$SOURCE/.github/scripts/terminology-check.py" -o "$RUNNER_TEMP/terminology-check.py"
           python "$RUNNER_TEMP/terminology-check.py" --name "${{ github.event.repository.name }}" --config "$SOURCE/docs/terminology-check.json"
 
-  # The two jobs below are the only ones that read a secret. A pull request, from a fork or not,
-  # never runs them.
-
-  # Deploys the service, a Cloudflare Worker (etalii.adp spec 012, contracts/service.md). It runs
-  # beside the publication of the pages and not in one step with it, so an add-on must work against
-  # the Worker of the merge before. A deployment that fails leaves the previous Worker serving.
-  service:
-    needs: [check, test, addons]
-    if: github.event_name == 'push' && github.ref == 'refs/heads/develop'
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v7
-      - uses: actions/setup-node@v7
-        with:
-          node-version: '24'
-      - run: npm ci
-      - name: Deploy the Worker
-        env:
-          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
-        run: npx wrangler deploy --config service/wrangler.toml
-
+  # The one job that reads a secret. A pull request, from a fork or not, never runs it. The job that
+  # deploys the service, a Cloudflare Worker, joins it when the Worker has an account to live in.
   publish:
     needs: [check, test, addons]
     if: github.event_name == 'push' && github.ref == 'refs/heads/develop'
