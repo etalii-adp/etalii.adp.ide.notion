@@ -14,7 +14,9 @@ ADP, A Different Perspective, is a range of specialized tools: diagrams, designe
 
 The Gartner hype cycle graph is a diagram of trends, the triggers that start them, notes, and the influences between them, drawn along time. In Notion the graph is a database: its rows are the graph, and the add-on, embedded in a Notion page, draws that database and writes what a user changes back to it. One published add-on serves any number of graphs; the `store` of the address says which database a page shows. [docs/set-up-a-graph.md](docs/set-up-a-graph.md) gives the steps.
 
-An add-on reaches Notion through a small service: a published page talks to the deployed one, a Cloudflare Worker, and a page served from `localhost` to the local one, with a real Notion database or with an in-memory one. [docs/service.md](docs/service.md) says how both are run.
+![The Gartner hype cycle graph as a Notion add-on: the digital trends as banners on the year axis, with the toolbox at the left and the property grid at the right](docs/screenshots/gartner-hype-cycle-graph.png)
+
+An add-on reaches Notion through a small service: a published page talks to the deployed one, a Cloudflare Worker, and a page served from `localhost` to the local one, with a real Notion database or with an in-memory one. [docs/service.md](docs/service.md) says how both are run. A person grants access once, from the page itself. That works in a web browser; in the Notion desktop app the grant does not reach the page yet, so there the add-on stays at its invitation to connect.
 
 ## Build and test
 
