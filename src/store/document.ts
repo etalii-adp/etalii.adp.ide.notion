@@ -67,6 +67,10 @@ export interface OpenStore {
   readonly rows: RowsRead;
   /** The time of the newest row edit the last read saw, as Notion gave it; nothing when it saw no row. */
   readonly lastRead: string | undefined;
+  /** The rows as the last read gave them: where each stands in its kind, and who edited it last and when. */
+  readonly held: readonly NotionRow[];
+  /** Whoever writes the store says when its queued writes are settled; a read waits for that, so that it reads what they left. */
+  writes(settled: () => Promise<unknown>): void;
   /** After a change: what the rows now read as. The model and the findings follow, and `changed` is told. */
   replace(rows: RowsRead): void;
   /** Notion refused a write of this person with `403`: read-only from now on, with an empty history. */
@@ -111,6 +115,9 @@ export async function allRows(notion: NotionCalls, dataSourceId: string): Promis
   return rows;
 }
 
+/** The model is about to be replaced by what the database holds, so an edit made now would be lost. */
+const READING = 'The database is being read, so nothing can be changed for a moment.';
+
 const refusals: Record<Exclude<OpenDocument['state'], 'ready'>, string> = {
   'read-only': 'You may not change this database, so the diagram cannot be edited.',
   unreadable: 'The document could not be read, so it cannot be edited.',
@@ -144,6 +151,9 @@ export async function openDocument(options: OpenDocumentOptions): Promise<OpenDo
   let rows = readRows([], schema, binding);
   let dataSource: NotionDataSource | undefined;
   let lastRead: string | undefined;
+  let held: readonly NotionRow[] = [];
+  let settled: () => Promise<unknown> = () => Promise.resolve();
+  let reads = 0;
   let readOnly = false;
   let closed = false;
   let told: string = notion.status();
@@ -165,6 +175,7 @@ export async function openDocument(options: OpenDocumentOptions): Promise<OpenDo
     state = 'unprepared';
     rows = readRows([], schema, binding!);
     lastRead = undefined;
+    held = [];
   }
 
   function take(next: RowsRead): void {
@@ -190,6 +201,7 @@ export async function openDocument(options: OpenDocumentOptions): Promise<OpenDo
       const source = await notion.dataSource(database.data_sources[0].id);
       dataSource = source;
       if (!storable) {
+        held = [];
         take(readRows([], schema, binding!));
         return;
       }
@@ -202,9 +214,10 @@ export async function openDocument(options: OpenDocumentOptions): Promise<OpenDo
         ]);
         return;
       }
-      const held = await allRows(notion, source.id);
-      lastRead = held.reduce<string | undefined>((newest, row) => (newest === undefined || row.last_edited_time > newest ? row.last_edited_time : newest), undefined);
-      take(readRows(held, schema, binding!));
+      const read = await allRows(notion, source.id);
+      lastRead = read.reduce<string | undefined>((newest, row) => (newest === undefined || row.last_edited_time > newest ? row.last_edited_time : newest), undefined);
+      held = read;
+      take(readRows(read, schema, binding!));
     } finally {
       tellStatus(notion.status());
     }
@@ -213,7 +226,8 @@ export async function openDocument(options: OpenDocumentOptions): Promise<OpenDo
   // One read at a time, so that the one asked for last is the one that stays.
   let reading: Promise<void> = Promise.resolve();
   function load(): Promise<void> {
-    const next = reading.then(read);
+    reads++;
+    const next = reading.then(() => settled()).then(read).finally(() => void reads--);
     reading = next.catch(() => undefined);
     return next;
   }
@@ -225,7 +239,8 @@ export async function openDocument(options: OpenDocumentOptions): Promise<OpenDo
   }
 
   const answer = (result: CommandResult): EditResult => (result.done ? { done: true } : result);
-  const refused = (): EditResult | undefined => (state === 'ready' ? undefined : { done: false, sentence: refusals[state] });
+  const refused = (): EditResult | undefined =>
+    (state !== 'ready' ? { done: false, sentence: refusals[state] } : reads > 0 ? { done: false, sentence: READING } : undefined);
 
   await load();
 
@@ -290,6 +305,12 @@ export async function openDocument(options: OpenDocumentOptions): Promise<OpenDo
     },
     get lastRead() {
       return lastRead;
+    },
+    get held() {
+      return held;
+    },
+    writes(whenSettled) {
+      settled = () => whenSettled().catch(() => undefined);
     },
     replace(next) {
       take(next);
