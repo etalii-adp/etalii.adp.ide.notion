@@ -169,10 +169,9 @@ describe('a page with a store', () => {
     expect(given).toBe(0);
   });
 
-  it('says so where there is no service to reach Notion through', async () => {
-    expect(await open(`https://example.org/${addon}/?store=${store}`)).toBeUndefined();
-    expect(message()).toContain('cannot reach Notion');
-    expect(document.body.dataset.state).toBe('loading');
+  it('hands a page over on a host that is not local too, where the deployed service answers', async () => {
+    expect(await open(`https://example.org/${addon}/?store=${store}`)).toBeDefined();
+    expect(message()).toBe('');
   });
 });
 

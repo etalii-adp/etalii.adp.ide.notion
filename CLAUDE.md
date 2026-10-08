@@ -77,7 +77,7 @@ An add-on reaches Notion through one small service, which completes Notion's gra
 
 - `service/handler.ts` is all of it, and it knows no platform: a request and its configuration in, a response out.
 - The local service, `node scripts/service.mjs`, runs that handler at `http://localhost:8787`. With `--memory` an in-memory Notion answers and no account is needed. A page served from `localhost` uses it.
-- The Cloudflare Worker that is to run the handler for the published pages is not written yet. It is the last step of spec 012; until then `src/frame/config.ts` holds no deployed address, and a page at `etalii.net` cannot open a store. Do not write that it can.
+- The Cloudflare Worker, `service/worker.ts` with `service/wrangler.toml`, runs the handler for the published pages at the address `src/frame/config.ts` holds. The `service` job of `Build` deploys it on a push to `develop`; its two secrets are set on the Worker itself and are in no file.
 
 [docs/service.md](docs/service.md) has the endpoints, the secrets and how the service is run.
 
