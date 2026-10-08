@@ -11,9 +11,9 @@ The service is one handler, [service/handler.ts](../service/handler.ts), that kn
 | What runs it | State |
 | --- | --- |
 | The local service, [scripts/service.mjs](../scripts/service.mjs), at `http://localhost:8787` | Exists. The add-ons are built and checked against it |
-| The Cloudflare Worker, for the published pages | Not written yet. It is the last thing built, after everything else works against the local service, and it has no address yet |
+| The Cloudflare Worker, [service/worker.ts](../service/worker.ts), at `https://adp-notion.notion-adp.workers.dev` | Deployed. The published pages talk to it; the `service` job of `Build` deploys it on every push to `develop` |
 
-The address of the service is written in one place, [src/frame/config.ts](../src/frame/config.ts). A page served from `localhost` or `127.0.0.1` uses the local service. Any other page uses the deployed one, whose address is empty there until the Worker exists; such a page says that it has no service to ask yet.
+The address of the service is written in one place, [src/frame/config.ts](../src/frame/config.ts). A page served from `localhost` or `127.0.0.1` uses the local service. Any other page uses the deployed one.
 
 ## Endpoints
 
@@ -55,12 +55,12 @@ The local service reads all three from the environment. `ALLOWED_ORIGIN` is `htt
 Register a Notion integration, at <https://www.notion.so/profile/integrations>:
 
 - as a public integration, so that it grants access through OAuth;
-- with the redirect address `http://localhost:8787/callback`, for the local service;
+- with two redirect addresses: `https://adp-notion.notion-adp.workers.dev/callback` for the Worker and `http://localhost:8787/callback` for the local service;
 - with the capabilities to read, update and insert content.
 
 Notion then shows the client id and the client secret. Keep the secret out of every file of the repository.
 
-When the Worker exists, its address with `/callback` is added as a second redirect address, the two secrets are set on the Worker, and the address is written in `src/frame/config.ts` and here.
+The Worker gets the two secrets with `npx wrangler secret put NOTION_CLIENT_ID --config service/wrangler.toml` and the same for `NOTION_CLIENT_SECRET`; each asks for the value, so it lands in no file. `Build` deploys the Worker with the token in the repository's Actions secret `CLOUDFLARE_API_TOKEN`, a Cloudflare token that may edit Workers. The Worker's `ALLOWED_ORIGIN` is `https://etalii.net`, in [service/wrangler.toml](../service/wrangler.toml).
 
 ## Running the local service
 

@@ -177,15 +177,9 @@ export async function start(given: Partial<Environment> = {}): Promise<Page | un
   }
   if (!tool) return fail(failure);
 
-  let calls: Pick<Page, 'session' | 'notion'>;
-  try {
-    const service = serviceAddress(location);
-    const session = createSession({ service, storage: environment.storage, fetch: environment.fetch });
-    calls = { session, notion: createNotionCalls({ service, session, fetch: environment.fetch }) };
-  } catch {
-    // The session refuses an address that is none: the service is not deployed for this host.
-    return fail('The add-on cannot reach Notion: it has no service to ask yet.');
-  }
+  const service = serviceAddress(location);
+  const session = createSession({ service, storage: environment.storage, fetch: environment.fetch });
+  const calls = { session, notion: createNotionCalls({ service, session, fetch: environment.fetch }) };
   const page = createPage({ addon, database, ...tool, regions, ...calls });
   handOver(page);
   return page;
