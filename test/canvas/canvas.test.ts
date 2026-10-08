@@ -210,6 +210,24 @@ describe('the selection', () => {
     expect(marked()).toEqual(['transistors']);
   });
 
+  it('keeps several selected elements through a press on one of them, until the pointer is let go where it was pressed', () => {
+    pointer('pointerdown', element('radio'));
+    pointer('pointerdown', element('transistors'), { shiftKey: true });
+    // A press that then moves is a drag of them all: the selection stays.
+    pointer('pointerdown', element('radio'), { clientX: 10, clientY: 10 });
+    expect(canvas.selection).toEqual(['radio', 'transistors']);
+    pointer('pointermove', host, { clientX: 30, clientY: 10 });
+    pointer('pointerup', host, { clientX: 30, clientY: 10 });
+    expect(canvas.selection).toEqual(['radio', 'transistors']);
+    // Let go where it was pressed, the pressed element is selected alone.
+    pointer('pointerdown', element('radio'), { clientX: 10, clientY: 10 });
+    expect(canvas.selection).toEqual(['radio', 'transistors']);
+    pointer('pointerup', element('radio'), { clientX: 11, clientY: 10 });
+    expect(canvas.selection).toEqual(['radio']);
+    expect(selected.at(-1)).toEqual(['radio']);
+    expect(document.activeElement).toBe(element('radio'));
+  });
+
   it('moves through the elements with the arrow keys, selecting the one that has the focus', () => {
     const order = ids();
     host.focus();

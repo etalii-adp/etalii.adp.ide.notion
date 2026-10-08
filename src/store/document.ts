@@ -116,6 +116,9 @@ export async function allRows(notion: NotionCalls, dataSourceId: string): Promis
   return rows;
 }
 
+/** The sentence of a reading nobody's change asked for, as when the page regained the focus: there is nothing in it to tell the user. */
+export const READ_AGAIN = 'The database was read again.';
+
 /** The model is about to be replaced by what the database holds, so an edit made now would be lost. */
 const READING = 'The database is being read, so nothing can be changed for a moment.';
 
@@ -278,7 +281,7 @@ export async function openDocument(options: OpenDocumentOptions): Promise<OpenDo
       await load();
       tell({ kind: 'changed' });
     },
-    reload: () => reload('The database was read again.'),
+    reload: () => reload(READ_AGAIN),
 
     subscribe(listener) {
       listeners.add(listener);

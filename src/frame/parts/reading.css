@@ -42,7 +42,7 @@
   margin: 0;
 }
 
-.adp-button {
+.adp-action {
   min-height: var(--notion-control-height);
   padding: 0 var(--notion-space-5);
   font: inherit;
@@ -55,17 +55,17 @@
   transition: var(--notion-transition-hover);
 }
 
-.adp-button:hover {
+.adp-action:hover {
   background: var(--notion-accent-fill-hover);
 }
 
-.adp-button-quiet {
+.adp-action-quiet {
   font-weight: var(--notion-font-weight);
   color: var(--notion-text-secondary);
   background: none;
 }
 
-.adp-button-quiet:hover {
+.adp-action-quiet:hover {
   background: var(--notion-background-hover);
 }
 
@@ -73,7 +73,7 @@
   color: var(--notion-accent-text);
 }
 
-.adp-button:focus-visible,
+.adp-action:focus-visible,
 .adp-link:focus-visible,
 .adp-finding-sentence:focus-visible {
   outline: none;

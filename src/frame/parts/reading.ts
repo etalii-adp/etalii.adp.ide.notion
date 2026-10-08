@@ -5,18 +5,13 @@
 
 import { createCanvas } from '../../canvas/canvas';
 import { sentenceOf } from '../../canvas/filters';
-import type { SceneTool } from '../../canvas/scene';
-import { interpretConstraints } from '../../disl/constraints';
-import { interpretCoordinates } from '../../disl/coordinates';
-import { interpretLayout } from '../../disl/layout';
 import { emptyModel, type Finding } from '../../disl/model';
-import { interpretNotation } from '../../disl/notation';
 import { isObject, type Message } from '../../disl/specification';
-import { interpretViewpoints } from '../../disl/viewpoints';
 import { openDocument, type DocumentEvent, type OpenDocument } from '../../store/document';
 import { NotionError } from '../../store/notion';
 import { ConnectError } from '../../store/session';
 import { onPage, type Page } from '../page';
+import { interpretedOf, share } from './shared';
 
 // The id DISL gives the sentence of a document that could not be read (DISL 9.1); the sentence
 // itself is the specification's, and this one stands in for a specification that gives none.
@@ -30,21 +25,18 @@ const isForbidden = (error: unknown): boolean => error instanceof NotionError &&
 const reasonOf = (error: unknown): string => (error instanceof Error ? error.message : String(error));
 
 function attach(page: Page): () => void {
-  const { regions, specification, metamodel, expressions } = page;
+  const { regions, specification } = page;
   const document = regions.canvas.ownerDocument;
   const window = document.defaultView;
 
-  const coordinates = interpretCoordinates(specification, metamodel);
-  const notation = interpretNotation(specification, metamodel);
-  const layout = interpretLayout(specification);
-  const viewpoints = interpretViewpoints(specification, metamodel, { notation: notation.value, coordinates: coordinates.value, layout: layout.value });
-  const constraints = interpretConstraints(specification, metamodel, expressions);
-  const tool: SceneTool = { metamodel, expressions, coordinates: coordinates.value, viewpoints: viewpoints.value };
+  // Interpreted once for the page: the parts that edit work with the same.
+  const { tool, constraints, findings } = interpretedOf(page);
   // What loading and interpreting the specification found: shown with every document.
-  const ofSpecification: readonly Finding[] = [...page.findings, ...coordinates.findings, ...notation.findings, ...layout.findings, ...viewpoints.findings, ...constraints.findings];
+  const ofSpecification: readonly Finding[] = [...page.findings, ...findings];
 
   const canvas = createCanvas(regions.canvas, { tool, onSelect: (ids) => page.select(ids), onView: () => list() });
   const stopSelection = page.on('selection', (ids) => canvas.select(ids));
+  share(page, { canvas });
 
   const notice = document.createElement('div');
   notice.className = 'adp-notice';
@@ -77,7 +69,7 @@ function attach(page: Page): () => void {
     const made = document.createElement('button');
     made.type = 'button';
     made.id = id;
-    made.className = 'adp-button';
+    made.className = 'adp-action';
     made.textContent = text;
     made.addEventListener('click', act);
     return made;
@@ -97,7 +89,7 @@ function attach(page: Page): () => void {
     const shown = regions.bar.querySelector('#disconnect');
     if (has && !shown) {
       const made = button('disconnect', 'Disconnect', disconnect);
-      made.classList.add('adp-button-quiet');
+      made.classList.add('adp-action-quiet');
       made.setAttribute('aria-label', 'Disconnect from Notion');
       regions.bar.insertBefore(made, regions.status);
     } else if (!has) shown?.remove();
@@ -204,7 +196,7 @@ function attach(page: Page): () => void {
     try {
       const opened = await openDocument({
         specification, binding: page.fbl, database: page.database, notion: page.notion,
-        constraints: (model, read) => constraints.value.check(model, read),
+        constraints: (model, read) => constraints.check(model, read),
       });
       if (closed || mine !== opening) {
         opened.close();
@@ -308,6 +300,7 @@ function attach(page: Page): () => void {
     stopEvents();
     current?.close();
     current = undefined;
+    share(page, { canvas: undefined });
     canvas.dispose();
     notice.remove();
     regions.findings.replaceChildren();

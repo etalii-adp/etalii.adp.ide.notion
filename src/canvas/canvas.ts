@@ -369,13 +369,17 @@ export function createCanvas(host: SVGSVGElement, options: CanvasOptions): Canva
   // ---- the pointer ----
 
   let pan: { x: number; y: number; moved: boolean; background: boolean } | undefined;
+  // A press on one of several selected elements: it is selected alone once the pointer is let go where it was pressed.
+  let kept: { id: string; x: number; y: number } | undefined;
 
   function onPointerDown(event: PointerEvent): void {
     const target = event.target instanceof Element ? event.target.closest('[data-element]') : null;
     const id = target && host.contains(target) ? target.getAttribute('data-element') : null;
     if (event.button === 0 && id !== null) {
       const more = event.shiftKey || event.ctrlKey || event.metaKey;
-      select(more ? (selection.includes(id) ? selection.filter((other) => other !== id) : [...selection, id]) : [id], true);
+      // Until then the selection stays, so that a drag that begins here moves all of it.
+      kept = !more && selection.length > 1 && selection.includes(id) ? { id, x: event.clientX, y: event.clientY } : undefined;
+      if (!kept) select(more ? (selection.includes(id) ? selection.filter((other) => other !== id) : [...selection, id]) : [id], true);
       (drawn.get(id)?.hasAttribute('tabindex') ? drawn.get(id)! : host).focus({ preventScroll: true });
       event.preventDefault();
       return;
@@ -386,6 +390,7 @@ export function createCanvas(host: SVGSVGElement, options: CanvasOptions): Canva
   }
 
   function onPointerMove(event: PointerEvent): void {
+    if (kept && Math.hypot(event.clientX - kept.x, event.clientY - kept.y) >= 3) kept = undefined;
     if (!pan) return;
     const [dx, dy] = [event.clientX - pan.x, event.clientY - pan.y];
     // A press that hardly moves is a click on the background, not a pan.
@@ -394,7 +399,9 @@ export function createCanvas(host: SVGSVGElement, options: CanvasOptions): Canva
     panBy(dx, dy);
   }
 
-  function onPointerUp(): void {
+  function onPointerUp(event: PointerEvent): void {
+    if (kept && event.type === 'pointerup') select([kept.id], true);
+    kept = undefined;
     if (pan?.background && !pan.moved) select([], true);
     pan = undefined;
   }

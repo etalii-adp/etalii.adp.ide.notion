@@ -18,7 +18,7 @@ function attach(page: Page): () => void {
     const made = document.createElement('button');
     made.type = 'button';
     made.id = id;
-    made.className = 'adp-button adp-button-quiet adp-history-step';
+    made.className = 'adp-action adp-action-quiet adp-history-step';
     made.textContent = text;
     made.setAttribute('aria-label', name);
     made.disabled = true;
