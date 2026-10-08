@@ -153,7 +153,12 @@ describe('opening a store', () => {
 
   it('rejects with the calls\' error when there is no token', async () => {
     const made = await store();
-    const session = createSession({ service: made.service.address, storage: createMemoryStorage(), fetch: made.service.fetch, open: () => null, listen: () => () => undefined });
+    // No window opens and nobody grants: the session's time is over at its first look.
+    let time = 0;
+    const session = createSession({
+      service: made.service.address, storage: createMemoryStorage(), fetch: made.service.fetch, open: () => null, listen: () => () => undefined,
+      every: (check) => (queueMicrotask(check), () => undefined), now: () => (time += 300_000),
+    });
     const calls = createNotionCalls({ service: made.service.address, session, fetch: made.service.fetch });
     const error = await openDocument({ specification, binding: fbl, database: made.database.id, notion: calls }).catch((caught: unknown) => caught);
     expect(error).toMatchObject({ name: 'NotionError', kind: 'connect' });

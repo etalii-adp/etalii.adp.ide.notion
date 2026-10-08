@@ -2,7 +2,7 @@
 // Notion as the handler's own `fetch`. A test of the store so takes the whole path, from the
 // add-on through the service to Notion.
 
-import { handle, type ServiceConfig } from '../../service/handler';
+import { handle, type Grants, type ServiceConfig } from '../../service/handler';
 import { createMemoryNotion, type MemoryNotion, type MemoryNotionOptions } from './memoryNotion';
 
 export interface MemoryService {
@@ -19,10 +19,26 @@ export interface MemoryService {
   unreachable(times?: number): void;
   /**
    * What the window of a grant does: it follows the address the session opened through Notion's
-   * grant and the service's callback, and answers the message the callback's page posts.
+   * grant and the service's callback, and answers the message the callback's page posts. A test
+   * of a window without an opener leaves that message unposted: the service keeps its copy.
    * With `refuse`, the user refuses with that code and Notion grants nothing.
    */
   grant(address: string, options?: { refuse?: string }): Promise<{ origin: string; data: unknown }>;
+}
+
+/** The grants in progress as the service keeps them, with a clock a test may set. */
+export function createMemoryGrants(now: () => number = Date.now): Grants {
+  const kept = new Map<string, { value: string; expires: number }>();
+  return {
+    async put(key, value, seconds) {
+      kept.set(key, { value, expires: now() + seconds * 1000 });
+    },
+    async take(key) {
+      const grant = kept.get(key);
+      kept.delete(key);
+      return grant && grant.expires > now() ? grant.value : undefined;
+    },
+  };
 }
 
 export function createMemoryService(options: MemoryNotionOptions & { address?: string; origin?: string } = {}): MemoryService {
@@ -34,6 +50,7 @@ export function createMemoryService(options: MemoryNotionOptions & { address?: s
     clientSecret: options.clientSecret ?? 'memory-secret',
     allowedOrigin: origin,
     serviceAddress: address,
+    grants: createMemoryGrants(),
     fetch: notion.fetch,
   };
   const requests: string[] = [];
@@ -67,7 +84,7 @@ export function createMemoryService(options: MemoryNotionOptions & { address?: s
         ? `${address}/callback?error=${encodeURIComponent(refuse)}&state=${state}`
         : (await notion.fetch(toNotion, { redirect: 'manual' })).headers.get('Location')!;
       const page = await (await handle(new Request(back), config)).text();
-      const posted = /postMessage\((\{.*?\}), ("[^"]*")\); window\.close\(\);<\/script>$/.exec(page);
+      const posted = /postMessage\((\{.*?\}), ("[^"]*")\); window\.close\(\); \}<\/script>$/.exec(page);
       if (!posted) throw new Error('The callback answered no page that posts a message.');
       if (JSON.parse(posted[2]) !== origin) throw new Error('The message is posted to another origin than the add-on\'s.');
       return { origin: new URL(address).origin, data: JSON.parse(posted[1]) };

@@ -1,6 +1,13 @@
 // The service of the Notion add-ons: it completes Notion's grant of access and forwards the
-// store's calls to the Notion API. It knows no platform, uses web standard APIs only, keeps no
-// state and logs nothing, so that whatever runs it adds a few lines and no rule.
+// store's calls to the Notion API. It knows no platform, uses web standard APIs only and logs
+// nothing, so that whatever runs it adds a few lines and no rule. All it keeps is the outcome of a
+// grant in progress, for two minutes at most and for one reading.
+
+/** Where the outcome of a grant waits for the add-on that asked. `take` removes what it answers. */
+export interface Grants {
+  put(key: string, value: string, seconds: number): Promise<void>;
+  take(key: string): Promise<string | undefined>;
+}
 
 export interface ServiceConfig {
   clientId: string;
@@ -9,12 +16,14 @@ export interface ServiceConfig {
   allowedOrigin: string;
   /** The service's own base address, for the grant's `redirect_uri`. */
   serviceAddress: string;
+  grants: Grants;
   fetch?: typeof fetch;
   notionBase?: string;
 }
 
 const NOTION_VERSION = '2026-03-11';
 const STATE = /^[A-Za-z0-9_-]{32,128}$/;
+const KEPT_SECONDS = 120;
 const ID = '(?:[0-9a-fA-F]{32}|[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12})';
 
 // The calls the store makes. A call it comes to need is added to the service contract first.
@@ -65,14 +74,38 @@ async function exchange(config: ServiceConfig, grant: Record<string, string>): P
   }
 }
 
-/** The page of the window the add-on opened: it hands the message to its opener and closes. */
-function messagePage(message: Record<string, unknown>, config: ServiceConfig): Response {
+/**
+ * The page a grant ends on. Opened by the add-on, it hands the message to its opener and closes.
+ * Opened by anything else, as the Notion desktop app does through the system's browser, it stays
+ * and says where to go: the add-on then asks for the same message at `/grant`.
+ */
+async function messagePage(outcome: Record<string, unknown>, config: ServiceConfig): Promise<Response> {
+  const message = { source: 'adp-notion', ...outcome };
+  // A store that fails leaves the window that has an opener working.
+  await config.grants.put(String(outcome.state), JSON.stringify(message), KEPT_SECONDS).catch(() => undefined);
   // "<" is escaped so that nothing in a message can end the script.
   const literal = (value: unknown) => JSON.stringify(value).replaceAll('<', '\\u003c');
-  const script = `if (window.opener) window.opener.postMessage(${literal({ source: 'adp-notion', ...message })}, ${literal(config.allowedOrigin)}); window.close();`;
-  return new Response(`<!doctype html><meta charset="utf-8"><title>ADP</title><script>${script}</script>`, {
+  const sentence = 'error' in outcome
+    ? 'Access was not granted. Go back to Notion to try again. You can close this window.'
+    : 'Access is granted. Go back to Notion: the diagram opens by itself. You can close this window.';
+  const script = `if (window.opener) { window.opener.postMessage(${literal(message)}, ${literal(config.allowedOrigin)}); window.close(); }`;
+  // The colours are the browser's own for the person's colour scheme: the page has no style.
+  return new Response(`<!doctype html><meta charset="utf-8"><meta name="color-scheme" content="light dark"><title>ADP</title><p>${sentence}</p><script>${script}</script>`, {
     headers: { 'Content-Type': 'text/html; charset=utf-8', 'Cache-Control': 'no-store' },
   });
+}
+
+/** Hands the outcome of a grant to the add-on that started it, once: it alone knows the verifier the state was made from. */
+async function grant(request: Request, config: ServiceConfig, headers: Headers): Promise<Response> {
+  const asked = (await request.json().catch(() => null)) as { verifier?: unknown } | null;
+  if (typeof asked?.verifier !== 'string' || !STATE.test(asked.verifier)) return json(400, { error: 'invalid_request' }, headers);
+  const digest = new Uint8Array(await crypto.subtle.digest('SHA-256', new TextEncoder().encode(asked.verifier)));
+  const state = btoa(String.fromCharCode(...digest)).replaceAll('+', '-').replaceAll('/', '_').replaceAll('=', '');
+  const kept = await config.grants.take(state);
+  headers.set('Cache-Control', 'no-store');
+  if (kept === undefined) return new Response(null, { status: 204, headers });
+  headers.set('Content-Type', 'application/json; charset=utf-8');
+  return new Response(kept, { headers });
 }
 
 async function callback(url: URL, config: ServiceConfig): Promise<Response> {
@@ -149,7 +182,7 @@ export async function handle(request: Request, config: ServiceConfig): Promise<R
   if (method === 'GET' && path === '/callback') return callback(url, config);
 
   const notion = path.startsWith('/notion/');
-  if (notion || path === '/refresh') {
+  if (notion || path === '/refresh' || path === '/grant') {
     const headers = cors(request, config);
     if (method === 'OPTIONS') {
       headers.set('Access-Control-Allow-Methods', 'GET, POST, PATCH');
@@ -158,7 +191,7 @@ export async function handle(request: Request, config: ServiceConfig): Promise<R
       return new Response(null, { status: 204, headers });
     }
     if (notion) return forward(request, path.slice('/notion/'.length), url.search, config, headers);
-    if (method === 'POST') return refresh(request, config, headers);
+    if (method === 'POST') return path === '/grant' ? grant(request, config, headers) : refresh(request, config, headers);
   }
   return new Response(null, { status: 404, headers: { 'Cache-Control': 'no-store' } });
 }

@@ -1,17 +1,27 @@
+import { createHash } from 'node:crypto';
 import { beforeEach, describe, expect, it } from 'vitest';
 import { handle, type ServiceConfig } from '../../service/handler';
 import { createMemoryNotion, type MemoryNotion } from '../support/memoryNotion';
+import { createMemoryGrants } from '../support/memoryService';
 
 const SERVICE = 'https://service.example';
 const ORIGIN = 'https://etalii.net';
-const STATE = 'abcdefghijklmnopqrstuvwxyz-ABCDEF_0123456789';
+const VERIFIER = 'a-verifier_of-48-characters-0123456789-ABCDEFGHIJ';
+/** The SHA-256 of the verifier in base64url without padding, as the add-on makes its state. */
+const STATE = createHash('sha256').update(VERIFIER).digest('base64url');
 
 let notion: MemoryNotion;
 let config: ServiceConfig;
+/** The time of the grants, in milliseconds. */
+let clock: number;
 
 beforeEach(() => {
   notion = createMemoryNotion({ workspace: 'A workspace' });
-  config = { clientId: 'memory-client', clientSecret: 'memory-secret', allowedOrigin: ORIGIN, serviceAddress: SERVICE, fetch: notion.fetch };
+  clock = 0;
+  config = {
+    clientId: 'memory-client', clientSecret: 'memory-secret', allowedOrigin: ORIGIN, serviceAddress: SERVICE,
+    grants: createMemoryGrants(() => clock), fetch: notion.fetch,
+  };
 });
 
 function ask(method: string, path: string, options: { token?: string | null; origin?: string | null; body?: unknown } = {}) {
@@ -25,7 +35,7 @@ function ask(method: string, path: string, options: { token?: string | null; ori
 
 /** The message and the target origin of the page the callback answers. */
 async function posted(response: Response): Promise<{ message: Record<string, unknown>; target: string }> {
-  const found = /postMessage\((\{.*?\}), ("[^"]*")\); window\.close\(\);<\/script>$/.exec(await response.text());
+  const found = /postMessage\((\{.*?\}), ("[^"]*")\); window\.close\(\); \}<\/script>$/.exec(await response.text());
   expect(found).not.toBeNull();
   return { message: JSON.parse(found![1]), target: JSON.parse(found![2]) };
 }
@@ -115,6 +125,111 @@ describe('GET /callback', () => {
   });
 });
 
+describe('a window without an opener', () => {
+  it('stays open with one sentence, and loads nothing from another host', async () => {
+    const granted = await (await ask('GET', `/callback?code=${notion.grantCode()}&state=${STATE}`, { token: null })).text();
+    // The message is posted, and the window closed, only where there is an opener.
+    expect(granted).toMatch(/<script>if \(window\.opener\) \{ window\.opener\.postMessage\(.*\); window\.close\(\); \}<\/script>$/);
+    expect(granted).toContain('<p>Access is granted. Go back to Notion: the diagram opens by itself. You can close this window.</p>');
+    expect(granted).toContain('<meta name="color-scheme" content="light dark">');
+    expect(granted).not.toMatch(/https?:\/\/(?!etalii\.net")|<link|<style|src=/);
+
+    const refused = await (await ask('GET', `/callback?error=access_denied&state=${STATE}`, { token: null })).text();
+    expect(refused).toContain('<p>Access was not granted. Go back to Notion to try again. You can close this window.</p>');
+  });
+});
+
+describe('POST /grant', () => {
+  const grant = (verifier: unknown = VERIFIER, origin?: string) => ask('POST', '/grant', { token: null, origin, body: { verifier } });
+  const complete = () => ask('GET', `/callback?code=${notion.grantCode()}&state=${STATE}`, { token: null, origin: null });
+
+  it('answers 204 before the grant, the message once after it, and 204 again', async () => {
+    const before = await grant();
+    expect(before.status).toBe(204);
+    expect(await before.text()).toBe('');
+    expect(before.headers.get('Cache-Control')).toBe('no-store');
+    expect(before.headers.get('Access-Control-Allow-Origin')).toBe(ORIGIN);
+
+    const { message } = await posted(await complete());
+    const once = await grant();
+    expect(once.status).toBe(200);
+    expect(once.headers.get('Content-Type')).toContain('application/json');
+    expect(once.headers.get('Cache-Control')).toBe('no-store');
+    expect(once.headers.get('Access-Control-Allow-Origin')).toBe(ORIGIN);
+    expect(once.headers.get('Vary')).toBe('Origin');
+    // The same object the page posts to its opener.
+    const handed = await once.json();
+    expect(handed).toEqual(message);
+    expect(Object.keys(handed).sort()).toEqual(['refresh', 'source', 'state', 'token', 'workspace']);
+
+    expect((await grant()).status).toBe(204);
+  });
+
+  it('hands a refusal and a failed exchange over as an error', async () => {
+    await ask('GET', `/callback?error=access_denied&state=${STATE}`, { token: null });
+    expect(await (await grant()).json()).toEqual({ source: 'adp-notion', state: STATE, error: 'access_denied' });
+    await ask('GET', `/callback?code=never-granted&state=${STATE}`, { token: null });
+    expect(await (await grant()).json()).toEqual({ source: 'adp-notion', state: STATE, error: 'invalid_grant' });
+    expect((await grant()).status).toBe(204);
+  });
+
+  it('gives the state alone, or another verifier, nothing, and leaves the grant for its verifier', async () => {
+    await complete();
+    expect((await grant(STATE)).status).toBe(204);
+    expect((await grant(`${VERIFIER.slice(0, -1)}K`)).status).toBe(204);
+    expect((await grant()).status).toBe(200);
+  });
+
+  it.each([
+    ['no body', undefined],
+    ['no verifier', {}],
+    ['a verifier that is no text', { verifier: 5 }],
+    ['31 characters', { verifier: 'a'.repeat(31) }],
+    ['129 characters', { verifier: 'a'.repeat(129) }],
+    ['another character', { verifier: `${'a'.repeat(40)}"` }],
+  ])('answers 400 for %s, and takes nothing', async (_, body) => {
+    await complete();
+    const response = await ask('POST', '/grant', { token: null, body });
+    expect(response.status).toBe(400);
+    expect(response.headers.get('Cache-Control')).toBe('no-store');
+    expect((await grant()).status).toBe(200);
+  });
+
+  it('keeps a grant for 120 seconds and no longer', async () => {
+    await complete();
+    clock = 119_999;
+    expect((await grant()).status).toBe(200);
+    await complete();
+    clock += 120_000;
+    expect((await grant()).status).toBe(204);
+  });
+
+  it('keeps nothing for a callback without a valid state', async () => {
+    const kept: string[] = [];
+    config.grants = { put: async (key) => void kept.push(key), take: async () => undefined };
+    await ask('GET', `/callback?code=${notion.grantCode()}&state=short`);
+    expect(kept).toEqual([]);
+    await complete();
+    expect(kept).toEqual([STATE]);
+  });
+
+  it('still answers the page when the grant cannot be kept', async () => {
+    config.grants = { put: () => Promise.reject(new Error('out')), take: async () => undefined };
+    expect((await posted(await complete())).message).toMatchObject({ state: STATE, workspace: 'A workspace' });
+  });
+
+  it('answers another origin without the header that lets it read', async () => {
+    await complete();
+    const response = await grant(VERIFIER, 'https://elsewhere.example');
+    expect(response.headers.get('Access-Control-Allow-Origin')).toBeNull();
+    expect(response.headers.get('Vary')).toBe('Origin');
+  });
+
+  it('answers 404 to another method', async () => {
+    expect((await ask('GET', '/grant')).status).toBe(404);
+  });
+});
+
 describe('POST /refresh', () => {
   async function granted(): Promise<{ token: string; refresh: string }> {
     const { message } = await posted(await ask('GET', `/callback?code=${notion.grantCode()}&state=${STATE}`));
@@ -159,7 +274,7 @@ describe('POST /refresh', () => {
 });
 
 describe('the preflight', () => {
-  it.each(['/notion/v1/pages', '/notion/v1/users/me', '/refresh'])('allows the methods and headers of %s for a day', async (path) => {
+  it.each(['/notion/v1/pages', '/notion/v1/users/me', '/refresh', '/grant'])('allows the methods and headers of %s for a day', async (path) => {
     const response = await ask('OPTIONS', path, { token: null });
     expect(response.status).toBe(204);
     expect(response.headers.get('Access-Control-Allow-Origin')).toBe(ORIGIN);
@@ -349,6 +464,7 @@ describe('what the service keeps', () => {
       await ask('GET', `/authorize?state=${STATE}`),
       await ask('GET', `/callback?code=never-granted&state=${STATE}`),
       await ask('POST', '/refresh', { body: { refresh: 'never-granted' } }),
+      await ask('POST', '/grant', { body: { verifier: VERIFIER } }),
       await ask('GET', '/notion/v1/users/me'),
       await ask('GET', '/nothing'),
     ];

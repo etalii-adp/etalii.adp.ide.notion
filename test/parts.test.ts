@@ -101,7 +101,7 @@ describe('the service and the token', () => {
 
   it('are known to src/store/session.ts and src/store/notion.ts alone', () => {
     // The paths of the service, the key the token is kept under, and the header it is sent in.
-    const words = ['/authorize', '/callback', '/refresh', '/notion/', 'adp-notion.token', 'Authorization'];
+    const words = ['/authorize', '/callback', '/refresh', '/grant', '/notion/', 'adp-notion.token', 'Authorization'];
     expect(holding((literal) => words.some((word) => literal.includes(word)), ['src/store/session.ts', 'src/store/notion.ts'])).toEqual([]);
   });
 

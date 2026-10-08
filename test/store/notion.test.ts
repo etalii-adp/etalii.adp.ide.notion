@@ -412,12 +412,19 @@ describe('a token Notion refuses', () => {
     expect(kept()).toEqual(before);
   });
 
-  it('says the user must connect, and why, when no token is kept and no window opens', async () => {
+  it('says the user must connect, and why, when no token is kept and the grant is not completed', async () => {
     storage.removeItem(KEY);
+    // No window opens and nobody grants: the session's time is over at its first look.
+    let time = 0;
+    session = createSession({
+      service: service.address, storage, fetch: service.fetch, open: () => null, listen: () => () => undefined,
+      every: (check) => (queueMicrotask(check), () => undefined), now: () => (time += 300_000),
+    });
+    calls = createNotionCalls({ service: service.address, session, fetch: service.fetch, now: () => clock, sleep: async () => undefined });
     const error = await failure(calls.edit((writes) => writes.createRow(database.dataSourceId, title('one'))));
     expect(error).toMatchObject({ kind: 'connect' });
     expect(error.cause).toBeInstanceOf(ConnectError);
-    expect(error.cause).toMatchObject({ reason: 'blocked' });
+    expect(error.cause).toMatchObject({ reason: 'timeout' });
     expect(service.requests).toEqual([]);
     expect(calls.status()).toBe('failed');
   });

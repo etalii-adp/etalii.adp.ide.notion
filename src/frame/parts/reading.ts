@@ -9,7 +9,7 @@ import { emptyModel, type Finding } from '../../disl/model';
 import { isObject, type Message } from '../../disl/specification';
 import { openDocument, type DocumentEvent, type OpenDocument } from '../../store/document';
 import { NotionError } from '../../store/notion';
-import { ConnectError } from '../../store/session';
+import { ConnectError, type Waiting } from '../../store/session';
 import { onPage, type Page } from '../page';
 import { interpretedOf, share } from './shared';
 
@@ -52,6 +52,8 @@ function attach(page: Page): () => void {
   let busy = 0;
   // The sentence this part showed last, so that it takes back no sentence but its own.
   let said = '';
+  // Ends the grant this page waits for, when it waits for one.
+  let stopWaiting = (): void => undefined;
 
   // ---- what the page is made of ----
 
@@ -243,30 +245,41 @@ function attach(page: Page): () => void {
   function connect(): void {
     takeBack();
     offerDisconnect();
-    page.session.token().then(
+    page.session.token({ onWaiting: wait }).then(
       () => void (closed || open()),
       (error: unknown) => {
         if (closed) return;
         const reason = error instanceof ConnectError ? error.reason : undefined;
-        if (page.state !== 'connect') invite();
-        if (reason === 'blocked' && !notice.querySelector('#open-in-tab')) {
-          const link = document.createElement('a');
-          link.id = 'open-in-tab';
-          link.className = 'adp-link';
-          link.href = document.location.href;
-          link.target = '_blank';
-          link.rel = 'noopener';
-          link.textContent = 'Open this add-on in a tab of its own';
-          notice.append(link);
-        }
+        invite();
+        if (reason === 'cancelled') return;
         tell(
-          reason === 'blocked' ? 'The browser did not open the window to connect in. Open this add-on in a tab of its own and connect there.'
-            : reason === 'closed' ? 'The window was closed before access was granted.'
-              : reason === 'refused' ? 'Access was not granted.'
-                : `Connecting to Notion failed: ${reasonOf(error)}`,
+          reason === 'refused' ? 'Access was not granted.'
+            : reason === 'timeout' ? 'Access was not granted in time. Connect again to try once more.'
+              : `Connecting to Notion failed: ${reasonOf(error)}`,
         );
       },
     );
+  }
+
+  // The grant goes on in a window of its own, or, where the page is embedded in an app that
+  // opens none, in the person's browser: the link is the way there, and the service hands the
+  // token to this page either way.
+  function wait(waiting: Waiting): void {
+    if (closed) {
+      waiting.cancel();
+      return;
+    }
+    stopWaiting = () => waiting.cancel();
+    const link = document.createElement('a');
+    link.id = 'open-in-tab';
+    link.className = 'adp-link';
+    link.href = waiting.address;
+    link.target = '_blank';
+    link.rel = 'noopener';
+    link.textContent = 'No window opened? Open the sign-in in your browser';
+    const cancel = button('cancel-connect', 'Cancel', stopWaiting);
+    cancel.classList.add('adp-action-quiet');
+    say(['The sign-in continues in a browser window. Once access is granted there, the diagram opens here by itself.'], link, cancel);
   }
 
   function disconnect(): void {
@@ -294,6 +307,7 @@ function attach(page: Page): () => void {
 
   return () => {
     closed = true;
+    stopWaiting();
     opening++;
     window?.removeEventListener('focus', onFocus);
     stopSelection();
