@@ -135,6 +135,8 @@ export function createCanvas(host: SVGSVGElement, options: CanvasOptions): Canva
   let viewport: Viewport = { x: 0, y: 0, zoom: 1 };
   let selection: readonly string[] = [];
   let fitted: string | undefined;
+  // Whether the view is still the fitted one: it is fitted again when the canvas gets its real size.
+  let fittedView = false;
   let order: string[] = [];
   const drawn = new Map<string, SVGGElement>();
 
@@ -159,10 +161,11 @@ export function createCanvas(host: SVGSVGElement, options: CanvasOptions): Canva
     const { width, height } = size();
     const axes = system();
     const along = (from: number, length: number) => ({ from, to: from + length / viewport.zoom, zoom: viewport.zoom });
-    rulers.replaceChildren(...[
+    // Before a store is read there is nothing to measure, so no ruler either.
+    rulers.replaceChildren(...(!scene ? [] : [
       drawRuler(document, axes.x, diagram(), along(viewport.x, width), { across: height, locale: options.locale }),
       drawRuler(document, axes.y, diagram(), along(viewport.y, height), { across: width, locale: options.locale }),
-    ].filter((ruler) => ruler !== undefined));
+    ]).filter((ruler) => ruler !== undefined));
   }
 
   function setViewport(next: Partial<Viewport>): void {
@@ -171,14 +174,20 @@ export function createCanvas(host: SVGSVGElement, options: CanvasOptions): Canva
     place();
   }
 
-  const panBy = (dx: number, dy: number): void => setViewport({ x: viewport.x - dx / viewport.zoom, y: viewport.y - dy / viewport.zoom });
+  // A view the user chose is theirs: it is not fitted again.
+  function moveTo(next: Partial<Viewport>): void {
+    fittedView = false;
+    setViewport(next);
+  }
+
+  const panBy = (dx: number, dy: number): void => moveTo({ x: viewport.x - dx / viewport.zoom, y: viewport.y - dy / viewport.zoom });
 
   function zoomBy(factor: number, at?: Point): void {
     const { width, height } = size();
     const fixed = at ?? { x: width / 2, y: height / 2 };
     const zoom = Math.min(maxZoom, Math.max(minZoom, viewport.zoom * factor));
     // The canvas point under the fixed pixel is the same before and after.
-    setViewport({ x: viewport.x + fixed.x / viewport.zoom - fixed.x / zoom, y: viewport.y + fixed.y / viewport.zoom - fixed.y / zoom, zoom });
+    moveTo({ x: viewport.x + fixed.x / viewport.zoom - fixed.x / zoom, y: viewport.y + fixed.y / viewport.zoom - fixed.y / zoom, zoom });
   }
 
   function fit(): void {
@@ -191,6 +200,7 @@ export function createCanvas(host: SVGSVGElement, options: CanvasOptions): Canva
     // Never enlarged: a small drawing is shown at its own size, in the middle.
     const zoom = Math.min(1, Math.max(minZoom, Math.min((width - 2 * margin) / bounds.width, (height - 2 * margin) / bounds.height)));
     setViewport({ x: bounds.x + bounds.width / 2 - width / zoom / 2, y: bounds.y + bounds.height / 2 - height / zoom / 2, zoom });
+    fittedView = true;
   }
 
   const toScreen = (point: Point): Point => ({ x: (point.x - viewport.x) * viewport.zoom, y: (point.y - viewport.y) * viewport.zoom });
@@ -458,7 +468,7 @@ export function createCanvas(host: SVGSVGElement, options: CanvasOptions): Canva
   const window = document.defaultView;
   const appearance = window && 'MutationObserver' in window ? new window.MutationObserver(() => scene && again()) : undefined;
   appearance?.observe(root, { attributes: true, attributeFilter: ['data-theme'] });
-  const resized = window && 'ResizeObserver' in window ? new window.ResizeObserver(() => place()) : undefined;
+  const resized = window && 'ResizeObserver' in window ? new window.ResizeObserver(() => (fittedView ? fit() : place())) : undefined;
   resized?.observe(host);
 
   return {
@@ -469,7 +479,7 @@ export function createCanvas(host: SVGSVGElement, options: CanvasOptions): Canva
     get viewport() { return viewport; },
     get selection() { return selection; },
     draw: (next, from) => draw(next, from),
-    show, setViewpoint, setFilters, fit, setViewport, panBy, zoomBy,
+    show, setViewpoint, setFilters, fit, setViewport: moveTo, panBy, zoomBy,
     select: (ids) => select(ids),
     reveal,
     toCanvas: (pointer) => fromScreen(inHost(pointer)),
