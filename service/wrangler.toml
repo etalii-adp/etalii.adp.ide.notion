@@ -7,3 +7,12 @@ compatibility_date = "2026-10-01"
 
 [vars]
 ALLOWED_ORIGIN = "https://etalii.net"
+
+# The grants in progress: one Durable Object per grant, kept for two minutes at most.
+[[durable_objects.bindings]]
+name = "GRANTS"
+class_name = "Grant"
+
+[[migrations]]
+tag = "v1"
+new_sqlite_classes = ["Grant"]

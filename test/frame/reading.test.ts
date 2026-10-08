@@ -108,16 +108,69 @@ describe('the state connect', () => {
     expect(drawn()).toEqual([]);
   });
 
-  it('offers this same address for a tab of its own when the window is blocked', async () => {
+  it('says while it waits that the sign-in is in a browser window, with a link to it and a way to stop', async () => {
     await open(await database());
     await settled('connect');
     expect(byId('open-in-tab')).toBeNull();
     byId('connect')!.click();
     await vi.waitFor(() => expect(byId('open-in-tab')).not.toBeNull());
     expect(opened).toHaveLength(1);
-    expect(byId('open-in-tab')!.getAttribute('href')).toBe(document.location.href);
-    expect(byId('open-in-tab')!.getAttribute('target')).toBe('_blank');
+    // The link is the sign-in itself, for when no window opened.
+    const link = byId('open-in-tab')!;
+    expect(link.getAttribute('href')).toBe(opened[0]);
+    expect(new URL(opened[0]).pathname).toBe('/authorize');
+    expect(link.getAttribute('target')).toBe('_blank');
+    expect(link.getAttribute('rel')).toBe('noopener');
+    expect(link.textContent).toContain('No window opened?');
+    expect(document.querySelector('.adp-notice p')!.textContent).toBe('The sign-in continues in a browser window. Once access is granted there, the diagram opens here by itself.');
+    expect(byId('connect')).toBeNull();
     expect(state()).toBe('connect');
+
+    byId('cancel-connect')!.click();
+    await vi.waitFor(() => expect(byId('connect')).not.toBeNull());
+    expect(byId('open-in-tab')).toBeNull();
+    expect(byId('cancel-connect')).toBeNull();
+    expect(document.body.textContent).not.toContain('Connecting to Notion failed');
+    expect(state()).toBe('connect');
+
+    // Another click starts a grant of its own.
+    byId('connect')!.click();
+    await vi.waitFor(() => expect(opened).toHaveLength(2));
+    expect(opened[1]).not.toBe(opened[0]);
+  });
+
+  it('opens the store when the service hands the grant over, no window having opened', async () => {
+    vi.useFakeTimers({ toFake: ['setInterval', 'clearInterval', 'Date'] });
+    try {
+      await open(await database([trend('a', 1)]));
+      await settled('connect');
+      byId('connect')!.click();
+      await vi.waitFor(() => expect(byId('open-in-tab')).not.toBeNull());
+      // The person grants in a window that has no opener: nothing is posted to the page.
+      await service.grant(byId('open-in-tab')!.getAttribute('href')!);
+      expect(state()).toBe('connect');
+      await vi.advanceTimersByTimeAsync(2000);
+      await settled('ready');
+      expect(drawn()).toEqual(['a']);
+      expect(byId('open-in-tab')).toBeNull();
+      expect(byId('cancel-connect')).toBeNull();
+      expect(byId('disconnect')).not.toBeNull();
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
+  it('returns to the invitation with a sentence when access is refused', async () => {
+    openWindow = (url) => {
+      void service.grant(url, { refuse: 'access_denied' }).then((message) => window.dispatchEvent(new MessageEvent('message', message)));
+      return { closed: false };
+    };
+    await open(await database());
+    await settled('connect');
+    byId('connect')!.click();
+    await vi.waitFor(() => expect(document.body.textContent).toContain('Access was not granted.'));
+    expect(byId('connect')).not.toBeNull();
+    expect(byId('open-in-tab')).toBeNull();
   });
 
   it('opens the store once access is granted from the click', async () => {

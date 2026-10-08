@@ -4,7 +4,8 @@
 //
 // It reads NOTION_CLIENT_ID, NOTION_CLIENT_SECRET and ALLOWED_ORIGIN from the environment. With
 // --memory it needs no account anywhere: an in-memory Notion answers the calls and grants access
-// at once, and one empty database exists for an add-on to be pointed at.
+// at once, and one empty database exists for an add-on to be pointed at. In both modes the grants
+// in progress are kept in memory, as the Worker keeps them in a Durable Object.
 import { createServer } from 'node:http';
 import { handle } from '../service/handler.ts';
 
@@ -15,12 +16,28 @@ const address = `http://localhost:${port}`;
 const notionBase = 'https://api.notion.com';
 const MEMORY_DATABASE = '11111111-1111-4111-8111-111111111111';
 
+// The grants in progress, as the Worker keeps them: for the seconds asked, and for one reading.
+const kept = new Map();
+const grants = {
+  async put(key, value, seconds) {
+    const grant = { value, expires: Date.now() + seconds * 1000 };
+    kept.set(key, grant);
+    setTimeout(() => kept.get(key) === grant && kept.delete(key), seconds * 1000).unref();
+  },
+  async take(key) {
+    const grant = kept.get(key);
+    kept.delete(key);
+    return grant && grant.expires > Date.now() ? grant.value : undefined;
+  },
+};
+
 const config = {
   clientId: process.env.NOTION_CLIENT_ID ?? '',
   clientSecret: process.env.NOTION_CLIENT_SECRET ?? '',
   allowedOrigin: process.env.ALLOWED_ORIGIN ?? 'http://localhost:8080',
   serviceAddress: address,
   notionBase,
+  grants,
 };
 
 let notion;

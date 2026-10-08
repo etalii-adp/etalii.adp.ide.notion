@@ -16,7 +16,7 @@ The Gartner hype cycle graph is a diagram of trends, the triggers that start the
 
 ![The Gartner hype cycle graph as a Notion add-on: the digital trends as banners on the year axis, with the toolbox at the left and the property grid at the right](docs/screenshots/gartner-hype-cycle-graph.png)
 
-An add-on reaches Notion through a small service: a published page talks to the deployed one, a Cloudflare Worker, and a page served from `localhost` to the local one, with a real Notion database or with an in-memory one. [docs/service.md](docs/service.md) says how both are run. A person grants access once, from the page itself. That works in a web browser; in the Notion desktop app the grant does not reach the page yet, so there the add-on stays at its invitation to connect.
+An add-on reaches Notion through a small service: a published page talks to the deployed one, a Cloudflare Worker, and a page served from `localhost` to the local one, with a real Notion database or with an in-memory one. [docs/service.md](docs/service.md) says how both are run. A person grants access once, from the page itself. That works in a web browser. In the Notion desktop app, which opens the grant in the system's browser, the add-on is built to be handed the token by the service instead; that has not been seen working in the app yet.
 
 ## Build and test
 

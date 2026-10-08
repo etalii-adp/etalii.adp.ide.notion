@@ -73,11 +73,11 @@ Each script takes `<repository>=<git ref>` to copy from another commit than `ori
 
 ## The service
 
-An add-on reaches Notion through one small service, which completes Notion's grant of access and forwards the calls a store makes. It keeps no state, and the client secret is in no file of the repository, no page and no log.
+An add-on reaches Notion through one small service, which completes Notion's grant of access and forwards the calls a store makes. All it keeps is the outcome of a grant in progress, for at most two minutes and for one reading, so that a page the grant's window cannot reach, as in the Notion desktop app, can ask for it at `POST /grant`. The client secret is in no file of the repository, no page and no log.
 
 - `service/handler.ts` is all of it, and it knows no platform: a request and its configuration in, a response out.
-- The local service, `node scripts/service.mjs`, runs that handler at `http://localhost:8787`. With `--memory` an in-memory Notion answers and no account is needed. A page served from `localhost` uses it.
-- The Cloudflare Worker, `service/worker.ts` with `service/wrangler.toml`, runs the handler for the published pages at the address `src/frame/config.ts` holds. The `service` job of `Build` deploys it on a push to `develop`; its two secrets are set on the Worker itself and are in no file.
+- The local service, `node scripts/service.mjs`, runs that handler at `http://localhost:8787`. With `--memory` an in-memory Notion answers and no account is needed. It keeps the grants in progress in memory. A page served from `localhost` uses it.
+- The Cloudflare Worker, `service/worker.ts` with `service/wrangler.toml`, runs the handler for the published pages at the address `src/frame/config.ts` holds, and keeps the grants in progress in a Durable Object, the class `Grant`. The `service` job of `Build` deploys it on a push to `develop`; its two secrets are set on the Worker itself and are in no file.
 
 [docs/service.md](docs/service.md) has the endpoints, the secrets and how the service is run.
 
