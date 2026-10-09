@@ -9,8 +9,9 @@ import { emptyModel, type Finding } from '../../disl/model';
 import { isObject, type Message } from '../../disl/specification';
 import { openDocument, type DocumentEvent, type OpenDocument } from '../../store/document';
 import { NotionError } from '../../store/notion';
-import { ConnectError, type Waiting } from '../../store/session';
+import type { Waiting } from '../../store/session';
 import { onPage, type Page } from '../page';
+import { actionButton, connectFailure, prepareFailure, propertiesNotice, waitingNotice } from './notices';
 import { interpretedOf, share } from './shared';
 
 // The id DISL gives the sentence of a document that could not be read (DISL 9.1); the sentence
@@ -21,7 +22,6 @@ const unreadableOtherwise = 'The document could not be read, so it cannot be edi
 const severities: Record<Finding['severity'], string> = { error: 'Error', warning: 'Warning', info: 'Information' };
 
 const isUnshared = (error: unknown): boolean => error instanceof NotionError && error.kind === 'refused' && (error.status === 404 || error.code === 'object_not_found');
-const isForbidden = (error: unknown): boolean => error instanceof NotionError && error.kind === 'refused' && error.status === 403;
 const reasonOf = (error: unknown): string => (error instanceof Error ? error.message : String(error));
 
 function attach(page: Page): () => void {
@@ -67,15 +67,7 @@ function attach(page: Page): () => void {
     said = '';
   }
 
-  function button(id: string, text: string, act: () => void): HTMLButtonElement {
-    const made = document.createElement('button');
-    made.type = 'button';
-    made.id = id;
-    made.className = 'adp-action';
-    made.textContent = text;
-    made.addEventListener('click', act);
-    return made;
-  }
+  const button = (id: string, text: string, act: () => void): HTMLButtonElement => actionButton(document, id, text, act);
 
   function say(sentences: readonly string[], ...more: HTMLElement[]): void {
     notice.replaceChildren(...sentences.map((sentence) => {
@@ -145,10 +137,8 @@ function attach(page: Page): () => void {
     canvas.show(current.model);
     list();
     if (state === 'unprepared') {
-      say(
-        ['This database is not prepared as a store yet.', ...current.findings.map((finding) => finding.message)],
-        button('prepare', 'Prepare this database', prepare),
-      );
+      // The findings below say what stands in the way; what the database gets is asked here.
+      say(['This database is not prepared as a store yet.'], ...(current.lacking ? propertiesNotice(document, current.lacking, prepare) : []));
     } else if (state === 'unreadable') {
       const messages = isObject(specification.behavior?.messages) ? specification.behavior.messages : {};
       say([sentenceOf(messages[UNREADABLE] as Message | undefined, { tool, model: emptyModel }) || unreadableOtherwise]);
@@ -216,19 +206,16 @@ function attach(page: Page): () => void {
     }
   }
 
-  function prepare(): void {
+  function prepare(project: Record<string, string>): void {
     const held = current;
     if (!held) return;
     takeBack();
-    held.prepare().catch((error: unknown) => {
+    held.prepare(project).catch((error: unknown) => {
       if (closed || held !== current) return;
-      if (!isForbidden(error)) {
-        tell(`The database could not be prepared: ${reasonOf(error)}`);
-        return;
-      }
+      const said = prepareFailure(error);
       // Nothing was changed, and this person cannot: the control goes.
-      notice.querySelector('#prepare')?.remove();
-      tell('You may not change this database, so it cannot be prepared from here. Ask somebody who may.');
+      if (said.forbidden) notice.querySelector('#prepare')?.remove();
+      tell(said.sentence);
     });
   }
 
@@ -249,37 +236,20 @@ function attach(page: Page): () => void {
       () => void (closed || open()),
       (error: unknown) => {
         if (closed) return;
-        const reason = error instanceof ConnectError ? error.reason : undefined;
         invite();
-        if (reason === 'cancelled') return;
-        tell(
-          reason === 'refused' ? 'Access was not granted.'
-            : reason === 'timeout' ? 'Access was not granted in time. Connect again to try once more.'
-              : `Connecting to Notion failed: ${reasonOf(error)}`,
-        );
+        const said = connectFailure(error);
+        if (said !== undefined) tell(said);
       },
     );
   }
 
-  // The grant goes on in a window of its own, or, where the page is embedded in an app that
-  // opens none, in the person's browser: the link is the way there, and the service hands the
-  // token to this page either way.
   function wait(waiting: Waiting): void {
     if (closed) {
       waiting.cancel();
       return;
     }
     stopWaiting = () => waiting.cancel();
-    const link = document.createElement('a');
-    link.id = 'open-in-tab';
-    link.className = 'adp-link';
-    link.href = waiting.address;
-    link.target = '_blank';
-    link.rel = 'noopener';
-    link.textContent = 'No window opened? Open the sign-in in your browser';
-    const cancel = button('cancel-connect', 'Cancel', stopWaiting);
-    cancel.classList.add('adp-action-quiet');
-    say(['The sign-in continues in a browser window. Once access is granted there, the diagram opens here by itself.'], link, cancel);
+    say([], ...waitingNotice(document, waiting, 'the diagram opens'));
   }
 
   function disconnect(): void {

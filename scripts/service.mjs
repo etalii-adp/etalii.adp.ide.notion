@@ -4,8 +4,11 @@
 //
 // It reads NOTION_CLIENT_ID, NOTION_CLIENT_SECRET and ALLOWED_ORIGIN from the environment. With
 // --memory it needs no account anywhere: an in-memory Notion answers the calls and grants access
-// at once, and one empty database exists for an add-on to be pointed at. In both modes the grants
+// at once, and one empty database exists for an add-on to be pointed at. That database is on a
+// page, and the page under it holds an embed block for each add-on that names no store yet, as a
+// person leaves it before selecting the database in the add-on. In both modes the grants
 // in progress are kept in memory, as the Worker keeps them in a Durable Object.
+import { existsSync, readdirSync } from 'node:fs';
 import { createServer } from 'node:http';
 import { handle } from '../service/handler.ts';
 
@@ -44,7 +47,13 @@ let notion;
 if (memory) {
   const { createMemoryNotion } = await import('../test/support/memoryNotion.ts');
   notion = createMemoryNotion({ clientId: 'memory-client', clientSecret: 'memory-secret' });
-  notion.createDatabase({ id: MEMORY_DATABASE, title: 'Memory store' });
+  const entry = notion.createPage({ title: 'Memory entry' });
+  notion.createDatabase({ id: MEMORY_DATABASE, title: 'Memory store', parent: entry.id });
+  const diagram = notion.createPage({ title: 'Diagram', parent: entry.id });
+  const addons = new URL('../addons/', import.meta.url);
+  for (const each of readdirSync(addons, { withFileTypes: true })) {
+    if (each.isDirectory() && existsSync(new URL(`${each.name}/addon.json`, addons))) notion.addBlock(diagram.id, { embed: `${config.allowedOrigin}/${each.name}/` });
+  }
   Object.assign(config, { clientId: 'memory-client', clientSecret: 'memory-secret', fetch: notion.fetch });
 } else if (!config.clientId || !config.clientSecret) {
   console.error('Set NOTION_CLIENT_ID and NOTION_CLIENT_SECRET, or run with --memory.');

@@ -48,10 +48,54 @@ export interface NotionMe {
   };
 }
 
+/** Where something is: `type` names the member that holds the id, and a workspace has none. */
+export interface NotionParent {
+  type: string;
+  page_id?: string;
+  database_id?: string;
+}
+
 export interface NotionDatabase {
   id: string;
   title: NotionRichText[];
+  parent?: NotionParent;
   data_sources: { id: string; name: string }[];
+}
+
+/** A data source as a search finds it: `parent` is its database, `database_parent` where that database is. */
+export interface NotionFound {
+  id: string;
+  title: NotionRichText[];
+  parent: NotionParent;
+  database_parent?: NotionParent;
+}
+
+/** A block of a page: `type` names the member that holds its content. The block of a page under another has that page's id. */
+export interface NotionBlock {
+  id: string;
+  type: string;
+  embed?: { url?: string };
+  [content: string]: unknown;
+}
+
+/** How a view shows one property; `property_name` is in an answer only. */
+export interface NotionViewProperty {
+  property_id: string;
+  visible?: boolean;
+  [display: string]: unknown;
+}
+
+export interface NotionView {
+  id: string;
+  type: string;
+  configuration?: { type: string; properties?: NotionViewProperty[] | null } | null;
+}
+
+/** One page of a list. */
+export interface NotionList<T> {
+  results: T[];
+  next_cursor: string | null;
+  has_more: boolean;
 }
 
 /** A property of a data source: `type` names the member that holds its configuration. */
@@ -112,6 +156,10 @@ export interface NotionWrites {
   updateRow(rowId: string, values: NotionValues): Promise<NotionRow>;
   /** Moves a row to the trash, or out of it. */
   trashRow(rowId: string, inTrash: boolean): Promise<NotionRow>;
+  /** Gives an embed block another address. */
+  updateEmbed(blockId: string, address: string): Promise<NotionBlock>;
+  /** Says how a view shows its properties; `type` is the view's own. */
+  updateView(viewId: string, type: string, properties: NotionViewProperty[]): Promise<NotionView>;
 }
 
 export interface NotionCalls {
@@ -120,6 +168,13 @@ export interface NotionCalls {
   dataSource(dataSourceId: string): Promise<NotionDataSource>;
   /** One page of rows; a row in the trash is never among them. */
   query(dataSourceId: string, query?: NotionQuery): Promise<NotionRows>;
+  /** One page of the data sources the person's access reaches, those whose title holds `text` when it is given. */
+  search(search?: { text?: string; cursor?: string; pageSize?: number }): Promise<NotionList<NotionFound>>;
+  /** One page of the blocks directly in a page. */
+  children(pageId: string, cursor?: string): Promise<NotionList<NotionBlock>>;
+  /** One page of the views of a data source: their ids only. */
+  views(dataSourceId: string, cursor?: string): Promise<NotionList<{ id: string }>>;
+  view(viewId: string): Promise<NotionView>;
   /**
    * Queues the writes of one edit and answers when all of them are stored. The first write that
    * fails stops the queue: the edit is rejected with that failure, and its later writes and
@@ -285,6 +340,8 @@ export function createNotionCalls(options: NotionCallsOptions): NotionCalls {
           createRow: (id, properties) => queue('POST', 'v1/pages', { parent: { type: 'data_source_id', data_source_id: id }, properties }),
           updateRow: (id, properties) => queue('PATCH', `v1/pages/${id}`, { properties }),
           trashRow: (id, inTrash) => queue('PATCH', `v1/pages/${id}`, { in_trash: inTrash }),
+          updateEmbed: (id, url) => queue('PATCH', `v1/blocks/${id}`, { type: 'embed', embed: { url } }),
+          updateView: (id, type, properties) => queue('PATCH', `v1/views/${id}`, { configuration: { type, properties } }),
         });
         await before;
         if (failure) throw failure.error;
@@ -330,6 +387,16 @@ export function createNotionCalls(options: NotionCallsOptions): NotionCalls {
         ...(sorts === undefined ? {} : { sorts }),
         ...(editedSince === undefined ? {} : { filter: { timestamp: 'last_edited_time', last_edited_time: { on_or_after: editedSince } } }),
       }),
+    search: ({ text, cursor, pageSize } = {}) =>
+      read('POST', 'v1/search', {
+        filter: { property: 'object', value: 'data_source' },
+        page_size: pageSize ?? 100,
+        ...(text ? { query: text } : {}),
+        ...(cursor === undefined ? {} : { start_cursor: cursor }),
+      }),
+    children: (id, cursor) => read('GET', `v1/blocks/${id}/children${cursor === undefined ? '' : `?start_cursor=${encodeURIComponent(cursor)}`}`),
+    views: (id, cursor) => read('GET', `v1/views?data_source_id=${id}${cursor === undefined ? '' : `&start_cursor=${encodeURIComponent(cursor)}`}`),
+    view: (id) => read('GET', `v1/views/${id}`),
     edit,
     status,
     onStatus(listener) {

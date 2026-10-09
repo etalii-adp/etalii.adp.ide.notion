@@ -26,8 +26,12 @@ const STATE = /^[A-Za-z0-9_-]{32,128}$/;
 const KEPT_SECONDS = 120;
 const ID = '(?:[0-9a-fA-F]{32}|[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12})';
 
-// The calls the store makes. A call it comes to need is added to the service contract first.
-const FORWARDED: [method: string, path: RegExp][] = [
+const CURSOR = '[A-Za-z0-9_-]{1,200}';
+
+// The calls the store makes. A call it comes to need is added to the service contract first. A
+// call is forwarded without a query string, but for the one its row gives: Notion takes the cursor
+// of a page of blocks, and the data source whose views are asked for, in no other place.
+const FORWARDED: [method: string, path: RegExp, query?: RegExp][] = [
   ['GET', /^v1\/users\/me$/],
   ['GET', new RegExp(`^v1/databases/${ID}$`)],
   ['GET', new RegExp(`^v1/data_sources/${ID}$`)],
@@ -35,6 +39,12 @@ const FORWARDED: [method: string, path: RegExp][] = [
   ['POST', new RegExp(`^v1/data_sources/${ID}/query$`)],
   ['POST', /^v1\/pages$/],
   ['PATCH', new RegExp(`^v1/pages/${ID}$`)],
+  ['POST', /^v1\/search$/],
+  ['GET', new RegExp(`^v1/blocks/${ID}/children$`), new RegExp(`^(\\?start_cursor=${ID})?$`)],
+  ['PATCH', new RegExp(`^v1/blocks/${ID}$`)],
+  ['GET', /^v1\/views$/, new RegExp(`^\\?data_source_id=${ID}(&start_cursor=${CURSOR})?$`)],
+  ['GET', new RegExp(`^v1/views/${ID}$`)],
+  ['PATCH', new RegExp(`^v1/views/${ID}$`)],
 ];
 
 function json(status: number, body: unknown, headers: Headers = new Headers()): Response {
@@ -132,7 +142,7 @@ async function refresh(request: Request, config: ServiceConfig, headers: Headers
 }
 
 async function forward(request: Request, path: string, search: string, config: ServiceConfig, headers: Headers): Promise<Response> {
-  if (search !== '' || !FORWARDED.some(([method, pattern]) => method === request.method && pattern.test(path))) {
+  if (!FORWARDED.some(([method, pattern, query]) => method === request.method && pattern.test(path) && (query ? query.test(search) : search === ''))) {
     return refusal(403, 'restricted_resource', 'The service does not forward this call.', headers);
   }
   const authorization = request.headers.get('Authorization');
@@ -143,7 +153,7 @@ async function forward(request: Request, path: string, search: string, config: S
   if (type) sent.set('Content-Type', type);
   let answer: Response;
   try {
-    answer = await (config.fetch ?? fetch)(`${config.notionBase ?? 'https://api.notion.com'}/${path}`, {
+    answer = await (config.fetch ?? fetch)(`${config.notionBase ?? 'https://api.notion.com'}/${path}${search}`, {
       method: request.method,
       headers: sent,
       // Passed on as bytes: the service reads no body.

@@ -12,7 +12,7 @@ ADP, A Different Perspective, is a range of specialized tools: diagrams, designe
 | --- | --- |
 | Gartner hype cycle graph | `https://etalii.net/adp-notion/gartner-hype-cycle-graph/?store=<database id>` |
 
-The Gartner hype cycle graph is a diagram of trends, the triggers that start them, notes, and the influences between them, drawn along time. In Notion the graph is a database: its rows are the graph, and the add-on, embedded in a Notion page, draws that database and writes what a user changes back to it. One published add-on serves any number of graphs; the `store` of the address says which database a page shows. [docs/set-up-a-graph.md](docs/set-up-a-graph.md) gives the steps.
+The Gartner hype cycle graph is a diagram of trends, the triggers that start them, notes, and the influences between them, drawn along time. In Notion the graph is a database: its rows are the graph, and the add-on, embedded in a Notion page, draws that database and writes what a user changes back to it. One published add-on serves any number of graphs; the `store` of the address says which database a page shows. Embedded without a `store`, the add-on lets the user choose a database, asks about the properties it gets, and makes the embed block name it. [docs/set-up-a-graph.md](docs/set-up-a-graph.md) gives the steps.
 
 ![The Gartner hype cycle graph as a Notion add-on: the digital trends as banners on the year axis, with the toolbox at the left and the property grid at the right](docs/screenshots/gartner-hype-cycle-graph.png)
 
@@ -29,7 +29,7 @@ Node 24 or later is needed, and nothing else.
 | `npm run build` | Writes the published tree to `dist/`: the add-on index and one folder per add-on. It is `node scripts/build.mjs --out dist`, the command the publication runs |
 | `node scripts/service.mjs --memory` | Runs the local service at `http://localhost:8787` with an in-memory Notion, which needs no account |
 
-To see the add-on working, build it, serve `dist/` at `http://localhost:8080`, run the local service, and open `http://localhost:8080/gartner-hype-cycle-graph/?store=<database id>`. [docs/service.md](docs/service.md) says how the local service is run against Notion and against the in-memory one.
+To see the add-on working, build it, serve `dist/` at `http://localhost:8080`, run the local service, and open `http://localhost:8080/gartner-hype-cycle-graph/`, where the add-on lets you choose a database, or the same address with `?store=<database id>`. [docs/service.md](docs/service.md) says how the local service is run against Notion and against the in-memory one.
 
 ## Documents
 

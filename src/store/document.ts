@@ -13,7 +13,8 @@ import { createDispatcher } from '../history/dispatcher';
 import { createHistoryStack } from '../history/historyStack';
 import { NotionError, type NotionCalls, type NotionDataSource, type NotionRow } from './notion';
 import { readRows, type RowsRead } from './rows';
-import { missing, prepare, storeSchema, type StoreSchema } from './schema';
+import { internalProperties } from './internal';
+import { hide, missing, prepare, projectable, storeSchema, type Missing, type StoreSchema } from './schema';
 
 export interface OpenDocument {
   /** Elements and relations, as the specification's metamodel types them. */
@@ -28,7 +29,18 @@ export interface OpenDocument {
   edit(change: ModelChange | readonly ModelChange[]): EditResult;
   undo(): EditResult;
   redo(): EditResult;
-  prepare(): Promise<void>;
+  /**
+   * While the state is `unprepared` and the database can be prepared: the properties it lacks, and
+   * for each of them, by its name, the properties it has that can be projected on it.
+   */
+  readonly lacking: (Missing & { readonly projectable: Readonly<Record<string, readonly string[]>> }) | undefined;
+  /**
+   * Makes the database a store, once the person has agreed: `project` names, by the missing
+   * property, the existing one that is given its name; the others are added. The internal
+   * properties are then hidden in the database's views; where Notion refuses that, the store is
+   * prepared all the same and this rejects with a `ViewsError`.
+   */
+  prepare(project?: Readonly<Record<string, string>>): Promise<void>;
   reload(): Promise<void>;
   subscribe(listener: (event: DocumentEvent) => void): () => void;
   close(): void;
@@ -154,6 +166,7 @@ export async function openDocument(options: OpenDocumentOptions): Promise<OpenDo
   let state: OpenDocument['state'] = 'unprepared';
   let rows = readRows([], schema, binding);
   let dataSource: NotionDataSource | undefined;
+  let lacking: OpenDocument['lacking'];
   let lastRead: string | undefined;
   let held: readonly NotionRow[] = [];
   let settled: () => Promise<unknown> = () => Promise.resolve();
@@ -195,6 +208,7 @@ export async function openDocument(options: OpenDocumentOptions): Promise<OpenDo
   async function read(): Promise<void> {
     tellStatus('loading');
     try {
+      lacking = undefined;
       const database = await notion.database(options.database);
       dataSource = undefined;
       const count = database.data_sources.length;
@@ -209,12 +223,13 @@ export async function openDocument(options: OpenDocumentOptions): Promise<OpenDo
         take(readRows([], schema, binding!));
         return;
       }
-      const lacking = missing(schema, source);
-      if (!lacking.prepared) {
-        const names = [...(lacking.rename ? [lacking.rename.to] : []), ...lacking.add.map((property) => property.name)];
+      const lacks = missing(schema, source);
+      if (!lacks.prepared) {
+        lacking = { ...lacks, projectable: projectable(schema, source) };
+        const names = [...(lacks.rename ? [lacks.rename.to] : []), ...lacks.add.map((property) => property.name)];
         unprepared([
           ...(names.length > 0 ? [finding('store.unprepared', 'warning', `The database lacks ${names.length === 1 ? 'the property' : 'the properties'} ${names.map((name) => `\`${name}\``).join(', ')}.`)] : []),
-          ...lacking.wrong.map(({ property, has }) => finding('store.unprepared', 'error', `The property \`${property.name}\` of the database is ${has.replace('_', ' ')}, and a store holds it as ${property.type.replace('_', ' ')}. It is left as it is.`)),
+          ...lacks.wrong.map(({ property, has }) => finding('store.unprepared', 'error', `The property \`${property.name}\` of the database is ${has.replace('_', ' ')}, and a store holds it as ${property.type.replace('_', ' ')}. It is left as it is.`)),
         ]);
         return;
       }
@@ -258,6 +273,9 @@ export async function openDocument(options: OpenDocumentOptions): Promise<OpenDo
     get state() {
       return state;
     },
+    get lacking() {
+      return state === 'unprepared' ? lacking : undefined;
+    },
     get canUndo() {
       return history.canUndo;
     },
@@ -269,10 +287,10 @@ export async function openDocument(options: OpenDocumentOptions): Promise<OpenDo
     undo: () => refused() ?? answer(history.undo()),
     redo: () => refused() ?? answer(history.redo()),
 
-    async prepare() {
+    async prepare(project) {
       if (state !== 'unprepared' || !dataSource) return;
       try {
-        await prepare(schema, dataSource, notion);
+        await prepare(schema, dataSource, notion, project);
       } catch (error) {
         // The refused write changed nothing. Once somebody else prepares the database, it opens read-only.
         if (isForbidden(error)) readOnly = true;
@@ -280,6 +298,8 @@ export async function openDocument(options: OpenDocumentOptions): Promise<OpenDo
       }
       await load();
       tell({ kind: 'changed' });
+      // After the read, which gives the properties as they are now, the added ones too.
+      if (state !== 'unprepared' && dataSource) await hide(dataSource, internalProperties(specification, metamodel, persistence, schema), notion);
     },
     reload: () => reload(READ_AGAIN),
 

@@ -102,13 +102,48 @@ describe('opening a store', () => {
     expect(document.findings.map((found) => found.code)).toContain('store.unprepared');
     expect(document.findings.map((found) => found.message).join(' ')).toContain('`Kind`');
     expect(queries(made)).toEqual([]);
+    expect(document.lacking?.rename).toEqual({ from: 'Name', to: 'id' });
+    expect(document.lacking?.add.map((property) => property.name)).toEqual(schema.properties.slice(1).map((property) => property.name));
+    expect(document.lacking?.projectable.Order).toEqual([]);
 
     const events = heard(document);
     await document.prepare();
     expect(document.state).toBe('ready');
+    expect(document.lacking).toBeUndefined();
     expect(document.findings).toEqual([]);
     expect(Object.keys(made.notion.properties(made.database.dataSourceId))).toEqual(schema.properties.map((property) => property.name));
-    expect(events.at(-1)).toEqual({ kind: 'changed' });
+    expect(events).toContainEqual({ kind: 'changed' });
+  });
+
+  it('gives a property the person chose the name that is needed, and hides the internal properties in the views', async () => {
+    const made = await store({ prepared: false });
+    await made.calls.edit((writes) => writes.updateProperties(made.database.dataSourceId, { Sequence: { number: {} }, Mine: { rich_text: {} } }));
+    const sequence = (made.notion.properties(made.database.dataSourceId).Sequence as { id: string }).id;
+    const document = await made.open();
+    expect(document.lacking?.projectable.Order).toEqual(['Sequence']);
+
+    await document.prepare({ Order: 'Sequence' });
+    expect(document.state).toBe('ready');
+    const properties = made.notion.properties(made.database.dataSourceId) as Record<string, { id: string }>;
+    expect(properties.Order.id).toBe(sequence);
+    expect(Object.keys(properties).sort()).toEqual(['Mine', ...schema.properties.map((property) => property.name)].sort());
+
+    const [view] = made.notion.views(made.database.dataSourceId) as { configuration: { properties: { property_name: string; visible: boolean }[] } }[];
+    const hidden = view.configuration.properties.filter((each) => !each.visible).map((each) => each.property_name);
+    expect(hidden).toEqual(expect.arrayContaining(['Order', 'row', 'width', 'from-at']));
+    expect(hidden).not.toContain('name');
+  });
+
+  it('is prepared all the same where Notion refuses to change a view, and says so', async () => {
+    const made = await store({ prepared: false });
+    const document = await made.open();
+    const send = made.service.config.fetch!;
+    made.service.config.fetch = (async (input: Request | string | URL, init?: RequestInit) =>
+      (new URL(new Request(input, init).url).pathname.startsWith('/v1/views')
+        ? new Response(JSON.stringify({ object: 'error', status: 403, code: 'restricted_resource', message: 'Insufficient permissions for this endpoint.' }), { status: 403 })
+        : send(input, init))) as typeof fetch;
+    await expect(document.prepare()).rejects.toMatchObject({ name: 'ViewsError' });
+    expect(document.state).toBe('ready');
   });
 
   it('stays unprepared when a property exists with another type, which is left alone', async () => {

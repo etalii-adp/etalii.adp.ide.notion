@@ -38,8 +38,14 @@ Only the calls a store makes are forwarded; any other is answered `403` and neve
 | `POST` | `v1/data_sources/<id>/query` | Reading the rows |
 | `POST` | `v1/pages` | A new row |
 | `PATCH` | `v1/pages/<id>` | A changed row, and a row moved to or from the trash |
+| `POST` | `v1/search` | The databases a person's access reaches, for the selection of a store |
+| `GET` | `v1/blocks/<id>/children`, alone or with `?start_cursor=<id>` | The blocks of the page that holds a database and of the pages directly under it, to find the embed block |
+| `PATCH` | `v1/blocks/<id>` | Setting the address of that embed block to name its store |
+| `GET` | `v1/views?data_source_id=<id>`, alone or with `&start_cursor=<cursor>` | The views of a database, to hide the internal properties in them |
+| `GET` | `v1/views/<id>` | Which properties a view shows |
+| `PATCH` | `v1/views/<id>` | Hiding the internal properties in a view |
 
-A call without a token is answered `401`, and one with a query string `403`. When Notion cannot be reached the answer is `502` with the code `bad_gateway`. Every answer carries `Cache-Control: no-store`, and only pages of the allowed origin are given the header that lets a browser read it.
+A call without a token is answered `401`. A call with a query string is answered `403`, but for the two the table gives: Notion takes the cursor of a list of blocks and the data source of a list of views in the query string and nowhere else. When Notion cannot be reached the answer is `502` with the code `bad_gateway`. Every answer carries `Cache-Control: no-store`, and only pages of the allowed origin are given the header that lets a browser read it.
 
 ## The grant in progress
 
@@ -90,13 +96,13 @@ The service then answers at `http://localhost:8787`. A local build of an add-on,
 
 ### With `--memory`
 
-`node scripts/service.mjs --memory` needs no account anywhere. An in-memory Notion, the one the tests use, answers the calls, and the grant of access is given at once, without asking; its outcome is kept for `POST /grant` as any other. It holds one empty database with the title property `Name`, whose id the service prints when it starts:
+`node scripts/service.mjs --memory` needs no account anywhere. An in-memory Notion, the one the tests use, answers the calls, and the grant of access is given at once, without asking; its outcome is kept for `POST /grant` as any other. It holds one empty database with the title property `Name`, on a page, and under that page a page with an embed block for each add-on that names no store yet. The service prints the id of the database when it starts:
 
 ```text
 11111111-1111-4111-8111-111111111111
 ```
 
-Give an add-on that id as its `store` to see it working, the preparing of the database included. A script that brings its own token uses `memory-token`:
+Open an add-on without a `store` to choose that database in it, or give the add-on that id as its `store`; either way the preparing of the database is seen. A script that brings its own token uses `memory-token`:
 
 ```text
 NOTION_TOKEN=memory-token node scripts/store.mjs put 11111111-1111-4111-8111-111111111111 test/examples/gartner-hype-cycle-graph/electric-vehicles/electric-vehicles.ghg
