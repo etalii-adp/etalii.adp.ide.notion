@@ -299,7 +299,7 @@ export async function openDocument(options: OpenDocumentOptions): Promise<OpenDo
       await load();
       tell({ kind: 'changed' });
       // After the read, which gives the properties as they are now, the added ones too.
-      if (state !== 'unprepared' && dataSource) await hide(dataSource, internalProperties(specification, metamodel, persistence, schema), notion);
+      if (state !== 'unprepared' && dataSource) await hide(dataSource, internalProperties(specification, metamodel, persistence, schema), notion, schema);
     },
     reload: () => reload(READ_AGAIN),
 

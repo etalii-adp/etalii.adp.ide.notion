@@ -281,15 +281,36 @@ describe('hiding properties in the views', () => {
     const { notion, calls, database, dataSource, views, hidden } = await start();
     notion.addView(database.dataSourceId, 'board');
     notion.addView(database.dataSourceId, 'form');
-    const title = views()[0].configuration.properties![0];
+    // Neither view was configured yet: each lists nothing and shows every property.
+    expect(views()[0].configuration.properties).toBeUndefined();
 
     await hide(await dataSource(), ['Order', 'row', 'nothing'], calls);
     const [table, board, form] = views();
-    expect(hidden(table)).toEqual(['Order', 'row']);
-    expect(table.configuration.properties![0]).toEqual(title);
+    // The whole list is sent, since Notion hides what a list leaves out: only the two are hidden.
+    expect(hidden(table).sort()).toEqual(['Order', 'row']);
+    expect(table.configuration.properties).toHaveLength(Object.keys(notion.properties(database.dataSourceId)).length);
+    expect(table.configuration.properties![0]).toMatchObject({ property_name: schema.title, visible: true });
     expect(table.configuration.properties!.find((each) => each.property_name === 'Mine')).toMatchObject({ visible: true });
-    expect(hidden(board)).toEqual(expect.arrayContaining(['Order', 'row', 'Mine']));
+    expect(table.configuration.properties!.slice(-2).map((each) => each.property_name).sort()).toEqual(['Order', 'row']);
+    expect(hidden(board).sort()).toEqual(['Order', 'row']);
     expect(form.configuration.properties).toBeUndefined();
+  });
+
+  it('keeps what a configured view said of the other properties', async () => {
+    const { notion, calls, service, database, dataSource, views, hidden } = await start();
+    const [view] = notion.views(database.dataSourceId) as { id: string }[];
+    const ids = Object.fromEntries(Object.entries(notion.properties(database.dataSourceId)).map(([name, property]) => [name, (property as { id: string }).id]));
+    const others = Object.keys(ids).filter((name) => !['Mine', schema.title].includes(name));
+    await service.fetch(`${service.address}/notion/v1/views/${view.id}`, {
+      method: 'PATCH',
+      headers: { Authorization: `Bearer ${notion.me.token}`, 'Content-Type': 'application/json', Origin: service.origin },
+      body: JSON.stringify({ configuration: { type: 'table', properties: [{ property_id: ids.Mine, visible: false, width: 240 }, { property_id: 'title', visible: true }, ...others.map((name) => ({ property_id: ids[name], visible: true }))] } }),
+    });
+
+    await hide(await dataSource(), ['Order'], calls);
+    const [table] = views();
+    expect(hidden(table).sort()).toEqual(['Mine', 'Order']);
+    expect(table.configuration.properties![0]).toMatchObject({ property_name: 'Mine', visible: false, width: 240 });
   });
 
   it('writes to no view that hides them already, and to none when there is nothing to hide', async () => {
