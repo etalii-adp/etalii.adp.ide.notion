@@ -65,6 +65,10 @@ describe('scripts/store.mjs', () => {
     expect(put.out.at(-1)).toBe('Stored 82 rows.');
     expect(rows()).toHaveLength(82);
     expect(Object.keys(service.notion.properties(database.dataSourceId))).toContain('Kind');
+    // The properties that hold internal information are hidden in the view of the database, and no other.
+    const [view] = service.notion.views(database.dataSourceId) as { configuration: { properties: { property_name: string; visible: boolean }[] } }[];
+    const hidden = view.configuration.properties.filter((each) => !each.visible).map((each) => each.property_name);
+    expect(hidden).toEqual(['Order', 'row', 'peak-end', 'trough-end', 'slope-end', 'width', 'height', 'from-phase', 'from-edge', 'from-at', 'to-phase', 'to-edge', 'to-at']);
 
     const file = join(folder, 'taken.ghg');
     const taken = await run('take', database.id, file);
@@ -167,5 +171,20 @@ describe('scripts/store.mjs', () => {
 
     expect(await run('copy', database.id, 'a.ghg')).toMatchObject({ code: 2 });
     expect(await run('put', database.id)).toMatchObject({ code: 2 });
+  });
+});
+
+describe('scripts/store.mjs and the views', () => {
+  it('stores the document all the same where Notion refuses to change a view, and says so', async () => {
+    const { database, run, rows, service } = setting();
+    const send = service.config.fetch!;
+    service.config.fetch = (async (input: Request | string | URL, init?: RequestInit) =>
+      (new URL(new Request(input, init).url).pathname.startsWith('/v1/views')
+        ? new Response(JSON.stringify({ object: 'error', status: 403, code: 'restricted_resource', message: 'Insufficient permissions for this endpoint.' }), { status: 403 })
+        : send(input, init))) as typeof fetch;
+    const put = await run('put', database.id, fixture('triggers-and-notes'));
+    expect(put.code).toBe(0);
+    expect(put.errors).toEqual(['The internal properties could not be hidden in the views of the database: Insufficient permissions for this endpoint.']);
+    expect(rows().length).toBeGreaterThan(0);
   });
 });

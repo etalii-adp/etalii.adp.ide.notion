@@ -8,8 +8,8 @@
 // The Notion token is read from the environment variable NOTION_TOKEN and from nowhere else.
 // --addon names the folder under addons/; with one add-on in the repository it may be left out.
 //
-// `put` prepares the database, then stores the document as its rows. It refuses a database that has
-// rows unless --replace is given, which moves those rows to the trash first. It reports what a store
+// `put` prepares the database, hides the properties that hold internal information in its views,
+// then stores the document as its rows. It refuses a database that has rows unless --replace is given, which moves those rows to the trash first. It reports what a store
 // cannot hold and does not keep, and puts nothing in when Notion cannot hold a value of the document.
 // `take` writes the document the rows give, through the binding, and overwrites <file> only with --force.
 //
@@ -69,6 +69,7 @@ async function tool(addon) {
   const { bindingOf, interpretPersistence } = await import('../src/disl/persistence.ts');
   const { loadDocument } = await import('../src/fbl/documents/documentLoader.ts');
   const { storeSchema } = await import('../src/store/schema.ts');
+  const { internalProperties } = await import('../src/store/internal.ts');
 
   const folder = resolve(root, 'addons', id);
   const names = JSON.parse(readFileSync(resolve(folder, 'addon.json'), 'utf8'));
@@ -81,7 +82,7 @@ async function tool(addon) {
   const schema = storeSchema(binding, metamodel, persistence);
   const unstorable = schema.findings.filter((found) => found.severity === 'error');
   if (unstorable.length > 0) throw new Stop(1, unstorable.map((found) => found.message).join('\n'));
-  return { binding, schema };
+  return { binding, schema, internal: internalProperties(specification, metamodel, persistence, schema) };
 }
 
 /** The calls of src/store/, with a session that has the token already and never opens a window. */
@@ -100,10 +101,10 @@ async function dataSourceOf(calls, database) {
   return calls.dataSource(found.data_sources[0].id);
 }
 
-async function put({ file, replace }, calls, dataSource, { binding, schema }, say) {
+async function put({ file, replace }, calls, dataSource, { binding, schema, internal }, say) {
   const { allRows } = await import('../src/store/document.ts');
   const { createRows, rowsOf } = await import('../src/store/rows.ts');
-  const { prepare } = await import('../src/store/schema.ts');
+  const { hide, prepare } = await import('../src/store/schema.ts');
 
   if (!existsSync(file)) throw new Stop(1, `${file} does not exist.`);
   const document = rowsOf(readFileSync(file), schema, binding);
@@ -117,6 +118,12 @@ async function put({ file, replace }, calls, dataSource, { binding, schema }, sa
     for (const { property, has } of lacking.wrong) say.error(`The property ${property.name} of the database is ${has}, and a store holds it as ${property.type}.`);
     throw new Stop(1, 'Nothing was put in: the database cannot be prepared as a store.');
   }
+  // Read again: the properties that were just added have their ids only now. A view that could
+  // not be changed keeps nothing from being stored.
+  await hide(await calls.dataSource(dataSource.id), internal, calls).catch((error) => {
+    if (error?.name !== 'ViewsError') throw error;
+    say.error(error.message);
+  });
 
   const held = await allRows(calls, dataSource.id);
   if (held.length > 0 && !replace) throw new Stop(1, `Nothing was put in: the database has ${held.length} rows. Give --replace to move them to the trash first.`);

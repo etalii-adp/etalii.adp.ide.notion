@@ -7,10 +7,13 @@ import { bindingOf, interpretPersistence } from '../disl/persistence';
 import { localized, loadSpecification, type Specification } from '../disl/specification';
 import { unsupportedFeatures } from '../disl/support';
 import { loadDocument } from '../fbl/documents/documentLoader';
+import { withStore } from '../store/embed';
 import { createNotionCalls } from '../store/notion';
 import { createSession, type SessionOptions } from '../store/session';
 import { serviceAddress } from './config';
 import { createPage, createRegions, handOver, showMessage, showStatus, type Page } from './page';
+import { actionButton } from './parts/notices';
+import { offerSelection, storeAddressNotice, type Carried } from './parts/selecting';
 
 export interface Environment {
   document: Document;
@@ -20,6 +23,12 @@ export interface Environment {
   storage?: SessionOptions['storage'];
   /** Absent where the browser has none: the appearance is then light. */
   matchMedia?: (query: string) => Pick<MediaQueryList, 'matches' | 'addEventListener'>;
+  /** What lasts from the selection of a store to the page of that store; the browser's session storage when left out. */
+  kept?: Pick<Storage, 'getItem' | 'setItem' | 'removeItem'>;
+  /** Goes to an address of this page's own; the browser's `location.replace` when left out. */
+  navigate?: (address: string) => void;
+  /** Puts a text on the clipboard; the browser's when left out. */
+  copy?: (text: string) => Promise<void>;
 }
 
 const DATABASE = /^[0-9a-f]{32}$|^[0-9a-f]{8}(-[0-9a-f]{4}){3}-[0-9a-f]{12}$/i;
@@ -103,6 +112,27 @@ async function load(send: typeof fetch) {
   };
 }
 
+const hex = (id: string): string => id.replaceAll('-', '').toLowerCase();
+
+/** What the selection of a store left for the page of that store: read once, and only by that page. */
+function carriedFor(environment: Environment, key: string, store: string): Carried | undefined {
+  try {
+    const kept = environment.kept ?? globalThis.sessionStorage;
+    const text = kept.getItem(key);
+    if (text === null) return undefined;
+    kept.removeItem(key);
+    const carried = JSON.parse(text) as Partial<Carried> | null;
+    return carried && typeof carried.store === 'string' && hex(carried.store) === hex(store) && typeof carried.sentence === 'string' ? (carried as Carried) : undefined;
+  } catch {
+    // A browser that refuses the storage, or something else kept there: nothing was carried.
+    return undefined;
+  }
+}
+
+async function copy(text: string): Promise<void> {
+  await globalThis.navigator.clipboard.writeText(text);
+}
+
 /** The steps of docs/set-up-a-graph.md in short, under the tool type's own name. */
 function setUpHelp(environment: Environment, specification: Specification | undefined): HTMLElement {
   const { document, location } = environment;
@@ -115,10 +145,10 @@ function setUpHelp(environment: Environment, specification: Specification | unde
   const steps = document.createElement('ol');
   for (const text of [
     'In Notion, create a database. It becomes the store of one diagram.',
-    'Share the database with the connection of this add-on, under Connections in the menu of the database.',
-    'Copy the id of the database: the 32 characters of its Notion address before "?v=".',
-    `On a Notion page, add an embed block with the address ${location.origin}${location.pathname}?store= followed by that id.`,
-    'Open that page and grant access to Notion once, when the add-on asks for it.',
+    `On a Notion page, add an embed block with the address ${location.origin}${location.pathname} of this add-on. You are looking at it if this is that block.`,
+    'Choose the database below. Notion asks once which pages this add-on may reach: include the database and its page.',
+    'Agree to the properties the database gets. The add-on then makes the embed block name the database, and shows the diagram.',
+    `A database can be named by hand too: the address is ${location.origin}${location.pathname}?store= followed by the 32 characters of the database's Notion address before "?v=".`,
   ]) {
     const step = document.createElement('li');
     step.textContent = text;
@@ -140,6 +170,9 @@ export async function start(given: Partial<Environment> = {}): Promise<Page | un
     fetch: given.fetch ?? ((...request) => globalThis.fetch(...request)),
     storage: given.storage,
     matchMedia: given.matchMedia ?? (globalThis.matchMedia ? (query) => globalThis.matchMedia(query) : undefined),
+    kept: given.kept,
+    navigate: given.navigate,
+    copy: given.copy,
   };
   const { document, location } = environment;
   const parameters = new URLSearchParams(location.search);
@@ -170,17 +203,58 @@ export async function start(given: Partial<Environment> = {}): Promise<Page | un
     if (!(error instanceof LoadError)) throw error;
     failure = error.message;
   }
+  const connect = (): { session: ReturnType<typeof createSession>; notion: ReturnType<typeof createNotionCalls> } => {
+    const service = serviceAddress(location);
+    const session = createSession({ service, storage: environment.storage, fetch: environment.fetch });
+    return { session, notion: createNotionCalls({ service, session, fetch: environment.fetch }) };
+  };
+  const address = `${location.origin}${location.pathname}${location.search}`;
+  const carriedKey = `adp-notion.${addon}.store-address`;
+
   if (!database) {
-    // No store: nothing is opened, so there is no session, no call and no part at work.
-    document.body.insertBefore(setUpHelp(environment, tool?.specification), regions.message);
-    return failure ? fail(failure) : undefined;
+    // No store: nothing is opened, so there is no session, no call and no part at work, until the person chooses a database.
+    const help = setUpHelp(environment, tool?.specification);
+    document.body.insertBefore(help, regions.message);
+    if (!tool) return fail(failure);
+    offerSelection({
+      document,
+      host: help,
+      say: (sentence) => showMessage(regions.message, sentence),
+      address,
+      specification: tool.specification,
+      binding: tool.fbl,
+      connect,
+      carry(carried) {
+        try {
+          (environment.kept ?? globalThis.sessionStorage).setItem(carriedKey, JSON.stringify(carried));
+          return true;
+        } catch {
+          return false;
+        }
+      },
+      // The one navigation the page makes: to its own address, with the store just selected.
+      navigate: environment.navigate ?? ((to) => globalThis.location.replace(to)),
+      copy: environment.copy ?? copy,
+    });
+    return undefined;
   }
   if (!tool) return fail(failure);
 
-  const service = serviceAddress(location);
-  const session = createSession({ service, storage: environment.storage, fetch: environment.fetch });
-  const calls = { session, notion: createNotionCalls({ service, session, fetch: environment.fetch }) };
-  const page = createPage({ addon, database, ...tool, regions, ...calls });
+  // The embed block could not be made to name this store: the address is shown for the person to put there.
+  const carried = carriedFor(environment, carriedKey, database);
+  if (carried) {
+    const notice = document.createElement('div');
+    notice.className = 'adp-store-address';
+    notice.setAttribute('role', 'group');
+    notice.setAttribute('aria-label', 'The address of this diagram');
+    const done = actionButton(document, '', 'Done', () => notice.remove());
+    done.classList.add('adp-action-quiet');
+    notice.append(...storeAddressNotice(document, withStore(address, hex(database)), carried.refused ? '' : carried.sentence, environment.copy ?? copy), done);
+    regions.bar.append(notice);
+    if (carried.refused) showMessage(regions.message, carried.sentence);
+  }
+
+  const page = createPage({ addon, database, ...tool, regions, ...connect() });
   handOver(page);
   return page;
 }

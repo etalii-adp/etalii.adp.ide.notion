@@ -208,10 +208,30 @@ describe('a store that cannot be opened', () => {
     await settled('unprepared');
     expect(document.body.textContent).toContain('The database lacks');
     expect(byId('disconnect')).not.toBeNull();
+    // The same question as when a database is selected: one item per property, and nothing changed before the answer.
+    expect(document.querySelectorAll('#properties > li')).toHaveLength(schema.properties.length);
+    expect(Object.keys(service.notion.properties(store.dataSourceId))).toEqual(['Name']);
     byId('prepare')!.click();
     await settled('ready');
     expect(byId('prepare')).toBeNull();
+    expect(byId('properties')).toBeNull();
     expect(findings()).toEqual([]);
+  });
+
+  it('gives an existing property the name of a missing one where the person chooses that', async () => {
+    keepToken();
+    const store = service.notion.createDatabase({ properties: { Name: { title: {} }, Sequence: { number: {} } } });
+    const sequence = (service.notion.properties(store.dataSourceId).Sequence as { id: string }).id;
+    await open(store);
+    await settled('unprepared');
+    const choice = document.querySelector<HTMLSelectElement>('#properties select[data-property="Order"]')!;
+    expect([...choice.options].map((option) => option.value)).toEqual(['', 'Sequence']);
+    choice.value = 'Sequence';
+    byId('prepare')!.click();
+    await settled('ready');
+    const properties = service.notion.properties(store.dataSourceId) as Record<string, { id: string }>;
+    expect(properties.Order.id).toBe(sequence);
+    expect(properties.Sequence).toBeUndefined();
   });
 
   it('is unreadable with an empty canvas and the sentence the specification gives', async () => {

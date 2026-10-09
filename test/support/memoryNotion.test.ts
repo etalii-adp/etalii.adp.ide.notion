@@ -298,8 +298,125 @@ describe('the in-memory Notion', () => {
     const { dataSourceId } = store(notion);
     const [row] = notion.seedRows(dataSourceId, [{ name: 'a' }]);
 
-    for (const [method, path] of [['GET', `v1/pages/${row}`], ['POST', 'v1/search'], ['DELETE', `v1/blocks/${row}`], ['GET', 'v1/users']] as const) {
+    for (const [method, path] of [['GET', `v1/pages/${row}`], ['POST', 'v1/databases'], ['DELETE', `v1/blocks/${row}`], ['GET', `v1/blocks/${row}`], ['POST', 'v1/views'], ['GET', 'v1/users']] as const) {
       expect((await call(notion, method, path, method === 'GET' ? undefined : {})).body).toMatchObject({ status: 400, code: 'invalid_request_url' });
     }
+  });
+});
+
+describe('the in-memory Notion, for the selection of a store', () => {
+  const wanted = { filter: { property: 'object', value: 'data_source' } };
+
+  it('finds the data sources a person reaches, by a part of the title, with the database and where it is', async () => {
+    const notion = createMemoryNotion();
+    const page = notion.createPage({ title: 'An entry' });
+    const one = notion.createDatabase({ title: 'First - Data', parent: page.id });
+    const two = notion.createDatabase({ title: 'Second' });
+    const hidden = notion.createDatabase({ title: 'First, unshared' });
+    notion.unshare(hidden.id);
+
+    const all = await call(notion, 'POST', 'v1/search', wanted);
+    expect(all.body).toMatchObject({ object: 'list', has_more: false, next_cursor: null });
+    expect(all.body.results).toMatchObject([
+      { object: 'data_source', id: one.dataSourceId, title: [{ plain_text: 'First - Data' }], parent: { type: 'database_id', database_id: one.id }, database_parent: { type: 'page_id', page_id: page.id } },
+      { object: 'data_source', id: two.dataSourceId, parent: { database_id: two.id }, database_parent: { type: 'workspace', workspace: true } },
+    ]);
+    expect((await call(notion, 'POST', 'v1/search', { ...wanted, query: 'first' })).body.results.map((found: { id: string }) => found.id)).toEqual([one.dataSourceId]);
+    expect((await call(notion, 'GET', `v1/databases/${one.id}`)).body.parent).toEqual({ type: 'page_id', page_id: page.id });
+  });
+
+  it('pages a search, and searches for nothing but data sources', async () => {
+    const notion = createMemoryNotion();
+    const made = ['a', 'b', 'c'].map((title) => notion.createDatabase({ title }));
+    const first = await call(notion, 'POST', 'v1/search', { ...wanted, page_size: 2 });
+    expect(first.body).toMatchObject({ has_more: true, next_cursor: made[2].dataSourceId });
+    const second = await call(notion, 'POST', 'v1/search', { ...wanted, page_size: 2, start_cursor: first.body.next_cursor });
+    expect(second.body.results.map((found: { id: string }) => found.id)).toEqual([made[2].dataSourceId]);
+    expect(second.body.has_more).toBe(false);
+    expect((await call(notion, 'POST', 'v1/search', {})).status).toBe(400);
+    expect((await call(notion, 'POST', 'v1/search', { filter: { property: 'object', value: 'page' } })).status).toBe(400);
+  });
+
+  it('answers the blocks of a page: a page under it by the id of that page, a database, an embed with its address', async () => {
+    const notion = createMemoryNotion();
+    const page = notion.createPage();
+    const under = notion.createPage({ title: 'Diagram', parent: page.id });
+    const database = notion.createDatabase({ title: 'Data', parent: page.id });
+    const embed = notion.addBlock(page.id, { embed: 'https://example.org/a/' });
+    notion.addBlock(page.id);
+
+    const children = await call(notion, 'GET', `v1/blocks/${page.id}/children`);
+    expect(children.body.results).toMatchObject([
+      { object: 'block', id: under.id, type: 'child_page', child_page: { title: 'Diagram' } },
+      { id: database.id, type: 'child_database', child_database: { title: 'Data' } },
+      { id: embed, type: 'embed', embed: { url: 'https://example.org/a/' } },
+      { type: 'paragraph' },
+    ]);
+    expect((await call(notion, 'GET', `v1/blocks/${under.id}/children`)).body.results).toEqual([]);
+    const paged = await call(notion, 'GET', `v1/blocks/${page.id}/children?page_size=3`);
+    expect(paged.body).toMatchObject({ has_more: true });
+    expect((await call(notion, 'GET', `v1/blocks/${page.id}/children?start_cursor=${paged.body.next_cursor}`)).body.results).toHaveLength(1);
+  });
+
+  it('gives an embed block another address, and no other block, and not to a person who may not write', async () => {
+    const notion = createMemoryNotion();
+    const page = notion.createPage();
+    const embed = notion.addBlock(page.id, { embed: 'https://example.org/a/' });
+    const paragraph = notion.addBlock(page.id);
+
+    expect((await call(notion, 'PATCH', `v1/blocks/${embed}`, { type: 'embed', embed: { url: 'https://example.org/a/?store=1' } })).body.embed.url).toBe('https://example.org/a/?store=1');
+    expect((await call(notion, 'PATCH', `v1/blocks/${paragraph}`, { embed: { url: 'https://example.org/' } })).status).toBe(400);
+    expect((await call(notion, 'PATCH', `v1/blocks/${embed}`, { embed: {} })).status).toBe(400);
+    notion.denyWrites(notion.me);
+    expect((await call(notion, 'PATCH', `v1/blocks/${embed}`, { embed: { url: 'https://example.org/b/' } })).status).toBe(403);
+    expect(notion.blocks(page.id)[0]).toMatchObject({ embed: { url: 'https://example.org/a/?store=1' } });
+  });
+
+  it('does not find the blocks of a page that is not shared', async () => {
+    const notion = createMemoryNotion();
+    const page = notion.createPage({ shared: false });
+    const embed = notion.addBlock(page.id, { embed: 'https://example.org/a/' });
+    expect((await call(notion, 'GET', `v1/blocks/${page.id}/children`)).body).toMatchObject({ status: 404, code: 'object_not_found' });
+    expect((await call(notion, 'PATCH', `v1/blocks/${embed}`, { embed: { url: 'https://example.org/b/' } })).status).toBe(404);
+  });
+});
+
+describe('the in-memory Notion, for the views of a database', () => {
+  it('lists the views of a data source by id only, and answers each with what it shows', async () => {
+    const notion = createMemoryNotion();
+    const { dataSourceId, id } = store(notion);
+    const board = notion.addView(dataSourceId, 'board');
+    const form = notion.addView(dataSourceId, 'form');
+
+    const listed = await call(notion, 'GET', `v1/views?data_source_id=${dataSourceId}`);
+    expect(listed.body.results).toHaveLength(3);
+    expect(listed.body.results[1]).toEqual({ object: 'view', id: board });
+    expect((await call(notion, 'GET', 'v1/views')).status).toBe(400);
+
+    const table = await call(notion, 'GET', `v1/views/${listed.body.results[0].id}`);
+    expect(table.body).toMatchObject({ object: 'view', type: 'table', data_source_id: dataSourceId, parent: { type: 'database_id', database_id: id }, configuration: { type: 'table' } });
+    expect(table.body.configuration.properties).toHaveLength(7);
+    expect(table.body.configuration.properties[0]).toEqual({ property_id: 'title', property_name: 'name', visible: true });
+    expect((await call(notion, 'GET', `v1/views/${form}`)).body.configuration).toEqual({ type: 'form' });
+  });
+
+  it('replaces what a view says of its properties by what is given, and refuses what Notion would', async () => {
+    const notion = createMemoryNotion();
+    const { dataSourceId } = store(notion);
+    const [view] = notion.views(dataSourceId) as { id: string }[];
+    const order = (notion.properties(dataSourceId).Order as { id: string }).id;
+    const change = (configuration: unknown) => call(notion, 'PATCH', `v1/views/${view.id}`, { configuration });
+
+    const changed = await change({ type: 'table', properties: [{ property_id: 'title', visible: true, width: 300 }, { property_id: order, visible: false }] });
+    expect(changed.body.configuration.properties).toEqual([
+      { property_id: 'title', property_name: 'name', visible: true, width: 300 },
+      { property_id: order, property_name: 'Order', visible: false },
+    ]);
+    expect((await change({ type: 'board', properties: [] })).status).toBe(400);
+    expect((await change({ type: 'table', properties: [{ property_id: 'none', visible: false }] })).status).toBe(400);
+    expect((await change({ type: 'table', properties: [{ property_id: order, property_name: 'Order', visible: false }] })).status).toBe(400);
+    notion.denyWrites(notion.me);
+    expect((await change({ type: 'table', properties: [] })).status).toBe(403);
+    expect((notion.views(dataSourceId)[0] as { configuration: { properties: unknown[] } }).configuration.properties).toHaveLength(2);
   });
 });

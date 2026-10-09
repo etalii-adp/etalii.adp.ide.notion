@@ -324,6 +324,42 @@ describe('/notion/<path>', () => {
     }
   });
 
+  it('forwards the calls of the selection of a store and of the views, with the one query string each takes', async () => {
+    const page = notion.createPage();
+    const { dataSourceId } = notion.createDatabase({ parent: page.id });
+    const embed = notion.addBlock(page.id, { embed: 'https://etalii.net/adp-notion/an-addon/' });
+    const [view] = notion.views(dataSourceId) as { id: string }[];
+    const seen: string[] = [];
+    config.fetch = ((input: Request | string | URL, init?: RequestInit) => {
+      seen.push(new Request(input, init).url);
+      return notion.fetch(input, init);
+    }) as typeof fetch;
+
+    const found = await ask('POST', '/notion/v1/search', { body: { filter: { property: 'object', value: 'data_source' } } });
+    expect(await found.json()).toMatchObject({ object: 'list', results: [{ id: dataSourceId }] });
+    const children = await ask('GET', `/notion/v1/blocks/${page.id}/children`);
+    expect((await children.json()).results.map((block: { type: string }) => block.type)).toEqual(['child_database', 'embed']);
+    expect((await ask('GET', `/notion/v1/blocks/${page.id}/children?start_cursor=${embed}`)).status).toBe(200);
+    expect((await ask('PATCH', `/notion/v1/blocks/${embed}`, { body: { type: 'embed', embed: { url: 'https://etalii.net/adp-notion/an-addon/?store=1' } } })).status).toBe(200);
+    const views = await ask('GET', `/notion/v1/views?data_source_id=${dataSourceId}`);
+    expect(await views.json()).toMatchObject({ results: [{ object: 'view', id: view.id }] });
+    expect((await ask('GET', `/notion/v1/views?data_source_id=${dataSourceId}&start_cursor=${view.id}`)).status).toBe(200);
+    expect((await ask('GET', `/notion/v1/views/${view.id}`)).status).toBe(200);
+    expect((await ask('PATCH', `/notion/v1/views/${view.id}`, { body: { configuration: { type: 'table', properties: [{ property_id: 'title', visible: true }] } } })).status).toBe(200);
+
+    expect(seen.map((url) => url.slice('https://api.notion.com'.length))).toEqual([
+      '/v1/search',
+      `/v1/blocks/${page.id}/children`,
+      `/v1/blocks/${page.id}/children?start_cursor=${embed}`,
+      `/v1/blocks/${embed}`,
+      `/v1/views?data_source_id=${dataSourceId}`,
+      `/v1/views?data_source_id=${dataSourceId}&start_cursor=${view.id}`,
+      `/v1/views/${view.id}`,
+      `/v1/views/${view.id}`,
+    ]);
+    expect(notion.blocks(page.id)[1]).toMatchObject({ embed: { url: 'https://etalii.net/adp-notion/an-addon/?store=1' } });
+  });
+
   it('answers 401 without the header and forwards nothing', async () => {
     const response = await ask('GET', '/notion/v1/users/me', { token: null });
     expect(response.status).toBe(401);
@@ -340,9 +376,22 @@ describe('/notion/<path>', () => {
     ['DELETE', '/notion/v1/databases/00000000000040008000000000000001'],
     ['PATCH', '/notion/v1/databases/00000000000040008000000000000001'],
     ['POST', '/notion/v1/databases'],
-    ['POST', '/notion/v1/search'],
+    ['POST', '/notion/v1/search?page_size=1'],
+    ['GET', '/notion/v1/search'],
     ['GET', '/notion/v1/users'],
-    ['GET', '/notion/v1/blocks/00000000000040008000000000000001/children'],
+    ['GET', '/notion/v1/blocks/00000000000040008000000000000001'],
+    ['DELETE', '/notion/v1/blocks/00000000000040008000000000000001'],
+    ['PATCH', '/notion/v1/blocks/00000000000040008000000000000001/children'],
+    ['GET', '/notion/v1/blocks/00000000000040008000000000000001/children?page_size=1'],
+    ['GET', '/notion/v1/blocks/00000000000040008000000000000001/children?start_cursor=x'],
+    ['GET', '/notion/v1/blocks/00000000000040008000000000000001/children?start_cursor=00000000000040008000000000000001&page_size=1'],
+    ['GET', '/notion/v1/views'],
+    ['GET', '/notion/v1/views?database_id=00000000000040008000000000000001'],
+    ['GET', '/notion/v1/views?data_source_id=00000000000040008000000000000001&page_size=1'],
+    ['GET', '/notion/v1/views/00000000000040008000000000000001?x=1'],
+    ['POST', '/notion/v1/views'],
+    ['DELETE', '/notion/v1/views/00000000000040008000000000000001'],
+    ['POST', '/notion/v1/views/00000000000040008000000000000001/queries'],
     ['POST', '/notion/v1/oauth/token'],
     ['GET', '/notion/v1/databases/not-an-id'],
     ['GET', '/notion/v1/databases/0000000000004000800000000000000'],

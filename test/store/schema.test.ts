@@ -2,7 +2,7 @@ import { readFileSync } from 'node:fs';
 import { describe, expect, it } from 'vitest';
 import { loadDocument } from '../../src/fbl/documents/documentLoader';
 import type { FblBinding } from '../../src/fbl/documents/types';
-import { missing, prepare, storeSchema, type StoreSchema } from '../../src/store/schema';
+import { hide, missing, prepare, projectable, storeSchema, ViewsError, type StoreSchema } from '../../src/store/schema';
 import { tool } from '../disl/tool';
 import { createMemoryCalls } from '../support/memoryCalls';
 
@@ -200,5 +200,114 @@ describe('a database', () => {
     const database = memory.notion.createDatabase({ properties: { Name: { title: {} }, from: { relation: { data_source_id: other.dataSourceId } } } });
     const lacking = missing(schema, await memory.calls.dataSource(database.dataSourceId));
     expect(lacking.wrong.map((each) => [each.property.name, each.has])).toEqual([['from', 'relation to another database']]);
+  });
+});
+
+describe('projecting a property', () => {
+  const start = async (properties: Record<string, Record<string, unknown>>) => {
+    const memory = createMemoryCalls();
+    const other = memory.notion.createDatabase();
+    const database = memory.notion.createDatabase({ properties: { Name: { title: {} }, ...properties, Elsewhere: { relation: { data_source_id: other.dataSourceId } } } });
+    return { ...memory, database, dataSource: () => memory.calls.dataSource(database.dataSourceId) };
+  };
+  const ids = (properties: Record<string, unknown>) => Object.fromEntries(Object.entries(properties).map(([name, property]) => [name, (property as { id: string }).id]));
+
+  it('offers, for each property that is missing, the properties of its type under a name no property of the schema has', async () => {
+    const { dataSource } = await start({ Sequence: { number: {} }, Level: { number: {} }, row: { number: {} }, Notes: { rich_text: {} }, Source: { relation: {} }, KIND: { select: {} }, Labels: { multi_select: {} } });
+    const offered = projectable(schema, await dataSource());
+    expect(Object.keys(offered)).toEqual(missing(schema, await dataSource()).add.map((property) => property.name));
+    expect(offered.Order).toEqual(['Sequence', 'Level']);
+    expect(offered.width).toEqual(['Sequence', 'Level']);
+    expect(offered.name).toEqual(['Notes']);
+    expect(offered.tags).toEqual(['Labels']);
+    // A relation to another database is none of this store's, and a name Notion takes for a needed one is claimed.
+    expect(offered.from).toEqual(['Source']);
+    expect(offered.unit).toEqual([]);
+    expect(offered.row).toBeUndefined();
+  });
+
+  it('gives the chosen property the name that is needed and adds the rest, in one write that touches no row', async () => {
+    const { notion, calls, service, database, dataSource } = await start({ Sequence: { number: {} }, Level: { number: {} }, Notes: { rich_text: {} } });
+    const [kept] = notion.seedRows(database.dataSourceId, [{ Name: 'kept', Sequence: 4, Notes: 'a note' }]);
+    const before = ids(notion.properties(database.dataSourceId));
+    const edited = notion.rows(database.dataSourceId)[0].last_edited_time;
+
+    const lacking = await prepare(schema, await dataSource(), calls, { Order: 'Sequence', description: 'Notes' });
+    expect(lacking.prepared).toBe(true);
+    expect(service.requests.filter((request) => request.startsWith('PATCH'))).toHaveLength(1);
+
+    const after = ids(notion.properties(database.dataSourceId));
+    expect(after.Order).toBe(before.Sequence);
+    expect(after.description).toBe(before.Notes);
+    expect(after.Level).toBe(before.Level);
+    expect(after.Elsewhere).toBe(before.Elsewhere);
+    expect(Object.keys(after).sort()).toEqual(['Elsewhere', 'Level', ...schema.properties.map((property) => property.name)].sort());
+    expect(notion.rows(database.dataSourceId)[0]).toMatchObject({ id: kept, last_edited_time: edited, properties: { Order: { number: 4 }, description: { rich_text: [{ plain_text: 'a note' }] } } });
+  });
+
+  it('adds a property whose choice is not one that was offered, or was taken by another', async () => {
+    const { notion, calls, database, dataSource } = await start({ Sequence: { number: {} }, Notes: { rich_text: {} } });
+    const before = ids(notion.properties(database.dataSourceId));
+    const lacking = await prepare(schema, await dataSource(), calls, { Order: 'Sequence', row: 'Sequence', width: 'Notes', height: 'Nothing', name: 'Elsewhere' });
+    expect(lacking.prepared).toBe(true);
+    const after = ids(notion.properties(database.dataSourceId));
+    expect(after.Order).toBe(before.Sequence);
+    expect(after.Notes).toBe(before.Notes);
+    expect(Object.keys(after).sort()).toEqual(['Elsewhere', 'Notes', ...schema.properties.map((property) => property.name)].sort());
+  });
+
+  it('changes nothing of a database until it is prepared', async () => {
+    const { service, dataSource } = await start({ Sequence: { number: {} } });
+    missing(schema, await dataSource());
+    projectable(schema, await dataSource());
+    expect(service.requests.filter((request) => !request.startsWith('GET'))).toEqual([]);
+  });
+});
+
+describe('hiding properties in the views', () => {
+  type Shown = { configuration: { properties?: { property_name: string; visible: boolean; width?: number }[] } };
+  const start = async () => {
+    const memory = createMemoryCalls();
+    const database = memory.notion.createDatabase({ properties: { Name: { title: {} }, Mine: { rich_text: {} } } });
+    const dataSource = async () => memory.calls.dataSource(database.dataSourceId);
+    await prepare(schema, await dataSource(), memory.calls);
+    const views = () => memory.notion.views(database.dataSourceId) as Shown[];
+    const hidden = (view: Shown) => (view.configuration.properties ?? []).filter((each) => !each.visible).map((each) => each.property_name);
+    return { ...memory, database, dataSource, views, hidden };
+  };
+  const patches = (requests: readonly string[]) => requests.filter((request) => request.startsWith('PATCH /notion/v1/views'));
+
+  it('hides them in every view that shows properties, and leaves what a view says of the others', async () => {
+    const { notion, calls, database, dataSource, views, hidden } = await start();
+    notion.addView(database.dataSourceId, 'board');
+    notion.addView(database.dataSourceId, 'form');
+    const title = views()[0].configuration.properties![0];
+
+    await hide(await dataSource(), ['Order', 'row', 'nothing'], calls);
+    const [table, board, form] = views();
+    expect(hidden(table)).toEqual(['Order', 'row']);
+    expect(table.configuration.properties![0]).toEqual(title);
+    expect(table.configuration.properties!.find((each) => each.property_name === 'Mine')).toMatchObject({ visible: true });
+    expect(hidden(board)).toEqual(expect.arrayContaining(['Order', 'row', 'Mine']));
+    expect(form.configuration.properties).toBeUndefined();
+  });
+
+  it('writes to no view that hides them already, and to none when there is nothing to hide', async () => {
+    const { calls, service, dataSource } = await start();
+    await hide(await dataSource(), ['Order'], calls);
+    expect(patches(service.requests)).toHaveLength(1);
+    await hide(await dataSource(), ['Order'], calls);
+    await hide(await dataSource(), [], calls);
+    await hide(await dataSource(), ['nothing'], calls);
+    expect(patches(service.requests)).toHaveLength(1);
+  });
+
+  it('rejects with a sentence where Notion refuses, and leaves the views as they were', async () => {
+    const { notion, calls, dataSource, views, hidden } = await start();
+    notion.denyWrites(notion.me);
+    const refused = await hide(await dataSource(), ['Order'], calls).catch((error: unknown) => error);
+    expect(refused).toBeInstanceOf(ViewsError);
+    expect((refused as Error).message).toMatch(/^The internal properties could not be hidden in the views of the database: /);
+    expect(hidden(views()[0])).toEqual([]);
   });
 });

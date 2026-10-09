@@ -182,7 +182,7 @@ describe('the state setup', () => {
     expect(help?.querySelector('h1')?.textContent).toBe('Gartner hype cycle graph');
     expect(help?.querySelectorAll('ol > li').length).toBeGreaterThanOrEqual(4);
     expect(help?.textContent).toContain(`https://etalii.net/adp-notion/${addon}/?store=`);
-    expect(ids()).toEqual(['message']);
+    expect(ids()).toEqual(['choose-store', 'message']);
     expect(message()).toBe('');
   });
 
@@ -206,6 +206,8 @@ describe('the state setup', () => {
     expect(document.body.dataset.state).toBe('setup');
     expect(document.querySelectorAll('.adp-setup ol > li').length).toBeGreaterThanOrEqual(4);
     expect(message()).toContain('addon.json cannot be read');
+    // Without the tool type there is nothing to check a database against.
+    expect(document.getElementById('choose-store')).toBeNull();
   });
 });
 

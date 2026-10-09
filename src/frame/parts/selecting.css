@@ -1,0 +1,129 @@
+/*
+ * selecting.css: the selection of a store in the state `setup`, the properties a database gets,
+ * and the address for an embed block. Every colour, size and spacing is a property of
+ * ../../panels/notion.css.
+ */
+
+.adp-selection {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: var(--notion-space-4);
+  margin-top: var(--notion-space-5);
+  overflow-wrap: anywhere;
+}
+
+.adp-selection:empty {
+  display: none;
+}
+
+.adp-selection p {
+  margin: 0;
+}
+
+.adp-find {
+  display: flex;
+  gap: var(--notion-space-2);
+  max-width: 100%;
+}
+
+.adp-field,
+.adp-choice {
+  min-width: 0;
+  min-height: var(--notion-control-height);
+  padding: 0 var(--notion-space-3);
+  font: inherit;
+  color: var(--notion-text);
+  background: var(--notion-background-input);
+  border: thin solid var(--notion-border-control);
+  border-radius: var(--notion-radius-control);
+}
+
+.adp-stores,
+.adp-properties {
+  align-self: stretch;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.adp-store {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: var(--notion-space-2) var(--notion-space-4);
+  width: 100%;
+  min-height: var(--notion-control-height);
+  padding: var(--notion-space-2) var(--notion-space-3);
+  font: inherit;
+  color: inherit;
+  text-align: left;
+  background: none;
+  border: none;
+  border-radius: var(--notion-radius-control);
+  cursor: pointer;
+  transition: var(--notion-transition-hover);
+}
+
+.adp-store:hover {
+  background: var(--notion-background-hover);
+}
+
+.adp-store-title {
+  font-weight: var(--notion-font-weight-medium);
+}
+
+.adp-store-where {
+  color: var(--notion-text-secondary);
+  font-size: var(--notion-font-size-small);
+  line-height: var(--notion-line-height-small);
+}
+
+.adp-properties li {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--notion-space-2) var(--notion-space-4);
+  padding: var(--notion-space-2) 0;
+  border-bottom: thin solid var(--notion-border);
+  color: var(--notion-text-secondary);
+}
+
+.adp-property-name {
+  flex: none;
+  font-family: var(--notion-font-family-mono);
+  font-size: var(--notion-font-size-small);
+  color: var(--notion-text);
+}
+
+.adp-choice {
+  max-width: 100%;
+}
+
+/* On the page of a store: the whole width of the bar, under its controls. */
+.adp-store-address {
+  flex-basis: 100%;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--notion-space-2) var(--notion-space-4);
+}
+
+.adp-store-address p {
+  flex-basis: 100%;
+  margin: 0;
+}
+
+#store-address {
+  flex: 1 1 auto;
+  max-width: 100%;
+  font-family: var(--notion-font-family-mono);
+  font-size: var(--notion-font-size-small);
+}
+
+.adp-field:focus-visible,
+.adp-choice:focus-visible,
+.adp-store:focus-visible {
+  outline: none;
+  box-shadow: var(--notion-focus-ring);
+}

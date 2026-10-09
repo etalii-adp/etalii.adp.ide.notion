@@ -1,6 +1,6 @@
 // An in-memory Notion at the level of HTTP: it answers as https://api.notion.com does, in API
 // version 2026-03-11, for the calls the service forwards and for the two of the grant of access.
-// It models what a store needs and nothing else; a call or a shape outside that is refused, so
+// It models what a store and the selection of one need and nothing else; a call or a shape outside that is refused, so
 // that a test never passes on something Notion would not do.
 
 type Json = Record<string, unknown>;
@@ -69,7 +69,19 @@ export interface MemoryNotion {
     /** Property schemas by name, as Notion takes them. A relation without `data_source_id` relates to its own data source. */
     properties?: Record<string, Json>;
     dataSources?: number;
+    /** The page that holds the database; without one it is at the top of the workspace. */
+    parent?: string;
   }): MemoryDatabase;
+  /** A page that is no row: at the top of the workspace, or under `parent`. One that is not shared is not found by a call. */
+  createPage(options?: { title?: string; parent?: string; shared?: boolean }): { id: string };
+  /** Adds a block to a page and answers its id: an embed with its address, or a paragraph. */
+  addBlock(pageId: string, block?: { embed: string }): string;
+  /** The blocks of a page, as Notion answers them. */
+  blocks(pageId: string): Json[];
+  /** Adds a view of a data source beside its first, a table. */
+  addView(dataSourceId: string, type: string): string;
+  /** The views of a data source, as Notion answers each. */
+  views(dataSourceId: string): Json[];
   seedRows(dataSourceId: string, rows: Record<string, MemoryValue>[], by?: MemoryPerson): string[];
   updateRow(pageId: string, change: { properties?: Record<string, MemoryValue>; in_trash?: boolean }, by?: MemoryPerson): void;
   /** Every row in creation order, those in the trash too. */
@@ -110,6 +122,27 @@ interface Page {
   /** By property id, so that a renamed property keeps its values. */
   values: Record<string, unknown>;
 }
+
+interface Block {
+  id: string;
+  pageId: string;
+  type: string;
+  /** An embed's address, or the title of a child page or a child database. */
+  text: string;
+}
+
+interface View {
+  id: string;
+  sourceId: string;
+  type: string;
+  name: string;
+  /** What was configured, in that order: a property that was never configured is not listed. */
+  properties: Json[];
+}
+
+/** The views whose configuration says which properties are shown. */
+const WITH_PROPERTIES = ['table', 'board', 'list', 'calendar', 'timeline', 'gallery', 'map'];
+const VIEW_TYPES = [...WITH_PROPERTIES, 'form', 'chart', 'dashboard'];
 
 const TYPES = ['title', 'rich_text', 'number', 'checkbox', 'select', 'multi_select', 'relation'];
 const DATE_CONDITIONS: Record<string, (row: number, asked: number) => boolean> = {
@@ -168,7 +201,10 @@ export function createMemoryNotion(options: MemoryNotionOptions = {}): MemoryNot
   const codes = new Map<string, string>();
   const refreshes = new Map<string, string>();
   const readOnly = new Set<string>();
-  const databases = new Map<string, { id: string; title: string; sources: string[]; unshared: boolean }>();
+  const databases = new Map<string, { id: string; title: string; sources: string[]; unshared: boolean; parent?: string }>();
+  const plainPages = new Map<string, { id: string; title: string; shared: boolean; blocks: string[] }>();
+  const blocks = new Map<string, Block>();
+  const views = new Map<string, View>();
   const sources = new Map<string, Source>();
   const pages = new Map<string, Page>();
   const failures: { kind: MemoryFailure; retryAfter: number }[] = [];
@@ -325,6 +361,96 @@ export function createMemoryNotion(options: MemoryNotionOptions = {}): MemoryNot
     return Object.fromEntries(source.schemas.map((schema) => [schema.name, structuredClone(schema)]));
   }
 
+  const parentOf = (database: { parent?: string }): Json => (database.parent ? { type: 'page_id', page_id: database.parent } : { type: 'workspace', workspace: true });
+
+  function plainPageOf(id: string, shared = true): { id: string; title: string; shared: boolean; blocks: string[] } {
+    const page = plainPages.get(canonical(id));
+    if (!page || (shared && !page.shared)) fail(404, 'object_not_found', `Could not find block with ID: ${id}. Make sure the relevant pages and databases are shared with your integration.`);
+    return page;
+  }
+
+  function addBlock(pageId: string, type: string, text: string, id = nextId()): string {
+    blocks.set(id, { id, pageId, type, text });
+    plainPageOf(pageId, false).blocks.push(id);
+    return id;
+  }
+
+  function showBlock(block: Block): Json {
+    const content = block.type === 'embed' ? { caption: [], url: block.text } : block.type === 'paragraph' ? { rich_text: [], color: 'default' } : { title: block.text };
+    return { object: 'block', id: block.id, parent: { type: 'page_id', page_id: block.pageId }, type: block.type, has_children: false, in_trash: false, [block.type]: content };
+  }
+
+  // The cursor is the id of the first item of the next page, as for the rows.
+  function paged<T extends { id: string }>(all: T[], cursor: unknown, size: unknown, show: (item: T) => Json, type: string): Json {
+    const count = size ?? 100;
+    if (typeof count !== 'number' || !Number.isInteger(count) || count < 1 || count > 100) fail(400, 'validation_error', 'page_size should be an integer from 1 to 100.');
+    let from = 0;
+    if (cursor !== undefined && cursor !== null) {
+      from = all.findIndex((item) => item.id === cursor);
+      if (from < 0) fail(400, 'validation_error', 'The start_cursor provided is invalid.');
+    }
+    const next = all[from + count];
+    return { object: 'list', results: all.slice(from, from + count).map(show), next_cursor: next ? next.id : null, has_more: next !== undefined, type, [type]: {} };
+  }
+
+  function search(body: Json): Json {
+    const filter = isObject(body.filter) ? body.filter : {};
+    if (filter.property !== 'object' || filter.value !== 'data_source') fail(400, 'validation_error', 'The memory Notion searches for data sources only: body.filter should ask for them.');
+    if (body.query !== undefined && typeof body.query !== 'string') fail(400, 'validation_error', 'body.query should be a string.');
+    const asked = (body.query ?? '').toLowerCase();
+    const found = [...sources.values()].filter((source) => !databases.get(source.databaseId)!.unshared && source.name.toLowerCase().includes(asked));
+    return paged(found, body.start_cursor, body.page_size, showSource, 'page_or_data_source');
+  }
+
+  function addView(source: Source, type: string): View {
+    if (!VIEW_TYPES.includes(type)) throw new Error(`The memory Notion has no view of the type ${type}`);
+    const properties = WITH_PROPERTIES.includes(type) ? source.schemas.map((schema) => ({ property_id: schema.id, visible: type === 'table' || schema.type === 'title' })) : [];
+    const view: View = { id: nextId(), sourceId: source.id, type, name: `${type} view`, properties };
+    views.set(view.id, view);
+    return view;
+  }
+
+  function viewOf(id: string): View {
+    const view = views.get(canonical(id));
+    if (!view || databases.get(sources.get(view.sourceId)!.databaseId)!.unshared) fail(404, 'object_not_found', `Could not find view with ID: ${id}.`);
+    return view;
+  }
+
+  function showView(view: View): Json {
+    const source = sources.get(view.sourceId)!;
+    const named = view.properties.map((each) => ({ ...each, property_name: source.schemas.find((schema) => schema.id === each.property_id)?.name ?? '' }));
+    return {
+      object: 'view',
+      id: view.id,
+      parent: { type: 'database_id', database_id: source.databaseId },
+      data_source_id: source.id,
+      name: view.name,
+      type: view.type,
+      configuration: { type: view.type, ...(WITH_PROPERTIES.includes(view.type) ? { properties: named } : {}) },
+    };
+  }
+
+  // What Notion's reference leaves open is answered the strict way: the list of properties given
+  // replaces the one kept, so that a caller who wants to keep an entry sends it.
+  function changeView(view: View, body: Json): void {
+    const configuration = body.configuration;
+    if (!isObject(configuration)) fail(400, 'validation_error', 'The memory Notion changes the configuration of a view only.');
+    if (configuration.type !== view.type) fail(400, 'validation_error', 'body.configuration.type should be the type of the view.');
+    if (configuration.properties === undefined) return;
+    if (!WITH_PROPERTIES.includes(view.type)) fail(400, 'validation_error', `A ${view.type} view has no properties to configure.`);
+    const given = configuration.properties;
+    if (!Array.isArray(given) || !given.every(isObject)) fail(400, 'validation_error', 'body.configuration.properties should be an array of objects.');
+    const schemas = sources.get(view.sourceId)!.schemas;
+    view.properties = (given as Json[]).map((each) => {
+      const schema = schemas.find((candidate) => candidate.id === each.property_id);
+      if (!schema) return fail(400, 'validation_error', `Could not find property with ID: ${String(each.property_id)}`);
+      if ('property_name' in each) fail(400, 'validation_error', 'body.configuration.properties[].property_name is not a member of a request.');
+      if (each.visible !== undefined && typeof each.visible !== 'boolean') fail(400, 'validation_error', 'body.configuration.properties[].visible should be a boolean.');
+      return { ...each, property_id: schema.id };
+    });
+    write();
+  }
+
   function showSource(source: Source): Json {
     const parent = { type: 'database_id', database_id: source.databaseId };
     return {
@@ -332,7 +458,7 @@ export function createMemoryNotion(options: MemoryNotionOptions = {}): MemoryNot
       id: source.id,
       title: [richText(source.name)],
       parent,
-      database_parent: { type: 'workspace', workspace: true },
+      database_parent: parentOf(databases.get(source.databaseId)!),
       properties: showProperties(source),
       in_trash: false,
       created_time: source.created,
@@ -519,7 +645,7 @@ export function createMemoryNotion(options: MemoryNotionOptions = {}): MemoryNot
         object: 'database',
         id: database.id,
         title: [richText(database.title)],
-        parent: { type: 'workspace', workspace: true },
+        parent: parentOf(database),
         is_inline: false,
         in_trash: false,
         url: `https://www.notion.so/${database.id.replaceAll('-', '')}`,
@@ -556,6 +682,47 @@ export function createMemoryNotion(options: MemoryNotionOptions = {}): MemoryNot
       return showPage(page) as unknown as Json;
     }
 
+    if (method === 'POST' && path === '/v1/search') return search(await bodyOf(request));
+
+    match = /^\/v1\/blocks\/([^/]+)\/children$/.exec(path);
+    if (match && method === 'GET') {
+      const size = url.searchParams.get('page_size');
+      const held = plainPageOf(match[1]).blocks.map((id) => blocks.get(id)!);
+      return paged(held, url.searchParams.get('start_cursor'), size === null ? undefined : Number(size), showBlock, 'block');
+    }
+
+    match = /^\/v1\/blocks\/([^/]+)$/.exec(path);
+    if (match && method === 'PATCH') {
+      const block = blocks.get(canonical(match[1]));
+      if (!block || !plainPages.get(block.pageId)!.shared) return fail(404, 'object_not_found', `Could not find block with ID: ${match[1]}.`);
+      mayWrite();
+      const body = await bodyOf(request);
+      const embed = body.embed;
+      if (block.type !== 'embed' || (body.type !== undefined && body.type !== 'embed') || !isObject(embed) || typeof embed.url !== 'string') {
+        return fail(400, 'validation_error', 'The memory Notion changes the address of an embed block only.');
+      }
+      block.text = embed.url;
+      write();
+      return showBlock(block);
+    }
+
+    if (method === 'GET' && path === '/v1/views') {
+      const asked = url.searchParams.get('data_source_id');
+      if (asked === null) return fail(400, 'validation_error', 'The memory Notion lists the views of a data source: data_source_id should be defined.');
+      const source = sourceOf(asked);
+      const held = [...views.values()].filter((view) => view.sourceId === source.id);
+      return paged(held, url.searchParams.get('start_cursor'), undefined, (view) => ({ object: 'view', id: view.id }), 'view');
+    }
+
+    match = /^\/v1\/views\/([^/]+)$/.exec(path);
+    if (match && method === 'GET') return showView(viewOf(match[1]));
+    if (match && method === 'PATCH') {
+      const view = viewOf(match[1]);
+      mayWrite();
+      changeView(view, await bodyOf(request));
+      return showView(view);
+    }
+
     return fail(400, 'invalid_request_url', 'Invalid request URL.');
   }
 
@@ -587,15 +754,30 @@ export function createMemoryNotion(options: MemoryNotionOptions = {}): MemoryNot
       for (let count = 0; count < times; count++) failures.push({ kind, retryAfter });
     },
 
-    createDatabase({ id, title = 'Memory database', properties = { Name: { title: {} } }, dataSources = 1 } = {}) {
-      const database = { id: id ? canonical(id) : nextId(), title, sources: [] as string[], unshared: false };
+    createPage({ title = 'Memory page', parent, shared = true } = {}) {
+      const page = { id: nextId(), title, shared, blocks: [] as string[] };
+      plainPages.set(page.id, page);
+      // As in Notion, the block of a page under another has the id of that page.
+      if (parent) addBlock(parent, 'child_page', title, page.id);
+      return { id: page.id };
+    },
+    addBlock: (pageId, block) => (block ? addBlock(pageId, 'embed', block.embed) : addBlock(pageId, 'paragraph', '')),
+    blocks: (pageId) => plainPageOf(pageId, false).blocks.map((id) => showBlock(blocks.get(id)!)),
+    addView: (dataSourceId, type) => addView(sourceOf(dataSourceId, false), type).id,
+    views: (dataSourceId) => [...views.values()].filter((view) => view.sourceId === sourceOf(dataSourceId, false).id).map(showView),
+
+    createDatabase({ id, title = 'Memory database', properties = { Name: { title: {} } }, dataSources = 1, parent } = {}) {
+      const database = { id: id ? canonical(id) : nextId(), title, sources: [] as string[], unshared: false, parent: parent ? plainPageOf(parent, false).id : undefined };
       databases.set(database.id, database);
+      if (database.parent) addBlock(database.parent, 'child_database', title, database.id);
       for (let count = 0; count < dataSources; count++) {
         const source: Source = { id: nextId(), databaseId: database.id, name: count === 0 ? title : `${title} ${count + 1}`, schemas: [], pages: [], created: now(), edited: now() };
         sources.set(source.id, source);
         database.sources.push(source.id);
         source.schemas = Object.entries(properties).map(([name, input]) => toSchema(name, input, source));
         if (!source.schemas.some((schema) => schema.type === 'title')) source.schemas.unshift(toSchema('Name', { title: {} }, source));
+        // A database is never without a view: its first is a table.
+        addView(source, 'table');
       }
       return { id: database.id, dataSourceId: database.sources[0], dataSourceIds: [...database.sources] };
     },

@@ -21,4 +21,4 @@ The whole procedure is executable: [`capture.mjs`](capture.mjs) drives all of th
 | Image | Document opened | What must be visible |
 |---|---|---|
 | `gartner-hype-cycle-graph.png` | `gartner-hype-cycle-graph/digital-trends/` → `digital-trends.ghg` | The digital trends as banners on the year axis, coloured by phase, with their names, the triggers as dated dots and the influences as curves between them; the tag filter, the Peak/Trough/Slope/Plateau key and the Compact toggle above; the toolbox showing Trend, Trigger and Note; the trend nearest the middle selected, with its properties in the property grid. Dark appearance. |
-| `gartner-hype-cycle-graph-light.png` | `gartner-hype-cycle-graph/digital-trends/` → `digital-trends.ghg` | The same in the light appearance. |
+| `gartner-hype-cycle-graph-light.png` | `gartner-hype-cycle-graph/digital-trends/` → `digital-trends.ghg` | The digital trends as banners on the year axis, coloured by phase, with their names, triggers and influences, the tag filter and the phase key above, the toolbox at the left and the selected trend's properties in the property grid at the right. Light appearance. |

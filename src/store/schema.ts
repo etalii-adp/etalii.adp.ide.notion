@@ -7,7 +7,7 @@ import { attributesOf, isA, isRelation, valueKind, type Metamodel } from '../dis
 import { finding, type Finding } from '../disl/model';
 import type { InterpretedPersistence } from '../disl/persistence';
 import type { Attribute } from '../disl/specification';
-import type { NotionCalls, NotionDataSource } from './notion';
+import { NotionError, type NotionCalls, type NotionDataSource, type NotionProperty } from './notion';
 
 /** The store's two own properties. */
 export const KIND = 'Kind';
@@ -186,11 +186,28 @@ export function missing(schema: StoreSchema, dataSource: NotionDataSource): Miss
       else if (!found && titled) rename = { from: titled.name, to: property.name };
     } else if (!found) add.push(property);
     else if (found.type !== property.type) wrong.push({ property, has: found.type });
-    else if (property.type === 'relation' && (found.relation as { data_source_id?: string } | undefined)?.data_source_id !== dataSource.id) {
+    else if (property.type === 'relation' && !ownRelation(found, dataSource)) {
       wrong.push({ property, has: 'relation to another database' });
     }
   }
   return { rename, add, wrong, prepared: !rename && add.length === 0 && wrong.length === 0 };
+}
+
+const ownRelation = (property: NotionProperty, dataSource: NotionDataSource): boolean =>
+  (property.relation as { data_source_id?: string } | undefined)?.data_source_id === dataSource.id;
+
+/**
+ * For each property the database lacks, by its name: the properties the database has that can be
+ * projected on it (FR-034). Such a property has the type that is needed and a name no property of
+ * the schema has, so that no other need claims it; projecting it gives it the name that is needed.
+ */
+export function projectable(schema: StoreSchema, dataSource: NotionDataSource): Readonly<Record<string, readonly string[]>> {
+  const claimed = new Set(schema.properties.map((property) => taken(property.name)));
+  const free = Object.values(dataSource.properties).filter((each) => !claimed.has(taken(each.name)));
+  return Object.fromEntries(missing(schema, dataSource).add.map((property) => [
+    property.name,
+    free.filter((each) => each.type === property.type && (each.type !== 'relation' || ownRelation(each, dataSource))).map((each) => each.name),
+  ]));
 }
 
 const configuration = (property: StoreProperty, dataSourceId: string): Record<string, unknown> => {
@@ -200,15 +217,73 @@ const configuration = (property: StoreProperty, dataSourceId: string): Record<st
 };
 
 /**
- * Makes a database a store: renames the title property and adds what is missing, in one write. It
- * changes no property that exists with the right type, removes none and touches no row. Answers
- * what the database still lacks: a property that exists with another type is left alone.
+ * Makes a database a store: renames the title property, gives each property of `project` the name
+ * of the missing one it is projected on, and adds what is still missing, in one write. `project`
+ * is by the name that is needed; an entry that `projectable` does not offer, or that names a
+ * property another entry took, is left out, and that property is added. It changes no property
+ * that exists with the right name and type, removes none and touches no row. Answers what the
+ * database still lacks: a property that exists with another type is left alone.
  */
-export async function prepare(schema: StoreSchema, dataSource: NotionDataSource, calls: NotionCalls): Promise<Missing> {
+export async function prepare(schema: StoreSchema, dataSource: NotionDataSource, calls: NotionCalls, project: Readonly<Record<string, string>> = {}): Promise<Missing> {
   const lacking = missing(schema, dataSource);
+  const offered = projectable(schema, dataSource);
   const changes: Record<string, Record<string, unknown>> = {};
   if (lacking.rename) changes[lacking.rename.from] = { name: lacking.rename.to };
-  for (const property of lacking.add) changes[property.name] = configuration(property, dataSource.id);
+  for (const property of lacking.add) {
+    const chosen = Object.hasOwn(project, property.name) ? project[property.name] : undefined;
+    if (chosen !== undefined && offered[property.name].includes(chosen) && !Object.hasOwn(changes, chosen)) changes[chosen] = { name: property.name };
+    else changes[property.name] = configuration(property, dataSource.id);
+  }
   if (Object.keys(changes).length === 0) return lacking;
   return missing(schema, await calls.edit((writes) => writes.updateProperties(dataSource.id, changes)));
+}
+
+/** The views were not changed. The store itself is as it should be. */
+export class ViewsError extends Error {
+  override readonly name = 'ViewsError';
+}
+
+// The layouts whose configuration says which properties a view shows (Notion's reference, "Update a view").
+const SHOWING = ['table', 'board', 'list', 'calendar', 'timeline', 'gallery', 'map'];
+
+// Notion writes the id of a property percent-encoded in one answer and plain in another.
+function plain(id: string): string {
+  try {
+    return decodeURIComponent(id);
+  } catch {
+    return id;
+  }
+}
+
+/**
+ * Hides the properties of those names in every view of a data source that shows properties
+ * (FR-036). What a view says of its other properties is sent back as it was, and a view that
+ * hides them all already is not written to. Rejects with a `ViewsError` where Notion refuses.
+ */
+export async function hide(dataSource: NotionDataSource, names: readonly string[], calls: NotionCalls): Promise<void> {
+  const ids = Object.values(dataSource.properties).filter((property) => names.includes(property.name)).map((property) => plain(property.id));
+  if (ids.length === 0) return;
+  try {
+    const changes: { id: string; type: string; properties: { property_id: string; visible?: boolean }[] }[] = [];
+    for (let cursor: string | undefined, more = true; more;) {
+      const page = await calls.views(dataSource.id, cursor);
+      for (const { id } of page.results) {
+        const view = await calls.view(id);
+        if (!SHOWING.includes(view.type)) continue;
+        // `property_name` is in an answer only: a request names a property by its id.
+        const said = (view.configuration?.properties ?? []).map((entry) => Object.fromEntries(Object.entries(entry).filter(([member]) => member !== 'property_name')) as typeof entry);
+        const hidden = (id: string): boolean => said.some((entry) => plain(entry.property_id) === id && entry.visible === false);
+        if (ids.every(hidden)) continue;
+        const kept = said.map((entry) => (ids.includes(plain(entry.property_id)) ? { ...entry, visible: false } : entry));
+        const added = ids.filter((id) => !said.some((entry) => plain(entry.property_id) === id)).map((id) => ({ property_id: id, visible: false }));
+        changes.push({ id: view.id, type: view.type, properties: [...kept, ...added] });
+      }
+      more = page.has_more && page.next_cursor !== null;
+      cursor = page.next_cursor ?? undefined;
+    }
+    if (changes.length > 0) await calls.edit((writes) => Promise.all(changes.map((change) => writes.updateView(change.id, change.type, change.properties))));
+  } catch (error) {
+    if (!(error instanceof NotionError)) throw error;
+    throw new ViewsError(`The internal properties could not be hidden in the views of the database: ${error.message}`, { cause: error });
+  }
 }
