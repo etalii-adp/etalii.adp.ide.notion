@@ -239,6 +239,26 @@ path.adp-canvas-mark {
   fill: none;
 }
 
+/* Where a relation can leave an element: under the pointer, on the selection, and at both ends
+   of one that is being drawn. A handle is found by where it is, so the element under it is still
+   what a press is on. */
+
+.adp-canvas[data-connect] {
+  cursor: crosshair;
+}
+
+.adp-connect-handle {
+  fill: var(--notion-background);
+  stroke: var(--notion-accent);
+  vector-effect: non-scaling-stroke;
+  pointer-events: none;
+}
+
+.adp-connect-handle-hover {
+  fill: var(--notion-accent);
+  stroke: var(--notion-background);
+}
+
 /* The editor of a label in place (inPlaceEdit.ts): HTML over the drawing, where the label is. */
 
 .adp-inplace {

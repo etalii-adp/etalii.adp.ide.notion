@@ -383,6 +383,132 @@ describe('drawing a relation', () => {
   });
 });
 
+describe('where a relation can start', () => {
+  const tick = () => new Promise((resolve) => setTimeout(resolve));
+  const shown = (within: string): { x: number; y: number; r: number }[] =>
+    [...host.querySelectorAll(within)].map((handle) => ({ x: Number(handle.getAttribute('cx')), y: Number(handle.getAttribute('cy')), r: Number(handle.getAttribute('r')) }));
+  const hovering = (): { x: number; y: number; r: number }[] => shown('.adp-connect-handles > .adp-connect-handle-hover');
+  const offered = (): { x: number; y: number; r: number }[] => shown('.adp-connect-handles > [data-of]');
+
+  it('is shown under the pointer near an edge a relation leaves from, beside it too, and not in the middle of the element', () => {
+    const { box } = node('radio');
+    fire('pointermove', element('radio'), { x: 260, y: box.y + box.height - 3 });
+    expect(hovering()).toEqual([{ x: 260, y: box.y + box.height, r: 4 }]);
+    expect(host.hasAttribute('data-connect')).toBe(true);
+    fire('pointermove', element('radio'), { x: 260, y: box.y + box.height / 2 });
+    expect(hovering()).toEqual([]);
+    expect(host.hasAttribute('data-connect')).toBe(false);
+    // Beside the element the pointer is on the background, and the band is as wide there.
+    fire('pointermove', host, { x: 260, y: box.y - 7 });
+    expect(hovering()).toEqual([{ x: 260, y: box.y, r: 4 }]);
+    fire('pointermove', host, { x: 260, y: box.y - 12 });
+    expect(hovering()).toEqual([]);
+    // An end of an element a relation leaves the top and the bottom of is not such a place.
+    fire('pointermove', element('radio'), { x: box.x + 2, y: box.y + box.height / 2 });
+    expect(hovering()).toEqual([]);
+  });
+
+  it('is each fixed anchor of an element that has them, and nothing of an element no relation leaves', () => {
+    const { box } = node('transistor-invented');
+    fire('pointermove', element('transistor-invented'), { x: box.x + box.width - 1, y: box.y + box.height / 2 });
+    expect(hovering()).toEqual([{ x: box.x + box.width, y: box.y + box.height / 2, r: 4 }]);
+    const note = node('note-2').box;
+    fire('pointermove', element('note-2'), { x: note.x + 20, y: note.y + 1 });
+    expect(hovering()).toEqual([]);
+  });
+
+  it('goes when the pointer leaves, is not shown on a diagram that cannot be changed, and is never smaller than a press finds', () => {
+    const { box } = node('radio');
+    fire('pointermove', element('radio'), { x: 260, y: box.y + 2 });
+    expect(hovering()).toHaveLength(1);
+    fire('pointerleave', host, { x: 900, y: 0 });
+    expect(hovering()).toEqual([]);
+    expect(host.hasAttribute('data-connect')).toBe(false);
+    readOnly = true;
+    fire('pointermove', element('radio'), { x: 260, y: box.y + 2 });
+    expect(hovering()).toEqual([]);
+    readOnly = false;
+    canvas.setViewport({ x: 0, y: 0, zoom: 0.5 });
+    fire('pointermove', element('radio'), canvas.toScreen({ x: 260, y: box.y + 2 }));
+    expect(hovering()).toEqual([{ x: 260, y: box.y, r: 8 }]);
+  });
+
+  it('is shown on a selected element without the pointer: the middle of each side of each part, or each fixed anchor', async () => {
+    click(element('radio'), { x: 250, y: 128 });
+    await tick();
+    const radio = node('radio');
+    const parts = radio.parts.filter((part) => ['peak', 'trough', 'slope', 'plateau'].includes(part.id));
+    expect(offered()).toEqual(parts.flatMap((part) => [
+      { x: part.box.x + part.box.width / 2, y: part.box.y, r: 4 }, { x: part.box.x + part.box.width / 2, y: part.box.y + part.box.height, r: 4 },
+    ]));
+    expect(parts.length).toBeGreaterThan(0);
+    click(element('transistor-invented'), { x: node('transistor-invented').box.x + 8, y: node('transistor-invented').box.y + 8 });
+    await tick();
+    const { box } = node('transistor-invented');
+    expect(offered()).toEqual([{ x: box.x + 8, y: box.y, r: 4 }, { x: box.x + 16, y: box.y + 8, r: 4 }, { x: box.x + 8, y: box.y + 16, r: 4 }]);
+    canvas.select(['note-2']);
+    await tick();
+    expect(offered()).toEqual([]);
+    canvas.select(['radio']);
+    readOnly = true;
+    gestures.refresh();
+    expect(offered()).toEqual([]);
+  });
+
+  it('draws a relation from a handle that is pressed, which leaves from the place of the handle', async () => {
+    click(element('radio'), { x: 250, y: 128 });
+    await tick();
+    const part = node('radio').parts.find((candidate) => candidate.id === 'slope')!;
+    const handle = { x: part.box.x + part.box.width / 2, y: part.box.y + part.box.height };
+    const connect: Parameters<Behavior['connect']>[] = [];
+    open(shipped, small, { behavior: { ...shipped.behavior, connect: (...given) => (connect.push(given), shipped.behavior.connect(...given)) } });
+    canvas.select(['radio']);
+    // Two units from the handle, and beside the element: the press is the handle's.
+    drag(host, { x: handle.x + 2, y: handle.y + 2 }, { x: 300, y: 59 });
+    expect(gestures.running).toBe('connect');
+    expect(previewed('adp-gesture-target')).toHaveLength(2);
+    expect(previewed('adp-gesture-hover')).toHaveLength(1);
+    // The line leaves the handle, and the place it would attach at is shown on the target.
+    expect(shown('.adp-gesture-preview > .adp-connect-handle')).toEqual([{ ...handle, r: 4 }, { ...canvas.toCanvas({ clientX: 300, clientY: 56 }), r: 4 }]);
+    expect(previewed('adp-gesture-line')[0].getAttribute('d')).toBe(`M${handle.x},${handle.y}L300,56`);
+    fire('pointerup', host, { x: 300, y: 59 });
+    expect(connect.at(-1)!.slice(1, 5)).toEqual(['Influence', 'radio', 'transistors', { source: { part: 'slope', side: 'bottom', at: 0.5 }, target: { part: 'slope', side: 'top', at: 0.9 } }]);
+    expect(intents.map((intent) => intent.gesture)).toEqual(['connect']);
+    expect(changes()).toMatchObject([{ kind: 'add', source: 'radio', target: 'transistors', attributes: { fromPhase: 'slope', fromEdge: 'bottom', fromAt: 0.5 } }]);
+    // The press was beside the element: the canvas neither panned nor cleared the selection.
+    expect(canvas.viewport).toEqual({ x: 0, y: 0, zoom: 1 });
+    expect(canvas.selection).toEqual(['radio']);
+  });
+
+  it('leaves a press in the middle of an element to select and move it, and an edge it is resized at to resize it', () => {
+    click(element('radio'), { x: 250, y: 128 });
+    drag(element('radio'), { x: 258, y: 128 }, { x: 258, y: 184 });
+    expect(gestures.running).toBe('move');
+    fire('pointerup', host, { x: 258, y: 184 });
+    expect(changes()).toEqual([{ kind: 'set', id: 'radio', attributes: { row: 3 } }]);
+    const { box } = node('radio');
+    fire('pointermove', host, { x: box.x + box.width + 1, y: box.y + 1 });
+    expect(hovering()).toEqual([]);
+    drag(host, { x: box.x + box.width + 1, y: box.y + 1 }, { x: box.x + box.width + 9, y: box.y + 1 });
+    expect(gestures.running).toBe('resize');
+  });
+
+  it('says nothing when a relation is let go on an element the specification gives no sentence for', () => {
+    const menu: Behavior['menu'] = (...given) => {
+      const offered = shipped.behavior.menu(...given);
+      return typeof given[1] === 'object' ? { ...offered, groups: [] } : offered;
+    };
+    open(shipped, small, { behavior: { ...shipped.behavior, menu } });
+    drag(element('radio'), { x: 260, y: 142 }, { x: 300, y: 59 });
+    expect(previewed('adp-gesture-hover')).toEqual([]);
+    expect(previewed('adp-gesture-refused')).toEqual([]);
+    fire('pointerup', host, { x: 300, y: 59 });
+    expect(refusals).toEqual([]);
+    expect(intents).toEqual([]);
+    expect(previewed()).toEqual([]);
+  });
+});
+
 describe('dragging an end of a selected relation', () => {
   it('takes it to the nearest place on a part of its element, and ends in one intent', () => {
     click(element('i-13').querySelector('path')!, { x: 250, y: 100 });
