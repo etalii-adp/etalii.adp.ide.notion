@@ -11,7 +11,7 @@
 // select, and becomes a gesture when the pointer then moves.
 
 import type { Canvas, Hit } from './canvas';
-import { centreOf, distance, pathData, pointIn, pointOn, sides, type Box, type Point, type Side } from './geometry';
+import { centreOf, distance, holds, pathData, pointIn, pointOn, sides, type Box, type Point, type Side } from './geometry';
 import { createScene, type Scene, type SceneEdge, type SceneNode, type SceneShape, type SceneTool } from './scene';
 import { svg } from './shapes';
 import { createSnapping } from './snapping';
@@ -107,9 +107,14 @@ interface Grip {
   readonly at: Point;
 }
 
-// Screen pixels: how far a press travels before it is a drag, and how near a grip it must be.
+/** A place a relation can leave a node from: a point of it, or anywhere along a side of a box of it. */
+type Outlet = { readonly at: Point } | { readonly box: Box; readonly side: Side };
+
+// Screen pixels: how far a press travels before it is a drag, how near a grip it must be, and how
+// far either side of where a relation can leave an element the pointer finds that place.
 const threshold = 3;
 const reach = 6;
+const band = 8;
 const arrows: Readonly<Record<string, readonly [number, number]>> = { ArrowLeft: [-1, 0], ArrowRight: [1, 0], ArrowUp: [0, -1], ArrowDown: [0, 1] };
 // How far Alt and an arrow key slide an end of a relation along its side.
 const slideBy = 0.1;
@@ -132,8 +137,10 @@ export function attachGestures(canvas: Canvas, options: GestureOptions): Gesture
   const { tool, behavior, toolbox } = options;
   const { metamodel } = tool;
   const grips = svg(document, 'g', { class: 'adp-gesture-grips' });
+  const handles = svg(document, 'g', { class: 'adp-connect-handles' });
+  const hovered = svg(document, 'g', { class: 'adp-connect-handles' });
   const preview = svg(document, 'g', { class: 'adp-gesture-preview' });
-  canvas.overlay.append(grips, preview);
+  canvas.overlay.append(grips, handles, hovered, preview);
 
   let armed: Tool | undefined;
   let press: { readonly x: number; readonly y: number; begin(): Running | undefined } | undefined;
@@ -179,6 +186,9 @@ export function attachGestures(canvas: Canvas, options: GestureOptions): Gesture
     const arm = zoomed(8);
     return svg(document, 'path', { d: `M${at.x - arm},${at.y}H${at.x + arm}M${at.x},${at.y - arm}V${at.y + arm}`, ...lined(look) });
   };
+  // A connection handle: eight canvas units across, and never less than eight pixels.
+  const knob = (at: Point, look = 'adp-connect-handle', more: Readonly<Record<string, string | number>> = {}): SVGElement =>
+    svg(document, 'circle', { cx: at.x, cy: at.y, r: Math.max(4, zoomed(4)), ...lined(look, more) });
   const clear = (): void => preview.replaceChildren();
 
   /**
@@ -330,25 +340,77 @@ export function attachGestures(canvas: Canvas, options: GestureOptions): Gesture
   const pendingTypes = [...new Set(setsFor(toolbox.contextMenus, metamodel, 'connection').flatMap((set) => set.entries.flatMap((entry) => (entry.kind === 'connect' && entry.via !== undefined ? [entry.via] : []))))];
   const starts = (node: SceneNode, types: readonly string[]): boolean => node.connectable && types.some((type) => allowsEnd(metamodel, type, 'source', node.type));
 
-  // Without a tool, a relation is drawn from where one attaches: near a fixed anchor of the node, else along its sides. The rest of the node moves it.
-  function leaves(node: SceneNode, point: Point): boolean {
-    const { box } = node;
-    const band = Math.min(zoomed(reach), box.width / 4, box.height / 4);
+  // Without a tool, a relation is drawn from where one leaves a node: its fixed anchors, else the
+  // sides of the parts an end of such a relation attaches to, else its own sides.
+  const outlets = new WeakMap<SceneNode, readonly Outlet[]>();
+  function outletsOf(node: SceneNode): readonly Outlet[] {
+    const known = outlets.get(node);
+    if (known) return known;
     const anchors = nodeNotation(viewpoint().notation, metamodel, node.type).anchors;
-    if (anchors.mode === 'fixed' && anchors.points?.length) return anchors.points.some((anchor) => distance(pointIn(box, anchor.x, anchor.y), point) <= band);
-    const far: Readonly<Record<Side, number>> = { left: point.x - box.x, right: box.x + box.width - point.x, top: point.y - box.y, bottom: box.y + box.height - point.y };
-    return (anchors.sides ?? sides).some((edge) => Math.abs(far[edge]) <= band);
+    const found = new Map<string, Outlet>();
+    if (anchors.mode === 'fixed' && anchors.points?.length) for (const anchor of anchors.points) found.set(anchor.id, { at: pointIn(node.box, anchor.x, anchor.y) });
+    else {
+      for (const type of pendingTypes) {
+        const allowed = allowsEnd(metamodel, type, 'source', node.type) ? anchoring(type, 'source') : undefined;
+        for (const part of allowed ? node.parts : []) {
+          if (!(allowed?.parts?.includes(part.id) ?? true)) continue;
+          for (const side of sides) if (allowed?.sides?.includes(side) ?? true) found.set(`${part.id} ${side}`, { box: part.box, side });
+        }
+      }
+      if (found.size === 0) for (const side of anchors.sides ?? sides) found.set(side, { box: node.box, side });
+    }
+    const all = [...found.values()];
+    outlets.set(node, all);
+    return all;
+  }
+  const middleOf = (outlet: Outlet): Point => ('at' in outlet ? outlet.at : pointOn(outlet.box, outlet.side, 0.5));
+  const nearestOn = (outlet: Outlet, point: Point): Point => {
+    if ('at' in outlet) return outlet.at;
+    const { box, side } = outlet;
+    return pointOn(box, side, within(side === 'top' || side === 'bottom' ? (point.x - box.x) / (box.width || 1) : (point.y - box.y) / (box.height || 1)));
+  };
+
+  /** Where a relation would leave from at a point, given the element the pointer is over. */
+  function outletAt(over: string | undefined, point: Point): { readonly node: SceneNode; readonly at: Point } | undefined {
+    const only = nodeOf(over);
+    // A relation under the pointer is what a press there selects.
+    if (over !== undefined && !only) return undefined;
+    let best: { readonly far: number; readonly node: SceneNode; readonly at: Point } | undefined;
+    for (const node of only ? [only] : canvas.scene?.nodes ?? []) {
+      if (!starts(node, pendingTypes)) continue;
+      // On the element the band is at most a quarter of it: a press in its middle still selects and moves it.
+      const near = only ? Math.min(zoomed(band), node.box.width / 4, node.box.height / 4) : zoomed(band);
+      const shown = canvas.selection.includes(node.id);
+      for (const outlet of outletsOf(node)) {
+        // A handle that is shown is pressed as a whole, and gives its own place.
+        const middle = middleOf(outlet);
+        const at = shown && distance(middle, point) <= Math.min(near, Math.max(4, zoomed(4))) ? middle : nearestOn(outlet, point);
+        const far = distance(at, point);
+        if (far <= near && (!best || far < best.far)) best = { far, node, at };
+      }
+    }
+    return best;
+  }
+
+  let spotted = false;
+  // The place under the pointer a relation would leave from, or none.
+  function spot(at?: Point): void {
+    if (!at && !spotted) return;
+    spotted = at !== undefined;
+    hovered.replaceChildren(...(at ? [knob(at, 'adp-connect-handle adp-connect-handle-hover')] : []));
+    host.toggleAttribute('data-connect', spotted);
   }
 
   // What drawing from one element to another comes to: an outcome, or the menu of the entries that could make it.
-  function joined(source: SceneNode, target: SceneNode, type: string | undefined, ends: (type: string) => Ends | undefined): Outcome | 'menu' {
+  function joined(source: SceneNode, target: SceneNode, type: string | undefined, ends: (type: string) => Ends | undefined): Outcome | 'menu' | undefined {
     const model = canvas.model;
     let made = type;
     if (made === undefined) {
       const menu = behavior.menu(model, { source: source.id, target: target.id }, situation());
       const entries = menu.groups.flat().filter((entry) => entry.kind === 'connect' && entry.via !== undefined);
       const open = entries.filter((entry) => entry.enabled);
-      if (open.length === 0) return { refused: entries[0]?.reason ?? 'Nothing can be drawn between these two.' };
+      // Nothing to draw between these two: a refusal when the specification says why, else nothing at all.
+      if (open.length === 0) return entries[0]?.reason === undefined ? undefined : { refused: entries[0].reason };
       if (open.length > 1 || (!menu.runSingle && options.onMenu)) return 'menu';
       made = open[0].via!;
     }
@@ -364,26 +426,39 @@ export function attachGestures(canvas: Canvas, options: GestureOptions): Gesture
     let chosen = from ? undefined : targets.find((node) => node.id !== source.id) ?? targets[0];
     const ends = (target: SceneNode, point: Point | undefined) => (made: string): Ends | undefined =>
       (from && point ? { source: placeOn(source, from, made, 'source'), target: placeOn(target, point, made, 'target') } : undefined);
-    const show = (target: SceneNode | undefined, point: Point): void => {
-      const outcome = target && joined(source, target, type, ends(target, from && point));
-      const look = outcome === undefined || outcome === 'menu' || outcome.refused === undefined ? 'adp-gesture-ghost' : 'adp-gesture-refused';
+    const show = (aimed: SceneNode | undefined, point: Point): void => {
+      const outcome = aimed && joined(source, aimed, type, ends(aimed, from && point));
+      const target = outcome ? aimed : undefined;
+      const fine = outcome === undefined || outcome === 'menu' || outcome.refused === undefined;
+      const look = fine ? 'adp-gesture-ghost' : 'adp-gesture-refused';
       const added = outcome !== undefined && outcome !== 'menu' && outcome.refused === undefined ? outcome.changes.find((change) => change.kind === 'add' && change.source !== undefined) : undefined;
       // Where the two ends are drawn is where the behavior attaches them, when it says.
       const places = target && added?.kind === 'add' ? drawnEnds(source, target, outcome as Done, added.id) : undefined;
-      preview.replaceChildren(...marks, ...(target ? [boxed(target.box, look === 'adp-gesture-ghost' ? 'adp-gesture-hover' : look)] : []), line(places?.from ?? from ?? centreOf(source.box), places?.to ?? (from ? point : centreOf(target?.box ?? source.box)), look));
+      const left = places?.from ?? from ?? centreOf(source.box);
+      // Drawn with the pointer, the place on the target the relation would attach at is shown as the handle it left from.
+      const arrives = from && target && fine ? places?.to ?? pointOf(target, placeOn(target, point, type ?? pendingTypes[0] ?? '', 'target')) : undefined;
+      preview.replaceChildren(
+        ...marks, ...(target ? [boxed(target.box, fine ? 'adp-gesture-hover' : look)] : []),
+        line(left, places?.to ?? arrives ?? (from ? point : centreOf(target?.box ?? source.box)), look),
+        ...(from ? [knob(left)] : []), ...(arrives ? [knob(arrives, 'adp-connect-handle adp-connect-handle-hover')] : []),
+      );
     };
     const finish = (target: SceneNode | undefined, point: Point): void => {
       if (!target) return clear();
       const made = ends(target, from && point);
       const outcome = joined(source, target, type, made);
+      if (!outcome) return clear();
       if (outcome !== 'menu') return void settle(outcome, 'connect');
       clear();
       // The ends as the first of those types attaches them; the entry that is run says which type it is.
       options.onMenu?.({ source: source.id, target: target.id }, { point, client: client(point), ends: made(pendingTypes[0] ?? '') });
     };
+    // The target at a point, or the one whose box the point is just outside: a line of another relation, or the band beside an edge, is still that element.
     const under = (point: Point): SceneNode | undefined => {
       const hit = canvas.hitTest(point)?.element;
-      return targets.find((node) => node.id === hit);
+      const near = zoomed(band);
+      return targets.find((node) => node.id === hit)
+        ?? [...targets].reverse().find((node) => holds({ x: node.box.x - near, y: node.box.y - near, width: node.box.width + 2 * near, height: node.box.height + 2 * near }, point));
     };
     if (!from) show(chosen, centreOf(source.box));
     return {
@@ -512,6 +587,10 @@ export function attachGestures(canvas: Canvas, options: GestureOptions): Gesture
     const next = [canvas.scene, canvas.selection, canvas.viewport.zoom, readOnly(), armed];
     if (next.every((value, index) => value === key[index])) return;
     key = next;
+    spot();
+    // A selected element shows where a relation can leave it: its fixed anchors, and the middle of each side one attaches along.
+    handles.replaceChildren(...(readOnly() || armed ? [] : canvas.selection.map(nodeOf)).flatMap((node) =>
+      (node && starts(node, pendingTypes) ? outletsOf(node).map((outlet) => knob(middleOf(outlet), 'adp-connect-handle', { 'data-of': node.id })) : [])));
     const size = zoomed(4);
     grips.replaceChildren(...offered().map((grip) => {
       const look = `adp-gesture-grip adp-gesture-grip-${grip.kind === 'edge' ? (grip.name === 'left' || grip.name === 'right' ? 'x' : 'y') : grip.kind}`;
@@ -564,6 +643,7 @@ export function attachGestures(canvas: Canvas, options: GestureOptions): Gesture
     press = undefined;
     running = undefined;
     clear();
+    spot();
   }
 
   // ---- the pointer ----
@@ -591,12 +671,22 @@ export function attachGestures(canvas: Canvas, options: GestureOptions): Gesture
       return claim(event);
     }
     // A press that adds to the selection or takes from it is the canvas's alone.
-    const node = event.shiftKey || event.ctrlKey || event.metaKey ? undefined : nodeOf(pressed(event));
-    if (!node) return;
+    if (event.shiftKey || event.ctrlKey || event.metaKey) return;
+    const over = pressed(event);
+    const outlet = outletAt(over, point);
+    if (outlet) {
+      begun(() => connecting(outlet.node, undefined, outlet.at));
+      // Beside the element the press is on the background, which the canvas would pan with.
+      if (over === undefined) {
+        host.focus({ preventScroll: true });
+        claim(event);
+      }
+      return;
+    }
+    const node = nodeOf(over);
     // The canvas selects the pressed element alone after this; a drag of one of several selected elements still moves them all.
     const before = canvas.selection;
-    if (starts(node, pendingTypes) && leaves(node, point)) begun(() => connecting(node, undefined, point));
-    else if (movable(node)) begun(() => moving(before.includes(node.id) ? before : [node.id], point));
+    if (movable(node)) begun(() => moving(before.includes(node.id) ? before : [node.id], point));
   }
 
   function onPointerMove(event: PointerEvent): void {
@@ -607,9 +697,12 @@ export function attachGestures(canvas: Canvas, options: GestureOptions): Gesture
       if (Math.hypot(event.clientX - press.x, event.clientY - press.y) < threshold) return;
       running = press.begin();
       press = undefined;
+      spot();
       if (running) host.setPointerCapture?.(event.pointerId);
       running?.move(point);
-    } else if (armed && !readOnly()) hover(point);
+    } else if (armed) {
+      if (!readOnly()) hover(point);
+    } else spot(readOnly() || gripAt(point) ? undefined : outletAt(pressed(event), point)?.at);
   }
 
   function onPointerUp(event: PointerEvent): void {
@@ -622,7 +715,10 @@ export function attachGestures(canvas: Canvas, options: GestureOptions): Gesture
     else if (armed && !armed.relation && event.button === 0) drop(armed.id, canvas.toCanvas(event));
   }
 
-  const onPointerLeave = (): void => { if (!running) clear(); };
+  const onPointerLeave = (): void => {
+    if (!running) clear();
+    spot();
+  };
 
   // Let go outside the canvas, where no drag has the pointer captured: the press is over, and a drag ends with nothing changed.
   const onLetGo = (event: Event): void => {
@@ -713,6 +809,8 @@ export function attachGestures(canvas: Canvas, options: GestureOptions): Gesture
       watched?.disconnect();
       host.removeAttribute('data-armed');
       grips.remove();
+      handles.remove();
+      hovered.remove();
       preview.remove();
     },
   };

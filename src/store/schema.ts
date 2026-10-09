@@ -260,9 +260,15 @@ function plain(id: string): string {
  * (FR-036). What a view says of its other properties is sent back as it was, and a view that
  * hides them all already is not written to. Rejects with a `ViewsError` where Notion refuses.
  */
-export async function hide(dataSource: NotionDataSource, names: readonly string[], calls: NotionCalls): Promise<void> {
-  const ids = Object.values(dataSource.properties).filter((property) => names.includes(property.name)).map((property) => plain(property.id));
+export async function hide(dataSource: NotionDataSource, names: readonly string[], calls: NotionCalls, schema?: StoreSchema): Promise<void> {
+  const all = Object.values(dataSource.properties).map((property) => ({ id: plain(property.id), name: property.name, title: property.type === 'title' }));
+  const ids = all.filter((property) => names.includes(property.name)).map((property) => property.id);
   if (ids.length === 0) return;
+  const known = schema?.properties.map((property) => property.name) ?? [];
+  const place = (id: string): number => {
+    const at = known.indexOf(all.find((property) => property.id === id)!.name);
+    return at < 0 ? known.length : at;
+  };
   try {
     const changes: { id: string; type: string; properties: { property_id: string; visible?: boolean }[] }[] = [];
     for (let cursor: string | undefined, more = true; more;) {
@@ -270,13 +276,23 @@ export async function hide(dataSource: NotionDataSource, names: readonly string[
       for (const { id } of page.results) {
         const view = await calls.view(id);
         if (!SHOWING.includes(view.type)) continue;
-        // `property_name` is in an answer only: a request names a property by its id.
-        const said = (view.configuration?.properties ?? []).map((entry) => Object.fromEntries(Object.entries(entry).filter(([member]) => member !== 'property_name')) as typeof entry);
+        // A view that was never configured lists no property and shows them all. The list a request gives
+        // replaces the view's: Notion hides every property it leaves out (seen on 2026-10-09), and refuses
+        // one the database no longer has. So the whole list is sent: every property of the database, what
+        // the view said of it kept, the internal ones hidden, and `property_name`, which is of an answer only, left out.
+        const said = (view.configuration?.properties ?? []).filter((entry) => all.some((property) => property.id === plain(entry.property_id)));
         const hidden = (id: string): boolean => said.some((entry) => plain(entry.property_id) === id && entry.visible === false);
         if (ids.every(hidden)) continue;
-        const kept = said.map((entry) => (ids.includes(plain(entry.property_id)) ? { ...entry, visible: false } : entry));
-        const added = ids.filter((id) => !said.some((entry) => plain(entry.property_id) === id)).map((id) => ({ property_id: id, visible: false }));
-        changes.push({ id: view.id, type: view.type, properties: [...kept, ...added] });
+        const listed = said.map((entry) => plain(entry.property_id));
+        const order = [...listed, ...all.filter((property) => !listed.includes(property.id)).sort((a, b) => Number(b.title) - Number(a.title)).map((property) => property.id)];
+        // A view that says nothing yet gets the order of the schema, with the internal properties behind the others.
+        if (said.length === 0) order.sort((a, b) => Number(ids.includes(a)) - Number(ids.includes(b)) || place(a) - place(b));
+        const properties = order.map((id) => {
+          const entry = said.find((candidate) => plain(candidate.property_id) === id);
+          const kept = entry ? Object.fromEntries(Object.entries(entry).filter(([member]) => member !== 'property_name')) : {};
+          return { ...kept, property_id: id, visible: ids.includes(id) ? false : entry?.visible ?? true };
+        });
+        changes.push({ id: view.id, type: view.type, properties });
       }
       more = page.has_more && page.next_cursor !== null;
       cursor = page.next_cursor ?? undefined;

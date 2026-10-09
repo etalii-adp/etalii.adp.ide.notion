@@ -395,8 +395,8 @@ describe('the in-memory Notion, for the views of a database', () => {
 
     const table = await call(notion, 'GET', `v1/views/${listed.body.results[0].id}`);
     expect(table.body).toMatchObject({ object: 'view', type: 'table', data_source_id: dataSourceId, parent: { type: 'database_id', database_id: id }, configuration: { type: 'table' } });
-    expect(table.body.configuration.properties).toHaveLength(7);
-    expect(table.body.configuration.properties[0]).toEqual({ property_id: 'title', property_name: 'name', visible: true });
+    // A view that was never configured lists no property: it shows them all.
+    expect(table.body.configuration.properties).toBeUndefined();
     expect((await call(notion, 'GET', `v1/views/${form}`)).body.configuration).toEqual({ type: 'form' });
   });
 
@@ -408,15 +408,19 @@ describe('the in-memory Notion, for the views of a database', () => {
     const change = (configuration: unknown) => call(notion, 'PATCH', `v1/views/${view.id}`, { configuration });
 
     const changed = await change({ type: 'table', properties: [{ property_id: 'title', visible: true, width: 300 }, { property_id: order, visible: false }] });
-    expect(changed.body.configuration.properties).toEqual([
+    const said = changed.body.configuration.properties as { property_name: string; visible: boolean }[];
+    expect(said.slice(0, 2)).toEqual([
       { property_id: 'title', property_name: 'name', visible: true, width: 300 },
       { property_id: order, property_name: 'Order', visible: false },
     ]);
+    // Every property the list leaves out is hidden, as Notion does.
+    expect(said).toHaveLength(Object.keys(notion.properties(dataSourceId)).length);
+    expect(said.slice(2).every((each) => each.visible === false)).toBe(true);
     expect((await change({ type: 'board', properties: [] })).status).toBe(400);
     expect((await change({ type: 'table', properties: [{ property_id: 'none', visible: false }] })).status).toBe(400);
     expect((await change({ type: 'table', properties: [{ property_id: order, property_name: 'Order', visible: false }] })).status).toBe(400);
     notion.denyWrites(notion.me);
     expect((await change({ type: 'table', properties: [] })).status).toBe(403);
-    expect((notion.views(dataSourceId)[0] as { configuration: { properties: unknown[] } }).configuration.properties).toHaveLength(2);
+    expect((notion.views(dataSourceId)[0] as { configuration: { properties: unknown[] } }).configuration.properties).toHaveLength(Object.keys(notion.properties(dataSourceId)).length);
   });
 });

@@ -120,7 +120,7 @@ async function put({ file, replace }, calls, dataSource, { binding, schema, inte
   }
   // Read again: the properties that were just added have their ids only now. A view that could
   // not be changed keeps nothing from being stored.
-  await hide(await calls.dataSource(dataSource.id), internal, calls).catch((error) => {
+  await hide(await calls.dataSource(dataSource.id), internal, calls, schema).catch((error) => {
     if (error?.name !== 'ViewsError') throw error;
     say.error(error.message);
   });

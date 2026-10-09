@@ -136,8 +136,8 @@ interface View {
   sourceId: string;
   type: string;
   name: string;
-  /** What was configured, in that order: a property that was never configured is not listed. */
-  properties: Json[];
+  /** What was configured, in that order. A view that was never configured has none and shows every property. */
+  properties?: Json[];
 }
 
 /** The views whose configuration says which properties are shown. */
@@ -404,8 +404,7 @@ export function createMemoryNotion(options: MemoryNotionOptions = {}): MemoryNot
 
   function addView(source: Source, type: string): View {
     if (!VIEW_TYPES.includes(type)) throw new Error(`The memory Notion has no view of the type ${type}`);
-    const properties = WITH_PROPERTIES.includes(type) ? source.schemas.map((schema) => ({ property_id: schema.id, visible: type === 'table' || schema.type === 'title' })) : [];
-    const view: View = { id: nextId(), sourceId: source.id, type, name: `${type} view`, properties };
+    const view: View = { id: nextId(), sourceId: source.id, type, name: `${type} view` };
     views.set(view.id, view);
     return view;
   }
@@ -418,7 +417,7 @@ export function createMemoryNotion(options: MemoryNotionOptions = {}): MemoryNot
 
   function showView(view: View): Json {
     const source = sources.get(view.sourceId)!;
-    const named = view.properties.map((each) => ({ ...each, property_name: source.schemas.find((schema) => schema.id === each.property_id)?.name ?? '' }));
+    const named = view.properties?.map((each) => ({ ...each, property_name: source.schemas.find((schema) => schema.id === each.property_id)?.name ?? '' }));
     return {
       object: 'view',
       id: view.id,
@@ -426,12 +425,12 @@ export function createMemoryNotion(options: MemoryNotionOptions = {}): MemoryNot
       data_source_id: source.id,
       name: view.name,
       type: view.type,
-      configuration: { type: view.type, ...(WITH_PROPERTIES.includes(view.type) ? { properties: named } : {}) },
+      configuration: { type: view.type, ...(WITH_PROPERTIES.includes(view.type) && named ? { properties: named } : {}) },
     };
   }
 
-  // What Notion's reference leaves open is answered the strict way: the list of properties given
-  // replaces the one kept, so that a caller who wants to keep an entry sends it.
+  // As Notion was seen to do on 2026-10-09: the list of properties given replaces the one kept, every
+  // property it leaves out is hidden, and one the database does not have is refused.
   function changeView(view: View, body: Json): void {
     const configuration = body.configuration;
     if (!isObject(configuration)) fail(400, 'validation_error', 'The memory Notion changes the configuration of a view only.');
@@ -443,11 +442,13 @@ export function createMemoryNotion(options: MemoryNotionOptions = {}): MemoryNot
     const schemas = sources.get(view.sourceId)!.schemas;
     view.properties = (given as Json[]).map((each) => {
       const schema = schemas.find((candidate) => candidate.id === each.property_id);
-      if (!schema) return fail(400, 'validation_error', `Could not find property with ID: ${String(each.property_id)}`);
+      if (!schema) return fail(400, 'validation_error', `Property "${String(each.property_id)}" not found in the database schema. Use a valid property ID or property name.`);
       if ('property_name' in each) fail(400, 'validation_error', 'body.configuration.properties[].property_name is not a member of a request.');
       if (each.visible !== undefined && typeof each.visible !== 'boolean') fail(400, 'validation_error', 'body.configuration.properties[].visible should be a boolean.');
       return { ...each, property_id: schema.id };
     });
+    const listed = view.properties.map((each) => each.property_id);
+    view.properties.push(...schemas.filter((schema) => !listed.includes(schema.id)).map((schema) => ({ property_id: schema.id, visible: false })));
     write();
   }
 

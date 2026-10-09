@@ -68,7 +68,7 @@ describe('scripts/store.mjs', () => {
     // The properties that hold internal information are hidden in the view of the database, and no other.
     const [view] = service.notion.views(database.dataSourceId) as { configuration: { properties: { property_name: string; visible: boolean }[] } }[];
     const hidden = view.configuration.properties.filter((each) => !each.visible).map((each) => each.property_name);
-    expect(hidden).toEqual(['Order', 'row', 'peak-end', 'trough-end', 'slope-end', 'width', 'height', 'from-phase', 'from-edge', 'from-at', 'to-phase', 'to-edge', 'to-at']);
+    expect(hidden).toEqual(['Order', 'row', 'peak-end', 'trough-end', 'slope-end', 'at', 'width', 'height', 'from-phase', 'from-edge', 'from-at', 'to-phase', 'to-edge', 'to-at']);
 
     const file = join(folder, 'taken.ghg');
     const taken = await run('take', database.id, file);
