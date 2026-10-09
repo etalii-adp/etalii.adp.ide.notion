@@ -19,23 +19,45 @@ function internalOf(change: (specification: Json) => void = () => undefined): st
 const listed = ['Order', 'row', 'at', 'width', 'height', 'peak-end', 'trough-end', 'slope-end', 'from-phase', 'from-edge', 'from-at', 'to-phase', 'to-edge', 'to-at'];
 const shown = ['id', 'name', 'Kind', 'description', 'tags', 'start', 'stop', 'date', 'phases', 'text', 'from', 'to', 'unit'];
 
+/** The item of a declared form that edits an attribute. */
+function fieldOf(specification: Json, form: string, attribute: string): Json {
+  const among = (items: Json[]): Json | undefined => items.flatMap((item) => [item, ...(item.items ? [among(item.items)] : [])]).find((item) => item?.attribute === attribute);
+  return among(specification.forms[form].items)!;
+}
+
 describe('the internal properties of the Gartner hype cycle graph', () => {
-  it('are the order of the rows, the rows, the sizes, the handles of the shape and the anchoring of the ends', () => {
-    expect(internalOf()).toEqual(['Order', 'row', 'peak-end', 'trough-end', 'slope-end', 'width', 'height', 'from-phase', 'from-edge', 'from-at', 'to-phase', 'to-edge', 'to-at']);
+  it('are the fourteen of FR-036, in the order of the schema', () => {
+    const found = internalOf();
+    expect(found).toEqual(['Order', 'row', 'peak-end', 'trough-end', 'slope-end', 'at', 'width', 'height', 'from-phase', 'from-edge', 'from-at', 'to-phase', 'to-edge', 'to-at']);
+    expect([...found].sort()).toEqual([...listed].sort());
   });
 
-  it('differ from the list of FR-036 in one property: the place of a note on the time axis, which is a date', () => {
-    const found = internalOf();
-    expect(listed.filter((name) => !found.includes(name))).toEqual(['at']);
-    expect(found.filter((name) => !listed.includes(name))).toEqual([]);
-    expect(found.filter((name) => shown.includes(name))).toEqual([]);
+  it('are none of the properties that say what the graph is about', () => {
+    expect(internalOf().filter((name) => shown.includes(name))).toEqual([]);
+    expect([...listed, ...shown].sort()).toEqual(storeSchema(tool().binding, tool().metamodel, tool().persistence).properties.map((property) => property.name).sort());
   });
 });
 
 describe('the rule', () => {
-  it('takes a place on an axis that is no time axis for internal, and one on a time axis for shown', () => {
+  it('takes every place on an axis that is no time axis for internal', () => {
     const linear = internalOf((specification) => void (specification.coordinates.axes.time.kind = 'linear'));
     expect(linear).toEqual(expect.arrayContaining(['at', 'start', 'stop', 'date']));
+  });
+
+  it('shows a place on a time axis only where a form offers it as a field', () => {
+    // A form that offers the date of a note makes it a date of the domain.
+    expect(internalOf((specification) => void specification.forms.note.items.push({ attribute: 'at', label: 'Date' }))).not.toContain('at');
+    // Shown, computed or read-only, it is not offered; and neither is a field that is taken out.
+    expect(internalOf((specification) => void specification.forms.note.items.push({ kind: 'computed', attribute: 'at', value: { attribute: 'at' } }))).toContain('at');
+    expect(internalOf((specification) => void specification.forms.note.items.push({ attribute: 'at', readOnly: true }))).toContain('at');
+    expect(internalOf((specification) => void (fieldOf(specification, 'trigger', 'date').readOnly = true))).toContain('date');
+    expect(internalOf((specification) => void (fieldOf(specification, 'trend', 'start').kind = 'computed'))).toContain('start');
+    expect(internalOf((specification) => void delete specification.forms.trend)).toEqual(expect.arrayContaining(['start', 'stop']));
+  });
+
+  it('keeps what a handle of a shape sets internal, though a form offers it as a field', () => {
+    expect(fieldOf(hypeCycleJson() as Json, 'trend', 'peakEnd')).toBeDefined();
+    expect(internalOf()).toContain('peak-end');
   });
 
   it('shows a property that is internal for one kind and not for another', () => {
