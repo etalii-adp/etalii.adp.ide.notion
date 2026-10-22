@@ -167,6 +167,26 @@ export function interpretMetamodel(specification: Specification, locale?: string
       role: given.role,
     };
   };
+  // A relation type's flags: the nearest type of its linearisation that states one, else the default (DISL 4.9);
+  // a stated flag only narrows every direct supertype's, and supertypes that differ in one the type does not
+  // state are an error, as for inherited attributes (DISL 0.6, 4.7).
+  const defaults = { directed: true, allowSelfLoops: false, allowParallel: true } as const;
+  const effective = (name: string, key: keyof typeof defaults): boolean =>
+    types[name].lineage.map((ancestor) => (all[ancestor] as RelationType)[key]).find((value) => value !== undefined) ?? defaults[key];
+  for (const name of Object.keys(relations)) {
+    const supertypes = parents(name);
+    for (const key of Object.keys(defaults) as (keyof typeof defaults)[]) {
+      const own = (relations[name] as RelationType)[key];
+      for (const parent of supertypes) {
+        const inherited = effective(parent, key);
+        if (key === 'directed' && own !== undefined && own !== inherited) problem(`\`${name}\` states \`${key}\` as \`${own}\`, which differs from the \`${inherited}\` of its supertype \`${parent}\`.`);
+        if (key !== 'directed' && own === true && !inherited) problem(`\`${name}\` states \`${key}\` as \`true\`, which widens the \`false\` of its supertype \`${parent}\`; a subtype may only narrow it.`);
+      }
+      if (own === undefined && new Set(supertypes.map((parent) => effective(parent, key))).size > 1) {
+        problem(`\`${name}\` does not state \`${key}\`, and its supertypes give it differently: ${supertypes.map((parent) => `\`${effective(parent, key)}\` from \`${parent}\``).join(', ')}.`);
+      }
+    }
+  }
   for (const name of Object.keys(relations)) {
     const stated = <K extends 'directed' | 'allowSelfLoops' | 'allowParallel'>(key: K): boolean | undefined =>
       types[name].lineage.map((ancestor) => (all[ancestor] as RelationType)[key]).find((value) => value !== undefined);

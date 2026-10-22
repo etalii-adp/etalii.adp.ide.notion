@@ -1,6 +1,9 @@
 import { describe, expect, it } from 'vitest';
 import { interpretConstraints, type ConstraintsSection, type Gesture } from '../../src/disl/constraints';
-import { parseYearMonth } from '../../src/disl/metamodel';
+import { createExpressions } from '../../src/disl/expressions';
+import { interpretMetamodel, parseYearMonth } from '../../src/disl/metamodel';
+import type { Model } from '../../src/disl/model';
+import { loadSpecification } from '../../src/disl/specification';
 import { hypeCycleJson, tool } from './tool';
 
 const header = 'gartner-hypecycle-graph: 1\n';
@@ -241,5 +244,45 @@ describe('what refuses a gesture', () => {
     expect(preventing.constraints.refusals(move, withPhases('a', 8), withPhases('a', 9))).toEqual([]);
     expect(preventing.constraints.refusals(move, { ...model, elements: model.elements.filter((element) => element.id !== 'a') }, withPhases('a', 9))).toHaveLength(1);
     expect(shipped.constraints.refusals(move, model, withPhases('a', 9))).toEqual([]);
+  });
+});
+
+// DISL 0.6, section 4.7: the definition of etalii.adp's service-calls.did, over a specification shaped as its
+// service-calls.dis, gives the two std.endpoints findings of its service-calls.findings.json, in that order.
+describe('the findings of inherited relation flags', () => {
+  it('are a parallel of an inherited allowParallel and a loop a subtype narrowed, nothing else', () => {
+    const specification = loadSpecification({
+      disl: '0.6',
+      language: { id: 'org.example.service-calls', version: '1.0.0' },
+      metamodel: {
+        types: { Service: { attributes: { name: { type: 'string', required: true, key: true } } } },
+        relations: {
+          Call: { abstract: true, source: 'Service', target: 'Service', allowParallel: false, allowSelfLoops: true },
+          SyncCall: { extends: 'Call' },
+          AsyncCall: { extends: 'Call' },
+          Observation: { abstract: true, source: 'Service', target: 'Service' },
+          TracedCall: { extends: ['SyncCall', 'Observation'], allowParallel: false, allowSelfLoops: false },
+        },
+      },
+    }).value;
+    const metamodel = interpretMetamodel(specification).value;
+    const constraints = interpretConstraints(specification, metamodel, createExpressions(specification, metamodel)).value;
+    const element = (id: string, line: number) => ({ id, type: 'Service', attributes: { name: id }, host: {}, ephemeral: false, line });
+    const relation = (id: string, type: string, source: string, target: string, line: number) => ({ id, type, source, target, attributes: {}, host: {}, ephemeral: false, line });
+    const model: Model = {
+      diagram: {},
+      elements: [element('checkout', 1), element('payments', 2), element('ledger', 3)],
+      relations: [
+        relation('call-1', 'SyncCall', 'checkout', 'payments', 4),
+        relation('call-2', 'SyncCall', 'checkout', 'payments', 5),
+        relation('call-3', 'AsyncCall', 'checkout', 'payments', 6),
+        relation('call-4', 'SyncCall', 'ledger', 'ledger', 7),
+        relation('call-5', 'TracedCall', 'payments', 'payments', 8),
+      ],
+    };
+    expect(constraints.check(model).map((found) => [found.constraint, found.severity, found.element])).toEqual([
+      ['std.endpoints', 'error', 'call-2'],
+      ['std.endpoints', 'error', 'call-5'],
+    ]);
   });
 });
