@@ -9,7 +9,10 @@ export interface PluginFile {
   readonly bytes: Uint8Array;
 }
 
-/** What `read` is given: the files, and the `args` of the binding's `reader` as the document has them. */
+/**
+ * What `read` is given (FBL 11.2): the files, and the `args` of the binding's `reader` as the
+ * document has them, when it has any.
+ */
 export interface PluginReadRequest {
   readonly files: readonly PluginFile[];
   readonly args?: unknown;
@@ -22,11 +25,14 @@ export interface PluginReadResult {
   readonly unreadable: boolean;
 }
 
+/**
+ * What `plan` is given (FBL 11.2): the current bytes, the last `read` result, and one model change,
+ * as it was made: an add with its position, a move, a retype.
+ */
 export interface PluginPlanRequest {
   readonly files: readonly PluginFile[];
   readonly last: PluginReadResult;
   readonly change: ModelChange;
-  readonly args?: unknown;
 }
 
 /** One splice of a plugin's plan, in the file it names (empty for a file body). */

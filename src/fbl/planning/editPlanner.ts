@@ -1,9 +1,9 @@
 import { allRules, attributeOf, isComputed, type AttributeBinding, type Rule, type Slot } from '../documents/types';
 import { messages } from '../messages';
-import type { BodyReading } from '../rules/bodyReading';
+import { writtenText, type BodyReading } from '../rules/bodyReading';
 import { absentSlot, RefusedException, refuse, type ReadElement, type SlotChange, type SlotRead } from '../rules/familyReader';
 import type { Span } from '../span';
-import type { ModelChange } from './modelChange';
+import type { ChangePosition, ModelChange } from './modelChange';
 import { isEmpty, plain } from './newText';
 import { Plan, type PlanResult } from './plan';
 
@@ -30,6 +30,14 @@ export function planEdit(reading: BodyReading, change: ModelChange): PlanResult 
       case 'remove':
         planRemove(plan, reading, change.id);
         break;
+      case 'move':
+        planMove(plan, reading, change);
+        break;
+      case 'storeId':
+        planStoreId(plan, reading, change);
+        break;
+      case 'retype':
+        return { refused: messages.cannotRetype };
       default:
         throw new Error(messages.registrationEdit);
     }
@@ -52,6 +60,20 @@ function refuseReadOnly(rule: Rule, gesture: string): void {
 }
 
 // ---- set ----
+
+/** The id of an entry that has none, written where its rule reads it from. */
+function planStoreId(plan: Plan, reading: BodyReading, store: ModelChange & { kind: 'storeId' }): void {
+  const element = elementOf(reading, store.id);
+  refuseReadOnly(element.rule, 'changed');
+  const from = element.rule.id?.from;
+  if (!from) refuse(messages.noIdOfItsOwn(element.rule.type));
+  if (element.idRead?.present === true) refuse(messages.hasIdAlready(element.rule.type));
+  if (store.newId.length === 0 || reading.find(store.newId)) refuse(messages.cannotBeTheId(store.newId, element.rule.type));
+
+  // The slot an id is read from, written as an attribute's is: the family puts it where an absent value goes.
+  const binding: AttributeBinding = { key: from.key, attribute: from.attribute, child: from.child, group: from.group, text: false, flag: false, absent: new Map(), keepTimePrecision: false, htmlParagraphs: false };
+  reading.family.write(plan, element, [{ attribute: 'id', binding, rule: element.rule, read: element.idRead ?? absentSlot, value: store.newId, isEmpty: false }]);
+}
 
 function planSet(plan: Plan, reading: BodyReading, set: ModelChange & { kind: 'set' }): void {
   const element = elementOf(reading, set.id);
@@ -154,16 +176,29 @@ function rewriteReferences(plan: Plan, reading: BodyReading, renamed: ReadElemen
 }
 
 function rewrite(plan: Plan, reading: BodyReading, read: SlotRead | undefined, oldKey: string, newKey: string): void {
-  if (!read?.present || !read.span || plain(read.value) !== oldKey || plan.touches(read.span)) return;
+  if (!read?.present || !read.span || writtenText(read) !== oldKey || plan.touches(read.span)) return;
   plan.addAt('rewrite-reference', read.span, reading.family.format(read, undefined, newKey));
 }
 
 // ---- add ----
 
 function planAdd(plan: Plan, reading: BodyReading, add: ModelChange & { kind: 'add' }): void {
-  const rules = allRules(reading.binding).filter((candidate) => candidate.type === add.type);
+  // A declared binding appends where its insert rule says; a position among siblings is a plugin's to honour.
+  if (add.position !== undefined) refuse(messages.cannotAddAtPosition(add.type));
+  const rules = allRules(reading.binding).filter((candidate) => candidate.type === add.type && (add.slot === undefined || candidate.parent?.slot === add.slot));
   if (rules.length === 0) refuse(messages.noPlaceForType(add.type));
-  const rule = rules.find((candidate) => candidate.insert);
+  // Several rules may write one type (a cell's items are options or rows; a filter's conditions
+  // are written at each level of nesting). The one meant is a rule the parent given can contain,
+  // where any is, and among those the one that binds the most of the attributes given, the first
+  // of them on a tie.
+  const container = add.parent !== undefined ? reading.find(add.parent) : undefined;
+  const insertable = rules.filter((candidate) => candidate.insert);
+  const contained = insertable.filter((candidate) => container !== undefined && candidate.parent?.rules.includes(container.rule.name) === true);
+  const bound = (candidate: Rule): number => Object.keys(add.attributes).filter((name) => attributeOf(candidate, name) !== undefined).length;
+  let rule: Rule | undefined;
+  for (const candidate of contained.length > 0 ? contained : insertable) {
+    if (!rule || bound(candidate) > bound(rule)) rule = candidate;
+  }
   if (!rule) {
     const reason = rules[0].readOnly;
     refuse(reason !== undefined && reason.length > 0 ? reason : messages.cannotBeAdded(add.type));
@@ -175,6 +210,11 @@ function planAdd(plan: Plan, reading: BodyReading, add: ModelChange & { kind: 'a
     values.set(name, value);
   }
   if (rule.insert!.when !== undefined && !reading.insertAllowed(rule.insert!.when, values)) refuse(messages.thisCannotBeAdded(add.type));
+  // An attribute the add gives its empty value refuses the add when its binding says so, as a set of it does (FBL 6.2, 6.4).
+  for (const [name, value] of values) {
+    const binding = attributeOf(rule, name);
+    if (binding && !binding.flag && binding.empty === 'refuse' && isEmpty(value)) refuse(messages.attributeNotEmpty(name, rule.type));
+  }
   const source = rule.isRelation ? endOf(reading, add, 'source') : undefined;
   const target = rule.isRelation ? endOf(reading, add, 'target') : undefined;
   const parent = add.parent !== undefined ? elementOf(reading, add.parent) : undefined;
@@ -194,6 +234,46 @@ function endOf(reading: BodyReading, add: ModelChange & { kind: 'add' }, end: 's
   if (!element || element.isRelation) refuse(messages.endNamesNoElement(end, id));
   return element;
 }
+
+// ---- move ----
+
+/**
+ * A reorder among siblings (FBL 5.5, 6.4): the entry is removed where it is and inserted where it
+ * goes, carrying its own bytes, its comments and unbound keys with it.
+ */
+function planMove(plan: Plan, reading: BodyReading, move: ModelChange & { kind: 'move' }): void {
+  const element = elementOf(reading, move.id);
+  refuseReadOnly(element.rule, 'moved');
+  if (!element.rule.insert || !element.rule.remove) refuse(messages.cannotBeMoved(element.rule.type));
+  const parent = move.parent !== undefined ? elementOf(reading, move.parent) : undefined;
+  if (parent !== element.parent) refuse(messages.cannotMoveToAnotherParent(element.rule.type));
+  const siblings = reading.elements.filter((other) => areSiblings(other, element));
+  // The position is among the siblings once the element is taken out (FBL 11.2).
+  const others = siblings.filter((other) => other !== element);
+  const index = indexOf(move.position, others, element);
+  if (index === siblings.indexOf(element)) return; // It is there already: no splice.
+  reading.family.move(plan, element, others[index], others[others.length - 1]);
+  if (element.rule.snapshotUndo) plan.snapshot = true;
+}
+
+/** Where a position puts an element among its siblings without it: before the one at the index, after the last without a position or past them. */
+function indexOf(position: ChangePosition | undefined, others: readonly ReadElement[], element: ReadElement): number {
+  if (!position) return others.length;
+  if ('index' in position) return position.index < 0 || position.index > others.length ? others.length : position.index;
+  const id = 'after' in position ? position.after : position.before;
+  const at = others.findIndex((other) => other.id === id);
+  if (at < 0) refuse(messages.noSuchSibling(id, element.rule.type));
+  return 'after' in position ? at + 1 : at;
+}
+
+/**
+ * Whether two elements are ordered among each other: the same parent and containment slot, and at
+ * the top level, where there is neither, the same type.
+ */
+const areSiblings = (other: ReadElement, element: ReadElement): boolean =>
+  other.parent === element.parent
+  && other.rule.parent?.slot === element.rule.parent?.slot
+  && (element.parent !== undefined || other.rule.type === element.rule.type);
 
 // ---- remove ----
 

@@ -5,11 +5,12 @@ import { RegexSyntaxError } from './regexSubset';
 
 /**
  * Where a CEL expression appears, which decides the variables it may use (FBL 2.4): `tree` for a
- * rule of a yaml, json or xml binding (entry, parent, path, line, registration), `lines` for a rule
- * of a lines or blocks binding (entry, parent, groups, line, registration), `insert` for
- * `insert.when` (attributes).
+ * rule of a yaml or json binding (entry, parent, path, line, registration, and the entry's written
+ * `text` and `style`), `xml` for a rule of an xml binding (the same without `text` and `style`,
+ * since xml reads text and nothing else), `lines` for a rule of a lines or blocks binding (entry,
+ * parent, groups, line, registration), `insert` for `insert.when` (attributes).
  */
-export type CelContext = 'tree' | 'lines' | 'insert';
+export type CelContext = 'tree' | 'xml' | 'lines' | 'insert';
 
 /** A CEL expression does not compile, or its evaluation failed. */
 export class CelException extends Error {}
@@ -22,15 +23,49 @@ export class CelError {
 /** The map type CEL values use: insertion-ordered, string keys. A list is an array, an int a `bigint`, a double a `number`. */
 export type CelMap = Map<string, unknown>;
 
+/**
+ * A CEL type, as `type(value)` gives it and as its name denotes it: `type(entry.view) == map`.
+ * One value for each name, so two are the same type when they are the same value.
+ */
+export class CelType {
+  private constructor(readonly name: string) {}
+
+  private static readonly known = new Map<string, CelType>();
+
+  static of(name: string): CelType {
+    let type = CelType.known.get(name);
+    if (!type) {
+      type = new CelType(name);
+      CelType.known.set(name, type);
+    }
+    return type;
+  }
+}
+
+/** The names that denote a type where no variable has the name: the types of the values this evaluator has. */
+const typeNames = new Set(['bool', 'int', 'double', 'string', 'list', 'map', 'null_type', 'type']);
+
+function typeOf(value: unknown): CelType {
+  if (value === null || value === undefined) return CelType.of('null_type');
+  if (typeof value === 'boolean') return CelType.of('bool');
+  if (typeof value === 'bigint') return CelType.of('int');
+  if (typeof value === 'number') return CelType.of('double');
+  if (typeof value === 'string') return CelType.of('string');
+  if (Array.isArray(value)) return CelType.of('list');
+  if (value instanceof CelType) return CelType.of('type');
+  return CelType.of('map');
+}
+
 const variablesOf: Record<CelContext, readonly string[]> = {
-  tree: ['entry', 'parent', 'path', 'line', 'registration'],
+  tree: ['entry', 'parent', 'path', 'line', 'registration', 'text', 'style'],
+  xml: ['entry', 'parent', 'path', 'line', 'registration'],
   lines: ['entry', 'parent', 'groups', 'line', 'registration'],
   insert: ['attributes'],
 };
 
 const stepBudget = 100_000;
 const macros = new Set(['all', 'exists', 'exists_one', 'filter', 'map']);
-const functions = new Set(['size', 'matches', 'startsWith', 'endsWith', 'contains', 'replace', 'lowerAscii', 'upperAscii', 'int', 'double', 'string']);
+const functions = new Set(['size', 'matches', 'startsWith', 'endsWith', 'contains', 'replace', 'lowerAscii', 'upperAscii', 'int', 'double', 'string', 'type']);
 const minInt = -(2n ** 63n);
 const maxInt = 2n ** 63n - 1n;
 
@@ -51,10 +86,11 @@ type CelNode =
 /**
  * Compiles an expression of the subset of CEL this library evaluates: literals, member access and
  * indexing, the logical, relational and arithmetic operators, `in`, the conditional, `has()`, the
- * macros `all`, `exists`, `exists_one`, `filter` and `map`, and the functions `size`, `matches`,
- * `startsWith`, `endsWith`, `contains`, `replace`, `lowerAscii`, `upperAscii`, `int`, `double` and
- * `string`. Any other construct is refused here, naming the construct, so a binding that needs more
- * fails at load rather than at read.
+ * macros `all`, `exists`, `exists_one`, `filter` and `map`, the functions `size`, `matches`,
+ * `startsWith`, `endsWith`, `contains`, `replace`, `lowerAscii`, `upperAscii`, `int`, `double`,
+ * `string` and `type`, and the type names `bool`, `int`, `double`, `string`, `list`, `map`,
+ * `null_type` and `type`. Any other construct is refused here, naming the construct, so a binding
+ * that needs more fails at load rather than at read.
  */
 export function compileCel(expression: string, context: CelContext): CelProgram {
   const parser = new CelParser(expression);
@@ -69,7 +105,7 @@ function check(node: CelNode, variables: readonly string[], bound: ReadonlySet<s
     case 'literal':
       return;
     case 'ident':
-      if (!variables.includes(node.name) && !bound.has(node.name)) throw new CelException(messages.celNotAVariable(node.name, variables));
+      if (!variables.includes(node.name) && !bound.has(node.name) && !typeNames.has(node.name)) throw new CelException(messages.celNotAVariable(node.name, variables));
       return;
     case 'macro':
       check(node.target, variables, bound);
@@ -151,6 +187,7 @@ function lookup(name: string, run: Run, locals: Local | undefined): unknown {
     if (local.name === name) return local.value;
   }
   if (Object.prototype.hasOwnProperty.call(run.variables, name)) return run.variables[name];
+  if (typeNames.has(name)) return CelType.of(name);
   throw new CelException(messages.celNoValue(name));
 }
 
@@ -378,6 +415,7 @@ function call(node: CelNode & { kind: 'call' }, run: Run, locals: Local | undefi
       }
       return asDouble(receiver);
     case 'string': return format(receiver);
+    case 'type': return typeOf(receiver);
     default: throw new CelException(messages.celFunctionNotSupported(node.name));
   }
 }
@@ -439,6 +477,7 @@ function format(value: unknown): string {
   if (value === null || value === undefined) return 'null';
   if (typeof value === 'string') return value;
   if (typeof value === 'boolean') return value ? 'true' : 'false';
+  if (value instanceof CelType) return value.name;
   return String(value);
 }
 

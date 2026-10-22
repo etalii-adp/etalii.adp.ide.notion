@@ -15,13 +15,22 @@ import { SplicedFile } from './splicedFile';
 export class OpenBody extends SplicedFile {
   private latest: BodyReading;
 
-  private constructor(bytes: Uint8Array, readonly binding: FblBinding, readonly options: FblOptions) {
+  private constructor(bytes: Uint8Array, readonly binding: FblBinding, readonly options: FblOptions, reading?: BodyReading) {
     super(bytes);
-    this.latest = readBody(bytes, binding, options);
+    this.latest = reading ?? readBody(bytes, binding, options);
   }
 
   static open(bytes: Uint8Array, binding: FblBinding, options: FblOptions = {}): OpenBody {
     return new OpenBody(bytes, binding, options);
+  }
+
+  /**
+   * Another open body on this one's bytes as they are now, with a history of its own, without
+   * reading them again: the reading is a pure function of the bytes, the binding and the options,
+   * so the two share it until either changes, when that one reads its own new bytes.
+   */
+  fork(): OpenBody {
+    return new OpenBody(this.bytes, this.binding, this.options, this.latest);
   }
 
   /** The reading the model is taken from, with where every value lives. */

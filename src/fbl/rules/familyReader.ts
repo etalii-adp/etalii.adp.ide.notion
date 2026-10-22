@@ -4,6 +4,7 @@ import type { Finding, FindingSeverity, SourceLocation } from '../finding';
 import type { ResolvedOptions } from '../model';
 import type { Span } from '../span';
 import type { BodyText } from '../text/bodyText';
+import type { TreeValue } from './treeFamily';
 
 const SPACE = 0x20;
 const TAB = 0x09;
@@ -66,6 +67,8 @@ export interface SlotRead {
   readonly quote?: string;
   /** The value as written, before maps or conversion, for keeping a map's wire value. */
   readonly wire?: string;
+  /** yaml, json: the value the slot holds, with its style and its written text (FBL 4.1.5). */
+  readonly tree?: TreeValue;
 }
 
 export const absentSlot: SlotRead = { value: null, present: false, writable: true };
@@ -91,6 +94,9 @@ export class ReadElement {
   readonly attributes = new Map<string, unknown>();
 
   parent?: ReadElement;
+
+  /** The element's zero-based place among those of the same parent and slot, in document order. */
+  positionInSlot = 0;
 
   sourceRead?: SlotRead;
 
@@ -232,6 +238,15 @@ export abstract class FamilyReader {
   /** The variable a rule's CEL has besides `entry`, `parent`, `line` and `registration`: `path` or `groups`. */
   abstract celExtra(candidate: Candidate): { name: string; value: unknown };
 
+  /**
+   * The entry with every scalar as its written text, or as the name of the style it is written in
+   * (FBL 2.4, `text` and `style`); nothing in a family that reads text and nothing else.
+   */
+  celWritten(candidate: Candidate, view: 'text' | 'style'): unknown {
+    void [candidate, view];
+    return undefined;
+  }
+
   /** Reads a slot that is the family's own: a key, an attribute, text, a group, a capture. */
   abstract read(candidate: Candidate, slot: Slot): SlotRead;
 
@@ -259,6 +274,21 @@ export abstract class FamilyReader {
 
   abstract remove(plan: SplicePlan, element: ReadElement, removed: ReadonlySet<ReadElement>): void;
 
+  /**
+   * Moves `element`'s entry among its siblings: a `remove-entry` where it is and an `insert-entry`
+   * of the same bytes before `before`'s entry, or after `last`'s when it goes last (FBL 5.5).
+   *
+   * This is the move of a family whose entries stand on lines of their own, where an entry's line
+   * span is everything that belongs to it. A family that separates its entries, as json does with
+   * commas, plans its own.
+   */
+  move(plan: SplicePlan, element: ReadElement, before: ReadElement | undefined, last: ReadElement): void {
+    const range = element.entry.removalSpan;
+    const offset = before ? before.entry.removalSpan.start : last.entry.removalSpan.end;
+    plan.addAt('remove-entry', range, '');
+    plan.add('insert-entry', offset, offset, this.text.textOf(range));
+  }
+
   // ---- shared helpers ----
 
   newlineAt(offset: number): string {
@@ -280,8 +310,8 @@ export abstract class FamilyReader {
     return { file: this.options.fileName, line, column, length: this.text.codePoints(range.start, range.end) };
   }
 
-  report(code: string, severity: FindingSeverity, message: string, range: Span): void {
-    this.findings.push({ code, severity, message, location: this.locate(range) });
+  report(code: string, severity: FindingSeverity, message: string, range: Span, detail?: Readonly<Record<string, string>>): void {
+    this.findings.push(detail ? { code, severity, message, location: this.locate(range), detail } : { code, severity, message, location: this.locate(range) });
   }
 
   /** Indentation of a number of columns, in the binding's indentation character. */

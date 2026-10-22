@@ -1,8 +1,8 @@
 import { JsonSyntaxError, numberValue, readJson, type JsonNode } from '../../documents/jsonReader';
-import { attributeOf, type AttributeBinding } from '../../documents/types';
+import { attributeOf, wireOrder, type AttributeBinding, type InsertSettings } from '../../documents/types';
 import { findingCodes } from '../../finding';
 import { messages } from '../../messages';
-import { formatNumber, isNumber, plain, render, wire } from '../../planning/newText';
+import { formatNumber, isEmpty, isNumber, keepsEmpty, plain, render, wire } from '../../planning/newText';
 import { refuse, type InsertRequest, type ReadElement, type SlotChange, type SlotRead, type SplicePlan } from '../../rules/familyReader';
 import { TreeEntry, TreeFamily, TreeValue } from '../../rules/treeFamily';
 import type { Span } from '../../span';
@@ -130,7 +130,11 @@ export class JsonFamily extends TreeFamily {
       }
       const mapping = this.mapping(element.entry as TreeEntry, change.binding.child);
       if (!mapping || change.binding.key === undefined) refuse(messages.jsonNoObject(this.binding.name, change.binding.key ?? ''));
-      const { offset, text } = this.newMember(mapping, `${quote(change.binding.key)}: ${this.format(read, change.binding, change.value)}`);
+      const added = `${quote(change.binding.key)}: ${this.format(read, change.binding, change.value)}`;
+      const before = memberBefore(mapping, change.binding.key, wireOrder(change.rule));
+      const { offset, text } = before
+        ? { offset: before.own.end, text: (before.lineSpan ? `,${this.newlineAt(before.own.end)}${this.indentation(before.indent)}` : ', ') + added }
+        : this.newMember(mapping, added);
       plan.add('insert-key', offset, offset, text);
     }
   }
@@ -145,8 +149,12 @@ export class JsonFamily extends TreeFamily {
 
   insert(plan: SplicePlan, request: InsertRequest): void {
     const settings = request.rule.insert!;
+    // FBL 6.2's place {before: key} is not built here yet; refused, as the lines family does, and not placed at the end.
+    if (settings.place === 'before') refuse(messages.cannotPlace(this.familyName, settings.place));
     const container = settings.container === undefined ? undefined : this.container(settings.container, request.parent?.entry, this.capturesOf(plan));
-    if (!container || container.value.kind === 'scalar') refuse(messages.jsonNoContainer(this.binding.name, settings.container, request.rule.type));
+    // The entry beside which the new one is written, whose layout it takes (FBL 6.3).
+    const siblings = container?.value.kind === 'scalar' ? [] : container?.value.entries ?? [];
+    const beside = settings.place === 'start' ? siblings[0] : siblings[siblings.length - 1];
     let text: string;
     if (settings.emit !== undefined) {
       text = render(settings.emit, (name) => {
@@ -162,12 +170,30 @@ export class JsonFamily extends TreeFamily {
       });
     } else {
       const members: string[] = [];
+      // A constant is written as it is, as its JSON type: at its place in `insert.keys` when they name
+      // it, else after the other keys, in the constant's member order (FBL 0.8 6.2).
+      const constant = new Map(settings.constant ?? []);
       for (const key of settings.keys) {
-        const value = wireValue(request, key);
+        const value = constant.has(key) ? writeJson(constant.get(key), undefined) : wireValue(request, key);
         if (value !== undefined) members.push(`${quote(key)}: ${value}`);
       }
-      text = `{ ${members.join(', ')} }`;
+      for (const [key, value] of constant) {
+        if (!settings.keys.includes(key)) members.push(`${quote(key)}: ${writeJson(value, undefined)}`);
+      }
+      text = this.newObject(members, beside);
     }
+    if (!container) {
+      const created = newContainer(settings, request.parent?.entry as TreeEntry | undefined);
+      if (!created) refuse(messages.jsonNoContainer(this.binding.name, settings.container, request.rule.type));
+      // A container that encloses its entries on one line cannot be written before an entry that
+      // goes inside it, so it is created as its opening and its closing with the entry between
+      // them, all three at one offset (FBL 6.2).
+      plan.add('ensure-container', created.offset, created.offset, created.opening);
+      plan.add('insert-entry', created.offset, created.offset, text);
+      plan.add('ensure-container', created.offset, created.offset, ']');
+      return;
+    }
+    if (container.value.kind === 'scalar') refuse(messages.jsonNoContainer(this.binding.name, settings.container, request.rule.type));
     if (settings.place === 'start' && container.value.entries.length > 0) {
       const first = container.value.entries[0];
       plan.add('insert-entry', first.own.start, first.own.start, text + (first.lineSpan ? `,${this.newlineAt(first.own.start)}${this.indentation(first.indent)}` : ', '));
@@ -175,6 +201,18 @@ export class JsonFamily extends TreeFamily {
     }
     const { offset, text: inserted } = this.newMember(container.value, text);
     plan.add('insert-entry', offset, offset, inserted);
+  }
+
+  /**
+   * A new object entry with its members (FBL 6.3): one member on each line, indented as the
+   * members of the entry it is written beside, when that entry is an object written so; else on one
+   * line, as an entry beside none or beside one written on one line is.
+   */
+  private newObject(members: readonly string[], beside: TreeEntry | undefined): string {
+    const model = beside?.value.kind === 'mapping' ? beside.value.entries[0] : undefined;
+    if (!beside || !model?.lineSpan || members.length === 0) return `{ ${members.join(', ')} }`;
+    const newline = this.newlineAt(beside.own.end);
+    return `{${newline}${members.map((member) => this.indentation(model.indent) + member).join(`,${newline}`)}${newline}${this.indentation(beside.indent)}}`;
   }
 
   /**
@@ -192,11 +230,89 @@ export class JsonFamily extends TreeFamily {
     return entry.own;
   }
 
+  /**
+   * A move among siblings in json (FBL 5.5): the entry is removed with the one separator a removal
+   * takes, and its own bytes are inserted with the separator its new place needs: after it when
+   * another entry follows, before it when it becomes the last.
+   */
+  override move(plan: SplicePlan, element: ReadElement, before: ReadElement | undefined, last: ReadElement): void {
+    const entry = element.entry as TreeEntry;
+    const own = this.text.textOf(entry.own);
+    plan.addAt('remove-entry', this.removalSpan(entry), '');
+    if (before) {
+      const next = before.entry as TreeEntry;
+      if (next.lineSpan) {
+        const start = next.lineSpan.start;
+        plan.add('insert-entry', start, start, `${this.indentation(next.indent)}${own},${this.newlineAt(start)}`);
+        return;
+      }
+      plan.add('insert-entry', next.own.start, next.own.start, `${own}, `);
+      return;
+    }
+    const tail = last.entry as TreeEntry;
+    const inserted = tail.lineSpan ? `,${this.newlineAt(tail.own.end)}${this.indentation(tail.indent)}${own}` : `, ${own}`;
+    plan.add('insert-entry', tail.own.end, tail.own.end, inserted);
+  }
+
   remove(plan: SplicePlan, element: ReadElement): void {
     const entry = element.entry as TreeEntry;
     if (entry.isRoot) refuse(messages.wholeFile(this.binding.name));
+
+    // The only entry of a container that goes when it is left empty (FBL 6.2): the container goes
+    // with it, as what is before the entry, the entry itself, and what is after it.
+    const container = entry.parent as TreeEntry | undefined;
+    if (element.rule.remove?.removeContainerWhenEmpty === true && container && !container.isRoot && container.parent instanceof TreeEntry && container.value.entries.length === 1) {
+      // The container goes as it was created (FBL 6.2): with the separator before it, where a
+      // member stands before it, so that removing what an insert created leaves the bytes the
+      // insert started from. Only a first member takes the separator after it instead.
+      const members = container.parent.value.entries;
+      const at = members.indexOf(container);
+      const start = at > 0 ? members[at - 1].own.end : container.own.start;
+      const end = at === 0 && members.length > 1 ? members[1].own.start : container.own.end;
+      plan.add('remove-container', start, entry.own.start, '');
+      plan.addAt('remove-entry', entry.own, '');
+      plan.add('remove-container', entry.own.end, end, '');
+      return;
+    }
+
     plan.addAt('remove-entry', this.removalSpan(entry), '');
   }
+}
+
+/**
+ * The member a new `key` is written right after: the nearest one before it in the rule's key order
+ * (FBL 6.1, "at the position `insert.keys` gives"). Nothing when the order does not place the key,
+ * or places it after every member, and it goes last.
+ */
+function memberBefore(mapping: TreeValue, key: string, order: readonly string[]): TreeEntry | undefined {
+  const position = order.indexOf(key);
+  if (position < 0) return undefined;
+  let before: TreeEntry | undefined;
+  for (const entry of mapping.entries) {
+    const at = entry.name === undefined ? -1 : order.indexOf(entry.name);
+    if (at >= 0 && at < position) before = entry;
+  }
+  return !before || before === mapping.entries[mapping.entries.length - 1] ? undefined : before;
+}
+
+/**
+ * Where a missing container is created and how it opens (FBL 6.2 `create`): a list under the
+ * selector's last name, right after the member `create.at.after` names in the parent entry's
+ * object, or after that object's last member for `create.at: "end"` (FBL 0.4). Nothing when the
+ * rule creates no container, or creates it in a way this family does not write yet: anywhere but
+ * after a member that stands on one line with its siblings.
+ */
+function newContainer(settings: InsertSettings, parent: TreeEntry | undefined): { offset: number; opening: string } | undefined {
+  const selector = settings.container;
+  const create = settings.create;
+  if (selector === undefined || !create || (create.at !== 'after' && create.at !== 'end') || create.text !== undefined || selector.startsWith('/')) return undefined;
+  const mapping = parent?.value;
+  if (!mapping || mapping.kind !== 'mapping' || mapping.entries.length === 0) return undefined;
+  // "end" is after the last member of the container's parent; "after" names the member.
+  const member = create.at === 'end' ? mapping.entries[mapping.entries.length - 1] : create.argument !== undefined ? mapping.member(create.argument) : undefined;
+  if (!member || member.lineSpan) return undefined;
+  const trimmed = selector.replace(/\/+$/, '');
+  return { offset: member.own.end, opening: `, ${quote(trimmed.slice(trimmed.lastIndexOf('/') + 1))}: [` };
 }
 
 /** A value as JSON writes it. */
@@ -238,8 +354,12 @@ function wireValue(request: InsertRequest, key: string): string | undefined {
   if (rule.source?.key === key && request.source) return quote(request.source.key);
   if (rule.target?.key === key && request.target) return quote(request.target.key);
   for (const [name, binding] of rule.attributes) {
+    if (binding.key !== key || binding.child !== undefined) continue;
+    // An attribute the add does not give has no value; one it gives its empty value has its key by the binding's `empty` (FBL 6.2).
+    if (!request.values.has(name)) continue;
     const value = request.values.get(name);
-    if (binding.key === key && binding.child === undefined && value !== null && value !== undefined) return writeJson(value, binding);
+    if (isEmpty(value) && !keepsEmpty(binding, value)) continue;
+    return writeJson(value, binding);
   }
   return undefined;
 }

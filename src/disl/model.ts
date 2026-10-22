@@ -43,9 +43,10 @@ export const emptyModel: Model = { diagram: {}, elements: [], relations: [] };
 
 /**
  * The FBL library's finding (code, severity, message, location), with the id of the element it
- * concerns and the detail a built-in constraint's message reads (DISL 8.7) where there is one.
+ * concerns and the detail a built-in constraint's message reads (DISL 8.7) where there is one. Its
+ * detail is this interpreter's, of DISL values, in the place of the library's detail of texts.
  */
-export interface Finding extends FblFinding {
+export interface Finding extends Omit<FblFinding, 'detail'> {
   readonly element?: string;
   readonly detail?: Attributes;
 }

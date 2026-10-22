@@ -78,6 +78,7 @@ export interface FileRule {
 export interface PluginReader {
   readonly plugin: string;
   readonly version?: string;
+  /** What the binding hands the plugin's `read` (FBL 11.2), as the document has it. */
   readonly args?: JsonNode;
 }
 
@@ -175,6 +176,21 @@ export interface AttributeBinding extends Slot {
   readonly htmlParagraphs: boolean;
   readonly create?: CreateChild;
   readonly readOnly?: string;
+  /**
+   * yaml, json (FBL 0.5): what the slot reads from a scalar, its written text or its typed value.
+   * Nothing for the default: text for a string attribute, typed for every other.
+   */
+  readonly read?: 'text' | 'typed';
+  /** yaml, read as typed (FBL 0.5): a quoted scalar is first read by the core schema from its written text. */
+  readonly convertQuoted?: boolean;
+  /** What the attribute is when its value does not convert to the attribute's type (FBL 0.5). */
+  readonly fallback?: Fallback;
+}
+
+/** The value read in place of one that does not convert, and whether `fbl.unconverted-value` is reported (FBL 5.2, 7.4). */
+export interface Fallback {
+  readonly value: JsonNode;
+  readonly report: boolean;
 }
 
 export interface ReferenceBinding {
@@ -182,11 +198,16 @@ export interface ReferenceBinding {
   readonly by: string;
 }
 
-/** xml: how a missing child element holding the value is written. */
+/**
+ * How a missing child holding the value is written. xml: the element's text and its place. yaml,
+ * json (FBL 0.4): `atEnd`, each missing level of the mapping `child` reaches created at the end of
+ * the level above it.
+ */
 export interface CreateChild {
   readonly emit: string;
   readonly place: string;
   readonly before?: string;
+  readonly atEnd?: boolean;
 }
 
 export interface InsertSettings {
@@ -199,18 +220,29 @@ export interface InsertSettings {
   readonly emit?: string;
   readonly skeleton?: string;
   readonly when?: string;
+  /**
+   * The keys and values every new entry is given as they are (FBL 0.8 6.2), in the constant's member
+   * order: a string, a number, a boolean or null; undefined for a member that is none of them, which
+   * loading refuses.
+   */
+  readonly constant?: readonly (readonly [string, string | number | boolean | null | undefined])[];
 }
 
-/** How a missing container is created: `at` is "end-of-document", "before", "after" or "under". */
+/** How a missing container is created: `at` is "end-of-document", "before", "after", "under" or (FBL 0.4) "end". */
 export interface CreateContainer {
   readonly at: string;
   readonly argument?: string;
   readonly text?: string;
 }
 
+/**
+ * What goes with a removed entry. `removeEmptyLevels` (FBL 0.4) implies `removeContainerWhenEmpty`,
+ * and removes the levels above the container that it leaves empty too.
+ */
 export interface RemoveSettings {
   readonly cascade: readonly string[];
   readonly removeContainerWhenEmpty: boolean;
+  readonly removeEmptyLevels?: boolean;
 }
 
 export interface RegistrationSettings {
@@ -234,6 +266,29 @@ export const findRule = (binding: FblBinding, name: string): Rule | undefined =>
 export const attributeOf = (rule: Rule, name: string): AttributeBinding | undefined => rule.attributes.find(([attribute]) => attribute === name)?.[1];
 
 export const isComputed = (slot: Slot): boolean => slot.value !== undefined;
+
+/** A placeholder of an `emit` text: an attribute's name, or `id`, in braces. */
+const placeholderPattern = /\{([A-Za-z_][A-Za-z0-9_]*)\}/g;
+
+/**
+ * The order a new entry's keys or attributes are written in, as the names they are written under:
+ * `insert.keys`, or, for a rule that writes its entry from `emit`, the order of the text's
+ * placeholders. A key or attribute added to an existing entry takes its place in this order
+ * (FBL 6.1). Empty for a rule that cannot insert.
+ */
+export function wireOrder(rule: Rule): readonly string[] {
+  const insert = rule.insert;
+  if (!insert) return [];
+  if (insert.keys.length > 0) return insert.keys;
+  if (insert.emit === undefined) return [];
+  const order: string[] = [];
+  for (const [, name] of insert.emit.matchAll(placeholderPattern)) {
+    const slot = name === 'id' ? rule.id?.from : attributeOf(rule, name);
+    const wire = slot?.key ?? slot?.attribute;
+    if (wire !== undefined && !order.includes(wire)) order.push(wire);
+  }
+  return order;
+}
 
 /** A slot as a sentence names it. */
 export function slotText(slot: Slot): string {

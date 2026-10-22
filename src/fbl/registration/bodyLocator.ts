@@ -1,6 +1,7 @@
 import type { FblBinding } from '../documents/types';
 import type { FblFiles } from '../files/fblFiles';
-import { baseNameOf, folderOf, isRooted, isWithin, join, normalize } from '../files/paths';
+import { baseNameOf, folderOf, isRooted, isWithin, join, nameOf, normalize } from '../files/paths';
+import { findingCodes, type Finding } from '../finding';
 import { messages } from '../messages';
 import type { RegistrationDocument } from './registrationDocument';
 
@@ -12,9 +13,11 @@ export interface BodyLocation {
   readonly refusal?: string;
   /** A missing body opens empty with `fbl.missing-body`, and nothing is written until the registration names a file. */
   readonly isMissing: boolean;
+  /** What locating found: `fbl.missing-body` when the body is missing (FBL 7.4, 8.2), else nothing. */
+  readonly findings: readonly Finding[];
 }
 
-const refused = (refusal: string): BodyLocation => ({ exists: false, isFolder: false, refusal, isMissing: false });
+const refused = (refusal: string): BodyLocation => ({ exists: false, isFolder: false, refusal, isMissing: false, findings: [] });
 
 /**
  * Finds a registration's body (FBL 8.2): the `body` header relative to the registration's folder,
@@ -42,7 +45,23 @@ export function locateBody(registrationPath: string, registration: RegistrationD
   if (throughLink(root, candidate, files)) return refused(messages.bodyThroughLink);
   const isFolder = binding.body.isFolder;
   const exists = files.kind(candidate) === (isFolder ? 'folder' : 'file');
-  return { path: candidate, exists, isFolder, isMissing: !exists };
+  return { path: candidate, exists, isFolder, isMissing: !exists, findings: exists ? [] : [missingBody(registrationPath, registration, candidate)] };
+}
+
+/**
+ * The `fbl.missing-body` error (FBL 7.4, 8.2), on the registration's `body` header, or on its
+ * origin line when the body is the derived sibling.
+ */
+function missingBody(registrationPath: string, registration: RegistrationDocument, candidate: string): Finding {
+  const text = registration.text;
+  const range = registration.headerList.find((header) => header.key === 'body')?.line ?? { start: text.bomLength, end: text.lines[0].end };
+  const { line, column } = text.position(range.start);
+  return {
+    code: findingCodes.missingBody,
+    severity: 'error',
+    message: messages.missingBody(nameOf(candidate)),
+    location: { file: nameOf(registrationPath), line, column, length: text.codePoints(range.start, range.end) },
+  };
 }
 
 /** Whether any component from below the root to the path itself is a link. */

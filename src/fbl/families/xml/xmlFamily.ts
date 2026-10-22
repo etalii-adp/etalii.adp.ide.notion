@@ -1,8 +1,8 @@
-import { slotText, type AttributeBinding, type CreateChild, type HeaderSettings, type Rule, type Slot } from '../../documents/types';
+import { slotText, wireOrder, type AttributeBinding, type CreateChild, type HeaderSettings, type Rule, type Slot } from '../../documents/types';
 import { RegexBudgetError } from '../../expressions/regexMatcher';
 import { findingCodes } from '../../finding';
 import { messages } from '../../messages';
-import { plain, render, wire } from '../../planning/newText';
+import { isEmpty, keepsEmpty, plain, render, wire } from '../../planning/newText';
 import { absentSlot, Entry, FamilyReader, OverrideNode, readOnlyAbsent, refuse, type Candidate, type InsertRequest, type ReadElement, type SlotChange, type SlotRead, type SplicePlan } from '../../rules/familyReader';
 import { select, selectorStart } from '../../rules/selector';
 import type { Span } from '../../span';
@@ -496,7 +496,18 @@ export class XmlFamily extends FamilyReader {
       }
       if (binding.attribute !== undefined) {
         if (!(node instanceof XmlElement)) refuse(messages.xmlNoChild(this.binding.name, binding.child, binding.attribute));
-        const offset = node.attributes.length > 0 ? node.attributes[node.attributes.length - 1].own.end : node.nameEnd;
+        // After the nearest attribute before it in the rule's own order, where the order places
+        // it before another that is there; else after the last attribute (FBL 6.3).
+        const order = wireOrder(change.rule);
+        const place = order.indexOf(binding.attribute);
+        let before: XmlAttribute | undefined;
+        if (place >= 0) {
+          for (const attribute of node.attributes) {
+            const at = order.indexOf(attribute.name);
+            if (at >= 0 && at < place) before = attribute;
+          }
+        }
+        const offset = before ? before.own.end : node.attributes.length > 0 ? node.attributes[node.attributes.length - 1].own.end : node.nameEnd;
         plan.add('insert-key', offset, offset, ` ${binding.attribute}="${this.format(read, binding, change.value)}"`);
         continue;
       }
@@ -595,7 +606,7 @@ export class XmlFamily extends FamilyReader {
    * Removes a child element holding a value with the line break before it (`remove-key`), and
    * closes the parent again when only whitespace is left in it (`self-close`).
    */
-  private removeChild(plan: SplicePlan, parent: XmlElement, child: XmlElement): void {
+  private removeChild(plan: SplicePlan, parent: XmlElement, child: XmlElement, operation: SpliceOperation = 'remove-key'): void {
     const line = this.text.lineIndexAt(child.own.start);
     let range: Span = child.lineSpan && line > 0 ? { start: this.text.lines[line - 1].contentEnd, end: child.own.end } : child.own;
     if (range.start < parent.contentStart) range = { start: parent.contentStart, end: range.end };
@@ -604,16 +615,18 @@ export class XmlFamily extends FamilyReader {
       && this.isWhitespace({ start: parent.contentStart, end: range.start })
       && this.isWhitespace({ start: range.end, end: end.start });
     if (!closes || !end) {
-      plan.addAt('remove-key', range, '');
+      plan.addAt(operation, range, '');
       return;
     }
     plan.add('self-close', parent.close.start, range.start, '/>');
-    plan.addAt('remove-key', range, '');
+    plan.addAt(operation, range, '');
     plan.add('self-close', range.end, end.end, '');
   }
 
   insert(plan: SplicePlan, request: InsertRequest): void {
     const settings = request.rule.insert!;
+    // FBL 6.2's place {before: key} is not built here yet; refused, as the lines family does, and not placed at the end.
+    if (settings.place === 'before') refuse(messages.cannotPlace(this.familyName, settings.place));
     const contained = settings.container !== undefined && this.root
       ? (select(selectorStart(settings.container, this.root, undefined), settings.container, this.attributeEquals)[0]?.entry as XmlElement | undefined)
       : undefined;
@@ -649,6 +662,18 @@ export class XmlFamily extends FamilyReader {
   remove(plan: SplicePlan, element: ReadElement): void {
     const entry = element.entry as XmlElement;
     if (entry === this.document) refuse(messages.xmlDocumentElement(this.binding.name));
+
+    // The only child of an element that an insert may have opened for it (`last-child`, FBL 6.2),
+    // or of one that goes when it is left empty: the parent is closed again, so that adding a
+    // child and removing it leaves the bytes it started from. The entry goes with the line break
+    // before it, and its parent becomes self-closed.
+    const parent = entry.parent;
+    if ((element.rule.remove?.removeContainerWhenEmpty === true || element.rule.insert?.place === 'last-child')
+      && parent instanceof XmlElement && !parent.selfClosed && parent !== this.document && !parent.isRoot && parent.elements.length === 1) {
+      this.removeChild(plan, parent, entry, 'remove-entry');
+      return;
+    }
+
     plan.addAt('remove-entry', entry.removalSpan, '');
   }
 }
@@ -718,8 +743,11 @@ function newElement(request: InsertRequest): string {
   const written: [string, string][] = [];
   if (rule.id?.from?.attribute !== undefined && request.id !== undefined) written.push([rule.id.from.attribute, request.id]);
   for (const [attribute, binding] of rule.attributes) {
+    // An attribute the add does not give has no value; one it gives its empty value is written by the binding's `empty` (FBL 6.2).
+    if (binding.attribute === undefined || binding.child !== undefined || !request.values.has(attribute)) continue;
     const value = request.values.get(attribute);
-    if (binding.attribute !== undefined && binding.child === undefined && value !== null && value !== undefined) written.push([binding.attribute, plain(value, binding)]);
+    if (isEmpty(value) && !keepsEmpty(binding, value)) continue;
+    written.push([binding.attribute, plain(value, binding)]);
   }
   if (rule.source?.attribute !== undefined && request.source) written.push([rule.source.attribute, request.source.key]);
   if (rule.target?.attribute !== undefined && request.target) written.push([rule.target.attribute, request.target.key]);

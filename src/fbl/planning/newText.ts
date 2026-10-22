@@ -68,6 +68,18 @@ export function isEmpty(value: unknown): boolean {
 }
 
 /**
+ * Whether a new entry has the key of an attribute its add gives the empty value (FBL 6.2, FBL
+ * 0.6), by the attribute binding's `empty` with a set's defaults: `keep` writes the key with the
+ * empty value and `remove` leaves it out (`refuse` has refused the add before this is asked).
+ * Without `empty`, an empty text or list is kept, which is the default FBL gives a string; a null
+ * is no value to keep, so its key is left out.
+ */
+export function keepsEmpty(binding: AttributeBinding, value: unknown): boolean {
+  if (binding.empty === 'keep') return true;
+  return binding.empty === undefined && value !== null && value !== undefined;
+}
+
+/**
  * The wire value for a model value through a `map` (FBL 5.2): the first key in document order
  * whose value matches, unless the value being replaced already maps to it.
  */
