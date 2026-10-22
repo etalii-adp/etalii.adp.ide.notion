@@ -147,6 +147,42 @@ describe('inheritance', () => {
   });
 });
 
+// DISL 0.6, section 4.7: a relation type's flags are inherited along its linearisation and only narrowed, and
+// supertypes that differ in a flag the type does not state are an error. The specifications are shaped as
+// etalii.adp's service-calls.dis and the three of its specifications/disl/refused/.
+describe('relation flags', () => {
+  const relationsOf = (relations: object) => interpret(specification({ types: { Item: {} }, relations }));
+
+  it('gives each relation type the flag of the nearest type that states it, else the default', () => {
+    const { value: metamodel, findings } = relationsOf({
+      Call: { abstract: true, source: 'Item', target: 'Item', allowParallel: false, allowSelfLoops: true },
+      SyncCall: { extends: 'Call' },
+      AsyncCall: { extends: 'Call' },
+      Observation: { abstract: true, source: 'Item', target: 'Item' },
+      TracedCall: { extends: ['SyncCall', 'Observation'], allowParallel: false, allowSelfLoops: false },
+    });
+    expect(findings).toEqual([]);
+    const flags = (name: string) => {
+      const type = metamodel.types[name];
+      return isRelation(type) ? [type.directed, type.allowSelfLoops, type.allowParallel] : undefined;
+    };
+    expect(['Call', 'SyncCall', 'AsyncCall', 'Observation', 'TracedCall'].map(flags)).toEqual([
+      [true, true, false], [true, true, false], [true, true, false], [true, false, true], [true, false, false],
+    ]);
+  });
+
+  it.each([
+    ['a widened flag', { Link: { source: 'Item', target: 'Item', allowParallel: false }, Strong: { extends: 'Link', allowParallel: true } }, ['`Strong`', '`allowParallel`', '`Link`']],
+    ['a directed that differs from the default', { Link: { source: 'Item', target: 'Item' }, Mutual: { extends: 'Link', directed: false } }, ['`Mutual`', '`directed`', '`Link`']],
+    ['supertypes that differ', { Loop: { source: 'Item', target: 'Item', allowSelfLoops: true }, Plain: { source: 'Item', target: 'Item' }, Both: { extends: ['Loop', 'Plain'] } }, ['`Both`', '`allowSelfLoops`', '`Loop`', '`Plain`']],
+  ])('refuses %s with one problem naming the type, the flag and the supertypes', (_, relations, names) => {
+    const { findings } = relationsOf(relations);
+    expect(findings).toHaveLength(1);
+    expect(findings[0]).toMatchObject({ code: 'disl.metamodel', severity: 'error' });
+    for (const name of names) expect(findings[0].message).toContain(name);
+  });
+});
+
 describe('year and month', () => {
   it('reads the stored form as a month index', () => {
     expect(parseYearMonth('0000-01')).toBe(0);
