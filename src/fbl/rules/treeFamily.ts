@@ -1,6 +1,7 @@
 import { scalarText } from '../documents/jsonReader';
 import { slotText, type HeaderSettings, type Rule, type Slot } from '../documents/types';
 import type { CelMap } from '../expressions/cel';
+import { readFlow } from '../families/yaml/flowReader';
 import { messages } from '../messages';
 import type { Span } from '../span';
 import { absentSlot, Entry, FamilyReader, readOnlyAbsent, type Candidate, type SlotRead, type SplicePlan } from './familyReader';
@@ -18,6 +19,9 @@ export class TreeValue {
 
   /** yaml: the mappings a `<<` key merges into this one, for reading. */
   readonly merged: TreeValue[] = [];
+
+  /** yaml: the value an alias stands for, whose written text and style are the alias's (FBL 4.1.5). */
+  aliasOf?: TreeValue;
 
   constructor(
     readonly kind: ValueKind,
@@ -61,25 +65,53 @@ export class TreeEntry extends Entry {
   }
 }
 
-/** A tree value as CEL sees it (FBL 4.1.4). */
-export function celOf(value: TreeValue): unknown {
+/** What a scalar is presented as: its typed value (FBL 4.1.4), its written text, or the name of its style (FBL 4.1.5, 2.4). */
+export type ScalarView = 'typed' | 'text' | 'style';
+
+/** A tree value as CEL sees it (FBL 4.1.4), or, with another view, with every scalar as its written text or as its style. */
+export function celOf(value: TreeValue, view: ScalarView = 'typed'): unknown {
   switch (value.kind) {
     case 'mapping': {
       const map: CelMap = new Map();
       for (const merged of value.merged) {
-        const inherited = celOf(merged);
+        const inherited = celOf(merged, view);
         if (inherited instanceof Map) for (const [key, member] of inherited) map.set(key, member);
       }
       for (const member of value.entries) {
-        if (member.name !== undefined && member.name !== '<<') map.set(member.name, celOf(member.value));
+        if (member.name !== undefined && member.name !== '<<') map.set(member.name, celOf(member.value, view));
       }
       return map;
     }
     case 'sequence':
-      return value.entries.map((entry) => celOf(entry.value));
+      return value.entries.map((entry) => celOf(entry.value, view));
     default:
-      return value.flow !== undefined && value.flow !== null ? value.flow : value.typed;
+      if (view === 'typed') return value.flow !== undefined && value.flow !== null ? value.flow : value.typed;
+      // A scalar reached through an alias has the written text of the scalar it stands for.
+      if (value.aliasOf) return celOf(value.aliasOf, view);
+      if (value.style === 'flowSequence' || value.style === 'flowMapping') return readFlow(value.text, view);
+      return view === 'text' ? value.text : styleName(value.style);
   }
+}
+
+/** The style a scalar is written in, as CEL's `style` names it: json strings are `double`, other json scalars `plain` (FBL 2.4). */
+function styleName(style: ValueStyle): string {
+  switch (style) {
+    case 'single': case 'double': case 'literal': case 'folded': return style;
+    case 'jsonString': return 'double';
+    default: return 'plain';
+  }
+}
+
+/** Whether a scalar is written in quotes in yaml, where `quoted: "convert"` reads it from its written text (FBL 5.2). */
+export function isQuoted(value: TreeValue): boolean {
+  const written = value.aliasOf ?? value;
+  return written.style === 'single' || written.style === 'double';
+}
+
+/** The written text of a plain yaml scalar, and nothing for any other value. */
+export function plainText(value: TreeValue): string | undefined {
+  const written = value.aliasOf ?? value;
+  return written.kind === 'scalar' && written.style === 'plain' ? written.text : undefined;
 }
 
 /** What yaml and json share: selectors, CEL values and reading keys (FBL 4.2, 4.1.4, 5.2). */
@@ -116,6 +148,10 @@ export abstract class TreeFamily extends FamilyReader {
 
   celExtra(candidate: Candidate): { name: string; value: unknown } {
     return { name: 'path', value: new Map(candidate.captures) };
+  }
+
+  override celWritten(candidate: Candidate, view: 'text' | 'style'): unknown {
+    return celOf((candidate.entry as TreeEntry).value, view);
   }
 
   headerHolds(header: HeaderSettings): boolean {
@@ -191,11 +227,12 @@ export function readMember(mapping: TreeValue, name: string): SlotRead {
       reason,
       node: member,
       wire: member.value.kind === 'scalar' ? member.value.text : undefined,
+      tree: member.value,
     };
   }
   for (const merged of mapping.merged) {
     const inherited = merged.member(name);
-    if (inherited) return { value: celOf(inherited.value), span: inherited.value.span, present: true, writable: false, reason: messages.valueViaMerge, node: inherited };
+    if (inherited) return { value: celOf(inherited.value), span: inherited.value.span, present: true, writable: false, reason: messages.valueViaMerge, node: inherited, tree: inherited.value };
   }
   return { ...absentSlot, node: mapping };
 }

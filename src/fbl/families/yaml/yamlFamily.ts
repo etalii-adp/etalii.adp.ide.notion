@@ -1,14 +1,15 @@
 import { parseAllDocuments } from 'yaml';
-import { attributeOf, isComputed, type AttributeBinding, type InsertSettings, type Rule, type Slot } from '../../documents/types';
+import { allRules, attributeOf, isComputed, type AttributeBinding, type InsertSettings, type Rule, type Slot } from '../../documents/types';
 import { findingCodes } from '../../finding';
 import { messages } from '../../messages';
-import { formatNumber, isEmpty, isNumber, keepPrecision, plain, render, wire } from '../../planning/newText';
+import { formatNumber, isEmpty, isNumber, keepPrecision, keepsEmpty, plain, render, wire } from '../../planning/newText';
 import { refuse, type Entry, type InsertRequest, type ReadElement, type SlotChange, type SlotRead, type SplicePlan } from '../../rules/familyReader';
 import { TreeEntry, TreeFamily, TreeValue } from '../../rules/treeFamily';
+import { isTextType } from '../../rules/typedValue';
 import type { Span } from '../../span';
 import { byteLength, trimEndOf } from '../../text/utf8';
 import { YamlError, YamlParser } from './yamlParser';
-import { doubleQuoted, isPlainSafe, singleQuoted } from './yamlScalars';
+import { allowsPlain, doubleQuoted, isPlainSafe, isPlainWritable, singleQuoted } from './yamlScalars';
 
 const HASH = 0x23;
 
@@ -20,7 +21,30 @@ const HASH = 0x23;
 export class YamlFamily extends TreeFamily {
   private leafSpans: Span[] = [];
 
+  // The attribute bindings the host says hold a date or a date-time, and those whose slot is read
+  // as text (FBL 5.2), each found once by reference.
+  private timeTyped?: Set<AttributeBinding>;
+  private textRead?: Set<AttributeBinding>;
+
   readonly familyName = 'yaml';
+
+  private isTimeTyped(binding: AttributeBinding | undefined): boolean {
+    if (!binding) return false;
+    if (binding.keepTimePrecision) return true;
+    this.timeTyped ??= new Set(allRules(this.binding).flatMap((rule) =>
+      rule.attributes.filter(([name]) => this.options.timeAttributes.has(`${rule.name}.${name}`)).map(([, attribute]) => attribute)));
+    return this.timeTyped.has(binding);
+  }
+
+  /** Whether an attribute's slot is read as text: by `read`, or as a string attribute's is unasked (FBL 5.2). */
+  private isTextRead(binding: AttributeBinding | undefined): boolean {
+    if (!binding) return false;
+    this.textRead ??= new Set(allRules(this.binding).flatMap((rule) =>
+      rule.attributes
+        .filter(([name, attribute]) => attribute.read === 'text' || (attribute.read === undefined && isTextType(this.options.attributeType?.(rule.type, name))))
+        .map(([, attribute]) => attribute)));
+    return this.textRead.has(binding);
+  }
 
   get leaves(): readonly Span[] {
     return this.leafSpans;
@@ -121,21 +145,23 @@ export class YamlFamily extends TreeFamily {
 
   private scalar(value: unknown, old: TreeValue | undefined, binding: AttributeBinding | undefined, keyIndent: number): string {
     if (value === null || value === undefined) return 'null';
-    if (typeof value === 'boolean') return value ? 'true' : 'false';
+    if (typeof value === 'boolean') return keepQuotes(value ? 'true' : 'false', old, binding);
     if (typeof value === 'string') return this.string(value, old, binding, keyIndent);
-    if (Array.isArray(value)) return `[${value.map((item) => this.scalar(item, undefined, binding, keyIndent)).join(', ')}]`;
-    if (isNumber(value)) return formatNumber(value, binding?.decimals);
+    if (Array.isArray(value)) return `[${value.map((item) => (typeof item === 'string' ? flowItem(item) : this.scalar(item, undefined, binding, keyIndent))).join(', ')}]`;
+    if (isNumber(value)) return keepQuotes(formatNumber(value, binding?.decimals), old, binding);
     return this.string(plain(value, binding), old, binding, keyIndent);
   }
 
   private string(text: string, old: TreeValue | undefined, binding: AttributeBinding | undefined, keyIndent: number): string {
-    const timeTyped = binding?.keepTimePrecision === true;
+    const timeTyped = this.isTimeTyped(binding);
     let value = text;
-    if (timeTyped && old?.kind === 'scalar' && old.text.length > 0) value = keepPrecision(old.text, value) ?? value;
+    if (binding?.keepTimePrecision === true && old?.kind === 'scalar' && old.text.length > 0) value = keepPrecision(old.text, value) ?? value;
     const multiline = value.includes('\n') || value.includes('\r');
+    // A slot read as text whose attribute asks for plain is written plain whenever the syntax allows it (FBL 6.3).
+    const fitsPlain = isPlainWritable(value, timeTyped) || (binding?.style === 'plain' && this.isTextRead(binding) && allowsPlain(value));
     switch (old?.style) {
       case 'plain':
-        if (isPlainSafe(value, timeTyped)) return value;
+        if (fitsPlain) return value;
         break;
       case 'single':
         if (!multiline) return singleQuoted(value);
@@ -156,7 +182,7 @@ export class YamlFamily extends TreeFamily {
         if (multiline) return this.literal(value, keyIndent);
         break;
       case 'plain':
-        if (isPlainSafe(value, timeTyped)) return value;
+        if (fitsPlain) return value;
         break;
     }
     if (isPlainSafe(value, timeTyped)) return value;
@@ -177,7 +203,12 @@ export class YamlFamily extends TreeFamily {
       const read = change.read;
       const member = read.node instanceof TreeEntry ? read.node : undefined;
       if (change.isEmpty && change.binding.empty === 'remove') {
-        if (member) plan.addAt('remove-key', member.lineSpan ?? member.own, '');
+        if (member) {
+          // FBL 0.4, section 5.2: the levels the key leaves empty go with it, up to the entry itself.
+          const reached = change.binding.child;
+          if (change.binding.create?.atEnd === true && reached !== undefined) this.removeEmptiedLevels(plan, member, segmentsOf(reached).length, (entry) => entry === member);
+          plan.addAt('remove-key', member.lineSpan ?? member.own, '');
+        }
         continue;
       }
       if (read.present && member) {
@@ -186,6 +217,16 @@ export class YamlFamily extends TreeFamily {
         continue;
       }
       const mapping = read.node instanceof TreeValue ? read.node : this.mapping(element.entry as TreeEntry, change.binding.child);
+      const child = change.binding.child;
+      if (!mapping && change.binding.create?.atEnd === true && child !== undefined && change.binding.key !== undefined) {
+        // FBL 0.4, section 5.2: every missing level of the child mapping, then the key, at one offset.
+        const missing = this.missingLevels(element.entry as TreeEntry, segmentsOf(child));
+        if (!missing) refuse(messages.noPlaceToCreate(this.binding.name, child));
+        const { offset: at, lines: levels, inside } = missing;
+        for (const level of levels) plan.add('ensure-container', at, at, this.newLine(at, [level]));
+        plan.add('insert-key', at, at, this.newLine(at, [`${this.indentation(inside)}${change.binding.key}: ${this.scalar(change.value, undefined, change.binding, inside)}`]));
+        continue;
+      }
       if (!mapping || mapping.kind !== 'mapping' || change.binding.key === undefined) {
         refuse(messages.yamlNoMapping(this.binding.name, change.binding.key ?? ''));
       }
@@ -202,6 +243,9 @@ export class YamlFamily extends TreeFamily {
     for (let i = index - 1; i >= 0 && !before; i--) before = mapping.member(order[i]);
     if (before) {
       offset = this.lineEndAfter(before);
+    } else if (change.binding.create?.atEnd === true) {
+      // FBL 0.4, section 5.2: with no key of the rule before it, the mapping's first key.
+      offset = mapping.entries[0].lineSpan?.start ?? mapping.entries[0].own.start;
     } else {
       let after: TreeEntry | undefined;
       for (let i = index + 1; i < order.length && !after; i++) after = mapping.member(order[i]);
@@ -239,6 +283,8 @@ export class YamlFamily extends TreeFamily {
   insert(plan: SplicePlan, request: InsertRequest): void {
     const rule = request.rule;
     const settings = rule.insert!;
+    // FBL 6.2's place {before: key} is not built here yet; refused, as the lines family does, and not placed at the end.
+    if (settings.place === 'before') refuse(messages.cannotPlace(this.familyName, settings.place));
     const parent = request.parent?.entry ?? endParent(request);
     const captures = request.parent?.candidate.captures ?? (parent ? plan.reading.elementOf(parent)?.candidate.captures : undefined) ?? this.capturesOf(plan);
     const selector = settings.container ?? containerOf(rule.at);
@@ -293,6 +339,18 @@ export class YamlFamily extends TreeFamily {
     if (selector.startsWith('/') && selector.replace(/^\/+|\/+$/g, '').includes('/')) owner = this.container(containerOf(selector), parent, new Map());
     const mapping = owner?.value;
     const hasMembers = (value: TreeValue | undefined): value is TreeValue => value?.kind === 'mapping' && value.entries.length > 0;
+    if (create.at === 'end') {
+      // FBL 0.4, section 6.2, Missing levels: outermost first, then the entry, all at one offset.
+      const from = selector.startsWith('/') ? this.root : (parent as TreeEntry | undefined);
+      const missing = from ? this.missingLevels(from, segmentsOf(selector)) : undefined;
+      if (!missing) refuse(messages.yamlNoPlace(name));
+      const { offset: at, lines: levels, inside } = missing;
+      if (create.text !== undefined && levels.length > 0) levels[levels.length - 1] = create.text;
+      for (const level of levels) plan.add('ensure-container', at, at, this.newLine(at, [level]));
+      const first = inside - this.step + this.sequenceOffset;
+      plan.add('insert-entry', at, at, this.newLine(at, this.item(keys, first, first + 2)));
+      return;
+    }
     const argument = create.argument ?? '';
     let offset: number;
     let indent: number;
@@ -308,6 +366,10 @@ export class YamlFamily extends TreeFamily {
     } else if (before) {
       offset = before.lineSpan?.start ?? before.own.start;
       indent = before.indent;
+    } else if (create.at === 'before' && hasMembers(mapping)) {
+      // Before a key the file does not have: at its end, as after-last falls back to end.
+      offset = this.text.length;
+      indent = mapping.entries[0].indent;
     } else if (hasMembers(under)) {
       offset = this.lineEndAfter(under.entries[under.entries.length - 1]);
       indent = under.entries[0].indent;
@@ -320,21 +382,104 @@ export class YamlFamily extends TreeFamily {
     plan.add('insert-entry', offset, offset, this.newLine(offset, this.item(keys, dash, dash + 2)));
   }
 
-  private item(lines: readonly string[], dash: number, keyIndent: number): string[] {
-    return lines.map((line, index) => (index === 0
-      ? `${this.indentation(dash)}-${' '.repeat(Math.max(1, keyIndent - dash - 1))}${line}`
-      : this.indentation(keyIndent) + line));
+  /**
+   * The levels of `segments` that `from` does not reach, as the key lines that create them,
+   * outermost first; where they go, which is the end of the innermost level the body has; and the
+   * indentation of what the innermost level holds (FBL 0.4, section 6.2). Nothing when a missing
+   * level is named by `*` or a capture, which gives no key to write, or when the level to write in
+   * is not a block mapping.
+   */
+  private missingLevels(from: TreeEntry, segments: readonly string[]): { offset: number; lines: string[]; inside: number } | undefined {
+    let level = from;
+    let reached = 0;
+    while (reached < segments.length && level.value.kind === 'mapping') {
+      const member = level.value.member(segments[reached]);
+      if (!member) break;
+      level = member;
+      reached++;
+    }
+    let offset: number;
+    let indent: number;
+    const value = level.value;
+    if (value.kind === 'mapping' && value.entries.length > 0) {
+      offset = level.isRoot ? this.text.length : this.lineEndAfter(value.entries[value.entries.length - 1]);
+      indent = value.entries[0].indent;
+    } else if (value.style === 'empty') {
+      offset = level.isRoot ? this.text.length : this.lineEndAfter(level);
+      indent = level.isRoot ? 0 : level.indent + this.step;
+    } else {
+      return undefined;
+    }
+    const lines: string[] = [];
+    for (let i = reached; i < segments.length; i++) {
+      if (segments[i] === '*' || segments[i].startsWith('{')) return undefined;
+      lines.push(`${this.indentation(indent)}${segments[i]}:`);
+      indent += this.step;
+    }
+    return { offset, lines, inside: indent };
   }
 
-  /** The key lines of a new item in `insert.keys` order, then the skeleton's lines. */
+  /**
+   * Removes the heads of the levels above `start` that its removal leaves empty, at most `most`
+   * of them and never the root, outermost first (FBL 0.4, section 6.2). A level is left empty when
+   * everything in it is `going` or is such a level itself.
+   */
+  private removeEmptiedLevels(plan: SplicePlan, start: TreeEntry, most: number, going: (entry: TreeEntry) => boolean): void {
+    const heads: Span[] = [];
+    let emptied: TreeEntry | undefined;
+    let level = start.parent as TreeEntry | undefined;
+    while (heads.length < most && level && !level.isRoot && level.lineSpan) {
+      const within = emptied;
+      if (!level.value.entries.every((entry) => entry === within || going(entry))) break;
+      const first = level.value.entries[0];
+      heads.unshift({ start: level.lineSpan.start, end: (first.lineSpan ?? first.own).start });
+      emptied = level;
+      level = level.parent as TreeEntry | undefined;
+    }
+    for (const head of heads) {
+      if (!plan.touches(head)) plan.addAt('remove-container', head, '');
+    }
+  }
+
+  private item(lines: readonly string[], dash: number, keyIndent: number): string[] {
+    return lines.map((written, index) => {
+      const line = this.nested(written, keyIndent);
+      return index === 0
+        ? `${this.indentation(dash)}-${' '.repeat(Math.max(1, keyIndent - dash - 1))}${line}`
+        : this.indentation(keyIndent) + line;
+    });
+  }
+
+  /**
+   * A key line whose value runs over several lines (a literal block, written relative to column 0)
+   * with its continuation lines moved under the key's indentation; blank ones stay empty.
+   */
+  private nested(line: string, keyIndent: number): string {
+    if (!line.includes('\n')) return line;
+    return line.split('\n').map((part, index) => (index > 0 && trimEndOf(part, '\r').length > 0 ? this.indentation(keyIndent) + part : part)).join('\n');
+  }
+
+  /**
+   * The key lines of a new item in `insert.keys` order, then the skeleton's lines. A constant is written
+   * as it is: at its place in `insert.keys` when they name it, else after the other keys, in the
+   * constant's member order (FBL 0.8 6.2).
+   */
   private itemLines(request: InsertRequest): string[] {
     const rule = request.rule;
     const settings = rule.insert!;
+    const constant = new Map(settings.constant ?? []);
     const lines: string[] = [];
     for (const key of keyOrder(rule, undefined)) {
       if (settings.keys.length > 0 && !settings.keys.includes(key)) continue;
+      if (constant.has(key)) {
+        if (settings.keys.includes(key)) lines.push(`${key}: ${this.scalar(constant.get(key), undefined, undefined, 0)}`);
+        continue;
+      }
       const value = this.wireValue(request, key);
       if (value !== undefined) lines.push(`${key}: ${value}`);
+    }
+    for (const [key, value] of constant) {
+      if (!settings.keys.includes(key)) lines.push(`${key}: ${this.scalar(value, undefined, undefined, 0)}`);
     }
     if (settings.skeleton !== undefined) {
       const rendered = render(settings.skeleton, (name) => {
@@ -354,8 +499,10 @@ export class YamlFamily extends TreeFamily {
     if (rule.target?.key === key && request.target) return this.scalar(request.target.key, undefined, undefined, 0);
     for (const [name, binding] of rule.attributes) {
       if (binding.key !== key || binding.child !== undefined || isComputed(binding)) continue;
+      // An attribute the add does not give has no value; one it gives its empty value has its key by the binding's `empty` (FBL 6.2).
+      if (!request.values.has(name)) continue;
       const value = request.values.get(name);
-      if (!request.values.has(name) || isEmpty(value)) continue;
+      if (isEmpty(value) && !keepsEmpty(binding, value)) continue;
       return this.scalar(wire(binding, value, undefined) ?? value, undefined, binding, 0);
     }
     return undefined;
@@ -365,17 +512,61 @@ export class YamlFamily extends TreeFamily {
     const entry = element.entry as TreeEntry;
     if (entry.isRoot) refuse(messages.wholeFile(this.binding.name));
     const range = entry.lineSpan ?? entry.own;
-    const container = entry.parent as TreeEntry | undefined;
-    if (element.rule.remove?.removeContainerWhenEmpty === true && container && !container.isRoot && container.lineSpan) {
-      const gone = new Set([...removed].map((other) => other.entry));
-      if (container.value.entries.every((sibling) => gone.has(sibling))) {
-        const first = container.value.entries[0];
-        const head = { start: container.lineSpan.start, end: (first.lineSpan ?? first.own).start };
-        if (!plan.touches(head)) plan.addAt('remove-container', head, '');
+    const settings = element.rule.remove;
+    if (settings?.removeContainerWhenEmpty === true) {
+      // The container alone, or with remove-empty-levels every level of its selector that a key
+      // names, counted from the container up to the first level a * or a capture names.
+      let levels = 1;
+      if (settings.removeEmptyLevels === true) {
+        const segments = segmentsOf(element.rule.insert?.container ?? containerOf(element.rule.at));
+        levels = 0;
+        while (levels < segments.length && isKeySegment(segments[segments.length - 1 - levels])) levels++;
       }
+      const all = new Set<Entry>([...removed].map((other) => other.entry));
+      const gone = new Set<Entry>([...removed].filter((other) => other.rule.remove?.removeContainerWhenEmpty === true).map((other) => other.entry));
+      // A sibling container goes too when this edit removes everything in it.
+      this.removeEmptiedLevels(plan, entry, levels, (other) => all.has(other) || (other.value.entries.length > 0 && other.value.entries.every((inner) => gone.has(inner))));
     }
-    plan.addAt('remove-entry', range, '');
+    plan.addAt('remove-entry', this.withoutFinalNewline(range, removed), '');
   }
+
+  /**
+   * The last entry of a body without a final newline, removed with the line ending before it, so
+   * the body still has no final newline, as an insertion after such a line keeps it so (FBL 6.3).
+   * Not when the entry above is removed too, whose span ends where this one starts.
+   */
+  private withoutFinalNewline(range: Span, removed: ReadonlySet<ReadElement>): Span {
+    const bytes = this.text.bytes;
+    if (range.end !== this.text.length || range.start === 0 || bytes[bytes.length - 1] === 0x0a || bytes[range.start - 1] !== 0x0a) return range;
+    for (const other of removed) {
+      if (other.entry instanceof TreeEntry && (other.entry.lineSpan ?? other.entry.own).end === range.start) return range;
+    }
+    let start = range.start - 1;
+    if (start > 0 && bytes[start - 1] === 0x0d) start--;
+    return { start, end: range.end };
+  }
+}
+
+/** The key segments of a selector, without the slashes around them. */
+const segmentsOf = (selector: string): string[] => selector.replace(/^\/+|\/+$/g, '').split('/');
+
+/** Whether a selector's segment names a key, which gives a level its line; `*` and a capture do not. */
+const isKeySegment = (segment: string): boolean => segment.length > 0 && segment !== '*' && !segment.startsWith('{');
+
+/**
+ * A string inside a flow collection: plain only when it is plain-safe and holds none of the flow
+ * indicators `, [ ] { }` nor a `:`, which a flow collection would read as a separator or a
+ * mapping; double-quoted otherwise (FBL 6.3).
+ */
+const flowItem = (value: string): string => (isPlainSafe(value, false) && !/[,[\]{}:]/.test(value) ? value : doubleQuoted(value));
+
+/**
+ * A number or a bool that replaces a quoted scalar which the binding reads from its written text
+ * (`quoted: "convert"`, FBL 5.2) keeps the quotes: a replaced value keeps its style (FBL 6.3).
+ */
+function keepQuotes(written: string, old: TreeValue | undefined, binding: AttributeBinding | undefined): string {
+  if (binding?.convertQuoted !== true) return written;
+  return old?.style === 'double' ? `"${written}"` : old?.style === 'single' ? `'${written}'` : written;
 }
 
 /** The order keys are written in: the rule's `insert.keys`, then its bindings' keys in binding order. */

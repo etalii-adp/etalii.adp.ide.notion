@@ -1,5 +1,5 @@
-// The plug-in's FBL implementation: a host of FBL 0.1 for the yaml, json, xml, lines and blocks
-// families (etalii.adp spec 009; docs/fbl.md). It takes an FBL document and a body as bytes, reads
+// The plug-in's FBL implementation: a host of FBL 0.6 for the yaml, json, xml, lines and blocks
+// families (etalii.adp specs 009 and 027; docs/fbl.md). It takes an FBL document and a body as bytes, reads
 // the body into elements, relations and findings, plans every change as FBL's splices, keeps a
 // history with exact undo and drift refusal, and reads and writes the .adp registration. Offsets
 // are UTF-8 byte offsets, a byte-order mark included. Nothing here names a tool type or a binding,
@@ -13,7 +13,7 @@ export { findingCodes } from './finding';
 export type { Finding, FindingSeverity, SourceLocation } from './finding';
 export { FblModel } from './model';
 export type { FblElement, FblOptions, FblView, IdRequest } from './model';
-export type { ModelChange } from './planning/modelChange';
+export type { ChangePosition, ModelChange } from './planning/modelChange';
 export type { PlanResult } from './planning/plan';
 
 // ---- loading (FBL 14.1, steps 1, 2, 4, 5, 6) ----

@@ -54,6 +54,38 @@ export function isPlainSafe(value: string, timeTyped: boolean): boolean {
   return true;
 }
 
+/**
+ * Whether `value` can be written in plain style, which a kept plain style and an attribute's
+ * `style: "plain"` ask for (FBL 6.3): plain-safe, or a `-` followed by a non-space that is otherwise
+ * plain-safe, which YAML reads as a plain string and not as a sequence entry (`-3200-01`), as long
+ * as it reads back as that string under both schemas.
+ */
+export function isPlainWritable(value: string, timeTyped: boolean): boolean {
+  if (isPlainSafe(value, timeTyped)) return true;
+  if (value.length < 2 || value[0] !== '-' || isWhiteSpace(value[1]) || value.startsWith('---')) return false;
+  if (!isPlainSafe(`x${value.slice(1)}`, timeTyped)) return false;
+  return typeof typed(value) === 'string' && !(yaml11Number.test(value) && [...value].some(isAsciiDigit));
+}
+
+/**
+ * Whether YAML's syntax allows `value` in plain style, whatever a reader would type it as: what
+ * an attribute whose `style` is `plain` and whose slot is read as text is written by, for a format
+ * whose every reader takes the written text (FBL 6.3, FBL 0.5). It is the plain-safe test without
+ * its last part: `yes`, `1.0` and `2026-10-01` are allowed, and so is a `-`, `?` or `:` that a
+ * non-space follows.
+ */
+export function allowsPlain(value: string): boolean {
+  if (value.length === 0) return false;
+  if (isWhiteSpace(value[0]) || isWhiteSpace(value[value.length - 1])) return false;
+  for (const c of value) {
+    if (c === '\n' || c === '\r' || isControl(c)) return false;
+  }
+  if (',[]{}#&*!|>\'"%@`'.includes(value[0])) return false;
+  if ('-?:'.includes(value[0]) && (value.length < 2 || isWhiteSpace(value[1]))) return false;
+  if (value.startsWith('---') || value.startsWith('...')) return false;
+  return !(value.includes(': ') || value.includes(' #') || value.endsWith(':'));
+}
+
 export function doubleQuoted(value: string): string {
   let text = '"';
   for (const c of value) {

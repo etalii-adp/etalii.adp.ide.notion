@@ -315,6 +315,7 @@ export class YamlParser {
     const span = { start: q, end: p };
     this.leaves.push(span);
     const value = new TreeValue('scalar', 'plain', span, target.text, target.typed, target.kind === 'scalar' ? target.flow : celOf(target), true);
+    value.aliasOf = target.aliasOf ?? target;
     if (target.kind === 'mapping') value.merged.push(target);
     return value;
   }

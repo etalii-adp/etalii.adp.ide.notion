@@ -4,9 +4,11 @@ import { decodeDouble, decodeSingle, fold, typed } from './yamlScalars';
 
 /**
  * Reads a YAML flow collection (`[a, b]`, `{k: v}`) into the values CEL sees (FBL 4.3): its members
- * are readable, while its only writable span is the whole collection.
+ * are readable, while its only writable span is the whole collection. `view` says what a member
+ * scalar is read as: its typed value, its written text, or the name of the style it is written in
+ * (FBL 4.1.5, 2.4).
  */
-export function readFlow(text: string): unknown {
+export function readFlow(text: string, view: 'typed' | 'text' | 'style' = 'typed'): unknown {
   let position = 0;
 
   const skip = (): void => {
@@ -39,6 +41,7 @@ export function readFlow(text: string): unknown {
       }
       const inner = text.slice(start, Math.min(position, text.length));
       position++;
+      if (view === 'style' && !key) return c === '"' ? 'double' : 'single';
       return c === '"' ? decodeDouble(inner) : decodeSingle(inner);
     }
     const begin = position;
@@ -48,12 +51,14 @@ export function readFlow(text: string): unknown {
       if (d === ':' && (key || position + 1 >= text.length || ' ,]}'.includes(text[position + 1]))) break;
       position++;
     }
-    return typed(fold(trim(text.slice(begin, position))));
+    const written = fold(trim(text.slice(begin, position)));
+    if (view === 'typed' || key) return typed(written);
+    return view === 'text' ? written : 'plain';
   };
 
   const value = (): unknown => {
     skip();
-    if (position >= text.length) return null;
+    if (position >= text.length) return view === 'typed' ? null : view === 'text' ? '' : 'plain';
     if (text[position] === '[') {
       position++;
       const list: unknown[] = [];
@@ -85,7 +90,7 @@ export function readFlow(text: string): unknown {
         const before = position;
         const key = scalar(true);
         skip();
-        let member: unknown = null;
+        let member: unknown = view === 'typed' ? null : view === 'text' ? '' : 'plain';
         if (text[position] === ':') {
           position++;
           member = value();

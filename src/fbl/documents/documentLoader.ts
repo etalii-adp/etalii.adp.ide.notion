@@ -27,6 +27,9 @@ export interface Loaded {
 
 export const supportedMajor = 0;
 
+/** The newest minor version this library reads with its meaning (FBL 2.7): a newer one loads with a warning. */
+export const supportedMinor = 6;
+
 const error = (pointer: string, message: string): LoadProblem => ({ pointer, severity: 'error', message });
 
 /**
@@ -53,7 +56,7 @@ export function loadDocument(json: Uint8Array, path?: string): Loaded {
   const parts = version.split('.');
   if (parts.length < 2 || !/^[0-9]+$/.test(parts[0]) || !/^[0-9]+$/.test(parts[1])) return { problems: [error('/fbl', messages.notAVersion(version))] };
   if (Number(parts[0]) !== supportedMajor) return { problems: [error('/fbl', messages.versionNotSupported(version, supportedMajor))] };
-  if (Number(parts[1]) > 1) problems.push({ pointer: '/fbl', severity: 'warning', message: messages.versionNewer(version) });
+  if (Number(parts[1]) > supportedMinor) problems.push({ pointer: '/fbl', severity: 'warning', message: messages.versionNewer(version, `${supportedMajor}.${supportedMinor}`) });
   const bindings = memberOf(root, 'bindings');
   if (bindings?.kind !== 'object' || bindings.members.length === 0) {
     problems.push(error('/bindings', messages.noBindings));
@@ -286,6 +289,7 @@ function readRule(json: JsonNode, relation: boolean): Rule {
         : { at: first?.name ?? '', argument: stringOf(first?.value), text: str(createJson, 'text') };
     }
     insert = {
+      // {before: key} is recognised so every family can refuse it; no family places by it yet.
       place: placeJson?.kind === 'object' ? 'before' : stringOf(placeJson) ?? 'end',
       placeBefore: placeJson?.kind === 'object' ? str(placeJson, 'before') : undefined,
       container: str(insertJson, 'container'),
@@ -294,10 +298,14 @@ function readRule(json: JsonNode, relation: boolean): Rule {
       emit: str(insertJson, 'emit'),
       skeleton: str(insertJson, 'skeleton'),
       when: str(insertJson, 'when'),
+      constant: readConstant(memberOf(insertJson, 'constant')),
     };
   }
   const removeJson = memberOf(json, 'remove');
-  const remove: RemoveSettings | undefined = removeJson ? { cascade: strings(removeJson, 'cascade'), removeContainerWhenEmpty: str(removeJson, 'container') === 'remove-when-empty' } : undefined;
+  const emptied = str(removeJson, 'container');
+  const remove: RemoveSettings | undefined = removeJson
+    ? { cascade: strings(removeJson, 'cascade'), removeContainerWhenEmpty: emptied === 'remove-when-empty' || emptied === 'remove-empty-levels', removeEmptyLevels: emptied === 'remove-empty-levels' }
+    : undefined;
   const source = memberOf(json, 'source');
   const target = memberOf(json, 'target');
   return {
@@ -344,10 +352,15 @@ function readAttribute(json: JsonNode): AttributeBinding {
   let create: CreateChild | undefined;
   if (createJson) {
     const place = memberOf(createJson, 'place');
-    create = place?.kind === 'object'
-      ? { emit: str(createJson, 'emit') ?? '', place: 'before', before: str(place, 'before') }
-      : { emit: str(createJson, 'emit') ?? '', place: stringOf(place) ?? 'last' };
+    create = str(createJson, 'at') === 'end'
+      ? { emit: '', place: 'last', atEnd: true }
+      : place?.kind === 'object'
+        ? { emit: str(createJson, 'emit') ?? '', place: 'before', before: str(place, 'before') }
+        : { emit: str(createJson, 'emit') ?? '', place: stringOf(place) ?? 'last' };
   }
+  const read = str(json, 'read');
+  const fallbackJson = memberOf(json, 'fallback');
+  const fallbackValue = memberOf(fallbackJson, 'value');
   const referenceJson = memberOf(json, 'reference');
   const reference: ReferenceBinding | undefined = referenceJson ? { to: strings(referenceJson, 'to'), by: str(referenceJson, 'by') ?? '' } : undefined;
   const override = memberOf(json, 'override');
@@ -365,6 +378,9 @@ function readAttribute(json: JsonNode): AttributeBinding {
     htmlParagraphs: str(json, 'content') === 'html-paragraphs',
     create,
     readOnly: readOnlyOf(json),
+    read: read === 'text' || read === 'typed' ? read : undefined,
+    convertQuoted: str(json, 'quoted') === 'convert',
+    fallback: fallbackValue ? { value: fallbackValue, report: memberOf(fallbackJson, 'report')?.kind !== 'false' } : undefined,
   };
 }
 
@@ -409,7 +425,7 @@ function checkBinding(binding: FblBinding, pointer: string, problems: LoadProble
     }
     for (const name of rule.parent?.rules ?? []) requireRule(name, rules, `${at}/parent/rules`, problems);
     for (const name of rule.remove?.cascade ?? []) requireRule(name, rules, `${at}/remove/cascade`, problems);
-    const context: CelContext = rule.at !== undefined ? 'tree' : 'lines';
+    const context: CelContext = rule.at === undefined ? 'lines' : readAsXmlOnly(binding) ? 'xml' : 'tree';
     compile(rule.when, context, `${at}/when`, problems);
     compile(rule.insert?.when, 'insert', `${at}/insert/when`, problems);
     if (rule.id?.from) checkSlot(rule.id.from, context, `${at}/id/from`, problems);
@@ -418,12 +434,15 @@ function checkBinding(binding: FblBinding, pointer: string, problems: LoadProble
     for (const [name, attribute] of rule.attributes) {
       const a = `${at}/attributes/${pointerToken(name)}`;
       checkSlot(attribute, context, a, problems);
+      checkScalarReading(attribute, context, a, problems);
       for (const to of attribute.reference?.to ?? []) requireRule(to, rules, `${a}/reference/to`, problems);
+      if (attribute.reference?.by === 'id') checkReferenceById(attribute.reference, rules, `${a}/reference/by`, problems);
       if (attribute.override) checkSlot(attribute.override, context, `${a}/override`, problems);
       if (countSlots(attribute) !== 1) problems.push(error(a, messages.oneSlot));
     }
     if (rule.source) checkSlot(rule.source, context, `${at}/source`, problems);
     if (rule.target) checkSlot(rule.target, context, `${at}/target`, problems);
+    if (rule.insert?.constant) checkConstant(binding, rule, rule.insert.constant, `${at}/insert/constant`, problems);
   });
 
   if (!binding.plugin) {
@@ -445,6 +464,82 @@ const countSlots = (slot: Slot): number =>
 function checkSlot(slot: Slot, context: CelContext, pointer: string, problems: LoadProblem[]): void {
   if (slot.value !== undefined) compile(slot.value, context, `${pointer}/value`, problems);
   if (slot.word !== undefined) checkExpression(slot.word, `${pointer}/word`, problems);
+}
+
+/** Whether every reading of the body is the xml family's, which reads text and nothing else (FBL 4.1.5). */
+/** An insert's constant (FBL 0.8 6.2), each member in order, a member that is not a scalar as undefined. */
+function readConstant(json: JsonNode | undefined): InsertSettings['constant'] {
+  if (json?.kind !== 'object') return undefined;
+  return json.members.map((member) => {
+    const value = member.value;
+    switch (value.kind) {
+      case 'string': return [member.name, value.value] as const;
+      case 'number': return [member.name, Number(value.raw)] as const;
+      case 'true': return [member.name, true] as const;
+      case 'false': return [member.name, false] as const;
+      case 'null': return [member.name, null] as const;
+      default: return [member.name, undefined] as const;
+    }
+  });
+}
+
+/**
+ * FBL 0.8 14.1 step 6: an insert's constant is given only in the yaml and json families and never
+ * beside `emit`, its values are scalars, and none of its keys is one the same rule writes, by a
+ * writable attribute binding, `id.from`, `source` or `target`, since a place has one writer (3.3). A
+ * read-only binding may read its key.
+ */
+function checkConstant(binding: FblBinding, rule: Rule, constant: NonNullable<InsertSettings['constant']>, pointer: string, problems: LoadProblem[]): void {
+  const families = familiesOf(binding, rule);
+  if (families.length === 0 || families.some((family) => family !== 'yaml' && family !== 'json')) problems.push(error(pointer, messages.constantFamily));
+  if (rule.insert?.emit !== undefined) problems.push(error(pointer, messages.constantWithEmit));
+  for (const [key, value] of constant) {
+    const at = `${pointer}/${pointerToken(key)}`;
+    if (value === undefined) problems.push(error(at, messages.constantValue));
+    const writer = writerOf(rule, key);
+    if (writer !== undefined) problems.push(error(at, messages.constantWritten(key, writer)));
+  }
+}
+
+/** What of a rule writes the key of its own entry, or undefined when nothing does. */
+function writerOf(rule: Rule, key: string): string | undefined {
+  const writes = (slot: Slot | undefined): boolean => slot?.key === key && slot.child === undefined;
+  if (writes(rule.id?.from)) return 'id.from';
+  if (writes(rule.source)) return 'source';
+  if (writes(rule.target)) return 'target';
+  if (rule.readOnly !== undefined) return undefined;
+  const attribute = rule.attributes.find(([, slot]) => writes(slot) && slot.readOnly === undefined);
+  return attribute ? `attribute '${attribute[0]}'` : undefined;
+}
+
+/** The families a rule reads: those of the file rules it names, else the body's, else those of every file rule. */
+function familiesOf(binding: FblBinding, rule: Rule): string[] {
+  if (rule.files.length > 0) return binding.body.files.filter((file) => file.name !== undefined && rule.files.includes(file.name)).flatMap((file) => file.family ?? []);
+  if (binding.body.family !== undefined) return [binding.body.family];
+  return binding.body.files.flatMap((file) => file.family ?? []);
+}
+
+const readAsXmlOnly = (binding: FblBinding): boolean => binding.body.family === 'xml' && binding.body.alsoRead.every((family) => family === 'xml');
+
+/**
+ * `read`, `quoted` and `fallback` say what a slot reads from a yaml or json scalar (FBL 5.2): they
+ * are not given where the family reads text and nothing else, nor on a `value` or `capture` slot.
+ */
+function checkScalarReading(attribute: AttributeBinding, context: CelContext, pointer: string, problems: LoadProblem[]): void {
+  const given = [attribute.read !== undefined ? 'read' : undefined, attribute.convertQuoted === true ? 'quoted' : undefined, attribute.fallback ? 'fallback' : undefined]
+    .filter((name): name is string => name !== undefined);
+  if (given.length === 0) return;
+  const text = context === 'lines' || context === 'xml';
+  if (!text && attribute.value === undefined && attribute.capture === undefined) return;
+  for (const name of given) problems.push(error(`${pointer}/${name}`, text ? messages.scalarReadingFamily(name) : messages.scalarReadingSlot(name)));
+}
+
+/** A reference by id names rules that store their id with `id.from` (FBL 5.7), unless `id` is an attribute they bind. */
+function checkReferenceById(reference: ReferenceBinding, rules: readonly Rule[], pointer: string, problems: LoadProblem[]): void {
+  for (const name of reference.to) {
+    const rule = rules.find((candidate) => candidate.name === name);
+    if (rule && !rule.id?.from && !rule.attributes.some(([attribute]) => attribute === 'id')) problems.push(error(pointer, messages.referenceByIdNeedsId(name)));
+  }
 }
 
 function requireRule(name: string, rules: readonly Rule[], pointer: string, problems: LoadProblem[]): void {

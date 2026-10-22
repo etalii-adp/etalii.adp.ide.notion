@@ -78,7 +78,7 @@ export const messages = {
   noVersion: 'The document does not say which FBL version it is written in.',
   notAVersion: (version: string) => `'${version}' is not an FBL version.`,
   versionNotSupported: (version: string, major: number) => `FBL ${version} is not supported; this library reads FBL ${major}.x.`,
-  versionNewer: (version: string) => `FBL ${version} is newer than 0.1; what this library does not know is ignored.`,
+  versionNewer: (version: string, known: string) => `FBL ${version} is newer than ${known}; what this library does not know is ignored.`,
   noBindings: 'A document has at least one binding.',
   bindingName: (name: string) => `'${name}' is not a valid binding name.`,
   keyTwice: (name: string) => `The key '${name}' appears twice.`,
@@ -104,6 +104,14 @@ export const messages = {
   sharedClaim: 'A shared claim has a marker or is registrationOnly.',
   oneBare: 'At most one reading is bare.',
   noRule: (name: string) => `No rule is named '${name}'.`,
+  // This host: the checks of FBL 5.2 and 5.7 that standalone's loader does not make.
+  scalarReadingFamily: (name: string) => `'${name}' says what a slot reads from a yaml or json scalar; this family reads text and nothing else (FBL §5.2).`,
+  scalarReadingSlot: (name: string) => `'${name}' is not given on a value or a capture slot (FBL §5.2).`,
+  constantFamily: "An insert's constant is given only in the yaml and json families (FBL 0.8 §6.2).",
+  constantWithEmit: 'An insert has a constant or an emit, not both (FBL 0.8 §6.2).',
+  constantValue: "A constant's value is a string, a number, a boolean or null (FBL 0.8 §6.2).",
+  constantWritten: (key: string, writer: string) => `The constant's key '${key}' is written by the rule's ${writer} too, and a place has one writer (FBL 0.8 §14.1).`,
+  referenceByIdNeedsId: (rule: string) => `A reference by id names '${rule}', which stores no id with id.from (FBL §5.7).`,
 
   // ---- reading a body (FBL 5, 7.4, 7.5) ----
   bodyTooLarge: (bytes: number) => `The body is larger than the ${bytes} bytes this host reads, so it is not read at all.`,
@@ -114,6 +122,13 @@ export const messages = {
   headerRequired: (mark: string) => `The body does not start with the mark the binding requires (${mark}).`,
   headerMismatch: (mark: string) => `The body does not carry the binding's header mark (${mark}); it is read anyway.`,
   entryUnreadable: (reason: string) => `This entry cannot be read: ${reason}`,
+  mistyped: (attribute: string, type: string) => `'${attribute}' is not a ${type}.`,
+  // This host: FBL 7.4's fbl.unconverted-value, which standalone does not report.
+  unconvertedValue: (attribute: string, text: string, type: string) => `'${text}' is not a ${type}, so '${attribute}' is read as the value its binding falls back to; the file keeps what is written.`,
+  unboundKey: (kind: string, name: string) => `The ${kind} '${name}' is not one this file's binding reads; it is kept as it is.`,
+  unboundKeyKind: 'key',
+  unboundAttributeKind: 'attribute',
+  unboundElementKind: 'element',
   noFamily: (binding: string) => `The binding '${binding}' declares no family.`,
   valueComputed: 'The value is computed from the file.',
   valueNotComputed: (problem: string) => `The value cannot be computed: ${problem}`,
@@ -147,6 +162,7 @@ export const messages = {
   yamlNotAList: (selector: string, type: string) => `The ${selector} of this file is not a list a ${type} can be added to.`,
   yamlNoContainer: (container: string) => `The file has no ${container} to add to.`,
   yamlNoPlace: (name: string) => `The file has no place to create ${name} in.`,
+  noPlaceToCreate: (binding: string, child: string) => `The ${binding} file has no place to create ${child} in.`,
   wholeFile: (binding: string) => `The whole ${binding} file cannot be removed.`,
 
   // ---- the json family (FBL 4.4) ----
@@ -229,6 +245,15 @@ export const messages = {
   needsEnd: (type: string, end: string) => `A ${type} needs a ${end}.`,
   endNamesNoElement: (end: string, id: string) => `The ${end} '${id}' names no element.`,
   cannotBeRemoved: (type: string) => `A ${type} cannot be removed from this file.`,
+  cannotRetype: 'This file\'s binding cannot change an element\'s type; only a persistence plugin can.',
+  noIdOfItsOwn: (type: string) => `A ${type} keeps no id of its own in this file.`,
+  hasIdAlready: (type: string) => `This ${type} has an id already.`,
+  cannotBeTheId: (id: string, type: string) => `'${id}' cannot be the id of a ${type} here.`,
+  cannotAddAtPosition: (type: string) => `This file's binding cannot add a ${type} at a position; only a persistence plugin can.`,
+  cannotBeMoved: (type: string) => `A ${type} cannot be moved in this file.`,
+  cannotMoveToAnotherParent: (type: string) => `This file's binding cannot move a ${type} to another parent; only a persistence plugin can.`,
+  // This host: a position that names a sibling the element does not have (FBL 11.2).
+  noSuchSibling: (id: string, type: string) => `'${id}' is not among the siblings of this ${type}.`,
 
   // ---- history (FBL 7) ----
   /** FBL 7.2's sentence for an undo refused because the file changed underneath it. */
@@ -247,6 +272,7 @@ export const messages = {
   bodyAbsolute: 'The registration\'s body is an absolute path, which is never followed.',
   bodyOutside: 'The registration\'s body is outside the workspace, so it is not opened without the user\'s consent.',
   bodyThroughLink: 'The registration\'s body is reached through a link, which is not followed without the user\'s consent.',
+  missingBody: (name: string) => `The body '${name}' does not exist, so the document opens empty and nothing is written until the registration names a file.`,
   layoutFileUnreadable: 'The layout file could not be read, so it is not written.',
   layoutFileNoView: 'The layout file has no view to place the element in.',
   layoutFileViewNotObject: 'The layout file\'s view is not an object.',

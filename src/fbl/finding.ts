@@ -17,14 +17,18 @@ export interface Finding {
   readonly severity: FindingSeverity;
   readonly message: string;
   readonly location: SourceLocation;
+  /** What a host needs beside the sentence: for `fbl.unconverted-value`, the `attribute` and the written `text` (FBL 7.4). */
+  readonly detail?: Readonly<Record<string, string>>;
 }
 
 /** The finding codes FBL defines (FBL 7.4) and the DISL ones it uses (DISL 8.6). */
 export const findingCodes = {
   unboundStatement: 'fbl.unbound-statement',
+  unboundKey: 'fbl.unbound-key',
   danglingReference: 'fbl.dangling-reference',
   headerMismatch: 'fbl.header-mismatch',
   duplicateKey: 'fbl.duplicate-key',
+  unconvertedValue: 'fbl.unconverted-value',
   missingBody: 'fbl.missing-body',
   staleViewData: 'fbl.stale-view-data',
   unknownHeader: 'fbl.unknown-header',

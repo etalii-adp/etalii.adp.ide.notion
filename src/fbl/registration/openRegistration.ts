@@ -133,8 +133,15 @@ export class OpenRegistration extends SplicedFile {
   }
 }
 
+/**
+ * The splices in body order. At one offset an insertion goes before a removal that starts there,
+ * as when a new entry follows the last kept one and a stale entry comes next (FBL 8.5, 8.6).
+ */
 const ordered = (splices: FblSplice[]): FblSplice[] =>
-  splices.map((splice, index) => ({ splice, index })).sort((a, b) => a.splice.start - b.splice.start || a.index - b.index).map(({ splice }) => splice);
+  splices
+    .map((splice, index) => ({ splice, index }))
+    .sort((a, b) => a.splice.start - b.splice.start || a.splice.end - b.splice.end || a.index - b.index)
+    .map(({ splice }) => splice);
 
 /** The spans of the numbers of a layout entry's value, separated by spaces. */
 function numbersIn(text: BodyText, value: Span): Span[] {

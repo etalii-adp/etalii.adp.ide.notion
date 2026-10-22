@@ -47,7 +47,7 @@ export class PluginBody extends SplicedFile {
     const readOnly = this.binding.readOnly;
     if (readOnly !== undefined) return { refused: readOnly.length > 0 ? readOnly : messages.readOnlyFile };
     if (change.kind === 'save') return { planned: { splices: [] } };
-    const result = this.plugin.plan({ files: [{ relativePath: '', bytes: this.bytes }], last: this.last, change, args: this.binding.plugin!.args });
+    const result = this.plugin.plan({ files: [{ relativePath: '', bytes: this.bytes }], last: this.last, change });
     if (!result) throw new Error(messages.pluginNoPlan);
     if ('refused' in result) return { refused: result.refused };
     if (result.planned.some((planned) => planned.file.length > 0)) return { refused: messages.pluginOtherFile };
@@ -79,7 +79,9 @@ export class PluginBody extends SplicedFile {
         unreadable: false,
       };
     }
-    return this.plugin.read({ files: [{ relativePath: '', bytes: this.bytes }], args: this.binding.plugin!.args });
+    const files = [{ relativePath: '', bytes: this.bytes }];
+    const args = this.binding.plugin!.args;
+    return this.plugin.read(args === undefined ? { files } : { files, args });
   }
 
   protected reread(): void {
